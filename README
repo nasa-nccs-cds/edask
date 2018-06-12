@@ -1,0 +1,5 @@
+To install, add the following pacakges to the edas conda env:
+
+>> conda install -c anaconda netcdf4 paramiko
+>> conda install xarray dask bottleneck 
+
