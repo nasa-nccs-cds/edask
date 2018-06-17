@@ -16,7 +16,7 @@ try:
 
     print "READ " + collection
 
-    collection = Collection.get( collection )
+    collection = Collection.new( collection )
     ds_m = xr.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
 
     print "COMPUTE MEAN, Result:"
