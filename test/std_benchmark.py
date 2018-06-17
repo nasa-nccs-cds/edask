@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import time
+import time, traceback
 from dask.distributed import Client
 
 print "STARTUP"
+client = None
 dataset_month = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/01/*.nc4'
 dataset_year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/*/*.nc4'
 dataset_35year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/*/*/*.nc4'
@@ -27,6 +28,10 @@ try:
 
     print " Completed computation in " + str(time.time() - start) + " seconds"
 
+
+except Exception:
+    traceback.print_exc()
+
 finally:
     print "SHUTDOWN"
-    client.close()
+    if client: client.close()
