@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import time
+import time, traceback
 from dask.distributed import Client
 from edask.dataCollection import Collection
 
 print "STARTUP"
+client = None
 start = time.time()
 collection = "cip_merra2_mth"
 varName = 'KE'
@@ -25,6 +26,9 @@ try:
 
     print " Completed computation in " + str(time.time() - start) + " seconds"
 
+except Exception:
+    traceback.print_exc()
+
 finally:
     print "SHUTDOWN"
-    client.close()
+    if client: client.close()
