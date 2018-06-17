@@ -17,12 +17,14 @@ try:
     print "READ " + collection
 
     collection = Collection.new( collection )
-    ds_m = xr.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
+    ds = xr.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
 
     print "COMPUTE MEAN, Result:"
 
-    #    print ds_m.KE.mean(dim='time').mean(dim='lon').mean(dim='lat').values
-    print ds_m.KE.mean().values
+    lat_bnds, lon_bnds = [40, 43], [-96, -89]              # use CONUS bounds
+    ds.sel(lat=slice(*lat_bnds), lon=slice(*lon_bnds))
+
+    print ds.KE.mean().values
 
     print " Completed computation in " + str(time.time() - start) + " seconds"
 

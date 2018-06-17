@@ -1,5 +1,6 @@
 import os, datetime
 import sortedcontainers
+import numpy as np
 from netCDF4 import MFDataset, Variable
 
 def parse_dict( dict_spec ):
@@ -79,6 +80,10 @@ class Axis:
        self.units = args[4].strip()
        self.bounds = [ float(args[5].strip()), float(args[6].strip()) ]
 
+   def getIndexList( self, dset, min_value, max_value ):
+        values = dset.variables[self.name][:]
+        return np.where((values > min_value) & (values < max_value))
+
 class File:
 
     def __init__(self, _collection, *args ):
@@ -120,6 +125,9 @@ class Aggregation:
 
     def parm(self, key ):
         return self.parms.get( key, "" )
+
+    def getAxis( self, atype ):
+        return next((x for x in self.axes.values() if x.type == atype), None)
 
     def fileList(self):
         # type: () -> list[File]
