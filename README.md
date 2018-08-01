@@ -6,9 +6,9 @@
 
 To install:
 ```
-    > conda create -n edask -c cdat/label/v80 -c conda-forge -c cdat python=3.6 cdat 
+    > conda create -n edask -c cdat/label/v80 -c conda-forge -c cdat python=3.6 cdms2 cdutil 
     > conda activate edask
-    > conda install xarray dask bottleneck paramiko distributed
+    > conda install dask xarray bottleneck paramiko netCDF4
 ```
 
 
