@@ -211,74 +211,75 @@ class EDASPortal:
 
 
     def sendArrayData( self, clientId: str, rid: str, origin: list[int], shape: list[int], data: bytes, metadata: dict[str,str] ):
-        logger.debug( String.format("@@ Portal: Sending response data to client for rid %s, nbytes=%d", rid, data.length ));
-        List<String> array_header_fields = Arrays.asList( "array", rid, ia2s(origin), ia2s(shape), m2s(metadata), "1" );
-        String array_header = StringUtils.join(array_header_fields,"|");
-        List<String> header_fields = Arrays.asList( rid, "array", array_header );
-        String header = StringUtils.join(header_fields,"!");
-        logger.debug("Sending header: " + header);
-        responder.sendDataPacket( new DataPacket( clientId, rid, header, data ) );
-    }
+        logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
+        array_header_fields = [ "array", rid, ia2s(origin), ia2s(shape), m2s(metadata), "1" ]
+        array_header = "|".join(array_header_fields)
+        header_fields = [ rid, "array", array_header ]
+        header = "!".join(header_fields)
+        logger.debug("Sending header: " + header)
+        responder.sendDataPacket( DataPacket( clientId, rid, header, data ) )
 
-    public String sendFile( String clientId, String jobId, String name, String filePath, Boolean sendData  ) {
-        logger.debug( String.format("Portal: Sending file data to client for %s, filePath=%s", name, filePath ));
-        File file = new File(filePath);
-        ArrayList<String> file_header_fields = new ArrayList<>( Arrays.asList( "array", jobId, name, file.getName() ) );
-        if( !sendData ) { file_header_fields.add(filePath); }
-        String file_header = StringUtils.join( file_header_fields, "|" );
-        List<String> header_fields = Arrays.asList( jobId,"file", file_header );
-        String header = StringUtils.join(header_fields,"!");
-        try {
-            byte[] data = sendData ? Files.toByteArray( file ) : null;
-            logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
-            responder.sendDataPacket( new DataPacket( clientId, jobId, header, data ) );
-            logger.debug("Done sending file data packet: " + header);
-        } catch ( IOException ex ) {
-            logger.info( "Error sending file : " + filePath + ": " + ex.toString() );
-        }
-        return file.getName();
-    }
 
-    public abstract Message execUtility( String[] utilSpec );
-    public abstract Response execute( String[] taskSpec );
-    public abstract void shutdown();
-    public abstract Message getCapabilities( String[] utilSpec );
-    public abstract Message describeProcess( String[] utilSpec );
+    def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
+        logger.debug( "Portal: Sending file data to client for %s, filePath=%s".format( name, filePath ) )
+        file = open(filePath)
+        file_header_fields = [ "array", jobId, name, file.getName() ]
+        if not sendData: file_header_fields.append(filePath)
+        file_header = "|".join( file_header_fields )
+        header_fields = [ jobId,"file", file_header ]
+        header = "!".join(header_fields)
+        try:
+            data =  bytes(file.read()) if sendData else None
+            self.logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
+            self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
+            self.logger.debug("Done sending file data packet: " + header)
+        except IOException as ex:
+            self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
+        return file.name
 
-    public String sendResponseMessage( Response msg ) {
-        List<String> request_args = Arrays.asList( msg.id(), msg.message() );
-        String packaged_msg = StringUtils.join( request_args,  "!" );
-        String timeStamp = timeFormatter.format( Calendar.getInstance().getTime() );
-        logger.info( String.format( "@@ Sending response %s on request_socket @(%s): %s", msg.responseId, timeStamp, msg.toString() ) );
-        request_socket.send( packaged_msg.getBytes(),0 );
-        return packaged_msg;
-    }
 
-    public static String getCurrentStackTrace() {
-        try{ throw new Exception("Current"); } catch(Exception ex)  {
-            Writer result = new StringWriter();
-            PrintWriter printWriter = new PrintWriter(result);
-            ex.printStackTrace(printWriter);
-            return result.toString();
-        }
-    }
+    def execUtility( self, utilSpec: list[str] ) -> Message: pass
+    def execute( self, taskSpec: list[str] ) -> Response: pass
+    def shutdown( self ): pass
+    def getCapabilities( self, utilSpec: list[str] ) -> Message: pass
+    def describeProcess( self, utilSpec: list[str] ) -> Message: pass
 
-    public String getHostInfo() {
-        try {
+    def sendResponseMessage( self, msg: Response ) -> str:
+        request_args = [ msg.id(), msg.message() ]
+        packaged_msg = "!".join( request_args )
+        timeStamp =  datetime.datetime.now().strftime("MM/dd HH:mm:ss")
+        self.logger.info( "@@ Sending response %s on request_socket @(%s): %s".format( msg.responseId, timeStamp, msg.toString() ) )
+        self.request_socket.send( bytes(packaged_msg), 0 )
+        return packaged_msg
+
+
+    # public static String getCurrentStackTrace() {
+    #     try{ throw new Exception("Current"); } catch(Exception ex)  {
+    #         Writer result = new StringWriter();
+    #         PrintWriter printWriter = new PrintWriter(result);
+    #         ex.printStackTrace(printWriter);
+    #         return result.toString();
+    #     }
+    # }
+
+    def getHostInfo(self) -> str:
+        try:
             InetAddress ip = InetAddress.getLocalHost();
-            return String.format( "%s (%s)", ip.getHostName(), ip.getHostAddress() );
-        } catch (UnknownHostException e) { return "UNKNOWN"; }
-    }
+            return  "%s (%s)".format( ip.getHostName(), ip.getHostAddress() )
+        except UnknownHostException as e:
+            return "UNKNOWN"
 
-    public void run() {
-        String parts[] = {"","",""};
-        while( active ) try {
-            logger.info( String.format( "Listening for requests on port: %d, host: %s",  request_port, getHostInfo() ) );
+
+    def run(self):
+        parts = ["","",""]
+        while self.active:
+          try:
+            self.logger.info(  "Listening for requests on port: %d, host: %s".format(  request_port, getHostInfo() ) )
             String request_header = new String(request_socket.recv(0)).trim();
             parts = request_header.split("[!]");
             responder.registerClient( parts[0] );
             try {
-                String timeStamp = timeFormatter.format(Calendar.getInstance().getTime());
+                timeStamp = datetime.datetime.now().strftime("MM/dd HH:mm:ss")
                 logger.info(String.format("  ###  Processing %s request: %s @(%s)", parts[1], request_header, timeStamp));
                 if (parts[1].equals("execute")) {
                     sendResponseMessage(execute(parts));
