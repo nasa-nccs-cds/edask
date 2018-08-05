@@ -9,13 +9,13 @@ MB = 1024 * 1024
 class Response:
 
     def __init__(self, _rtype: str, _clientId: str, _responseId: str ):
-        self.clientId = _clientId;
-        self.responseId = _responseId;
-        self.rtype = _rtype;
-        self._body = None;
+        self.clientId = _clientId
+        self.responseId = _responseId
+        self.rtype = _rtype
+        self._body = None
 
     def id(self) -> str:
-        return self.clientId + ":" + self.responseId;
+        return self.clientId + ":" + self.responseId
 
     def message(self) -> str: return self._body;
 
@@ -25,7 +25,7 @@ class Message ( Response ):
         super(Message, self).__init__( "message", _clientId, _responseId )
         self._body = _message
 
-    def toString(self) -> str: return "Message[" + id() + "]: " + self._body
+    def toString(self) -> str: return "Message[" + self.id() + "]: " + self._body
 
 
 class ErrorReport(Response):
@@ -34,7 +34,7 @@ class ErrorReport(Response):
         super(ErrorReport, self).__init__( "error", clientId, _responseId )
         self._body = _message
 
-    def toString(self) -> str: return "ErrorReport[" + id() + "]: " + self._body
+    def toString(self) -> str: return "ErrorReport[" + self.id() + "]: " + self._body
 
 
 class DataPacket(Response):
@@ -42,7 +42,7 @@ class DataPacket(Response):
     def __init__( self,  clientId: str,  responseId: str,  header: str, data: bytes = b""  ):
         super(DataPacket, self).__init__( "data", clientId, responseId )
         self._body =  header
-        self._data = data;
+        self._data = data
 
     def hasData(self) -> bool:
         return len( self._data ) > 0
@@ -51,13 +51,13 @@ class DataPacket(Response):
         return bytes( self.clientId + ":" + self._body )
 
     def getHeaderString(self) -> str:
-        return self._body;
+        return self._body
 
     def getTransferData(self) -> bytes:
         return bytes(self.clientId) + self._data
 
     def getRawData(self) -> bytes:
-        return self._data;
+        return self._data
 
     def toString(self) -> str: return \
         "DataPacket[" + self._body + "]"
@@ -78,7 +78,7 @@ class Responder(Thread):
         self.client_address = _client_address
 
     def registerClient( self, client: str ):
-        self.clients.add(client);
+        self.clients.add(client)
 
     def sendResponse( self, msg: Response  ):
         self.logger.info( "Post Message to response queue: " + str(msg) )
@@ -91,27 +91,27 @@ class Responder(Thread):
     def doSendResponse( self, socket: zmq.Socket,  r: Response ):
         if( r.rtype == "message" ):
             packaged_msg = self.doSendMessage( socket, r )
-            dateTime =  datetime.datetime.now();
+            dateTime =  datetime.datetime.now()
             self.logger.info( " Sent response: " + r.id() + " (" + dateTime.strftime("MM/dd HH:mm:ss") + "), content sample: " + packaged_msg.substring( 0, min( 300, packaged_msg.length() ) ) );
         elif( r.rtype == "data" ):
             self.doSendDataPacket( socket, r )
         elif( r.rtype == "error" ):
                 self.doSendErrorReport( socket, r )
         else:
-            self.logger.error( "Error, unrecognized response type: " + r.rtype );
+            self.logger.error( "Error, unrecognized response type: " + r.rtype )
             self.doSendErrorReport( socket, ErrorReport( r.clientId, r.responseId, "Error, unrecognized response type: " + r.rtype ) )
 
     def doSendMessage(self, socket: zmq.Socket, msg: Message):
         request_args = [ msg.id(), "response", msg.message() ]
         packaged_msg = "!".join( request_args )
         socket.send( bytes(packaged_msg) )
-        return packaged_msg;
+        return packaged_msg
 
     def doSendErrorReport( self, socket: zmq.Socket, msg: ErrorReport  ):
         request_args = [ msg.id(), "error", msg.message() ]
         packaged_msg = "!".join( request_args )
         socket.send( bytes(packaged_msg) )
-        return packaged_msg;
+        return packaged_msg
 
     def doSendDataPacket( self, socket: zmq.Socket, dataPacket: DataPacket ):
         socket.send( dataPacket.getTransferHeader() )
@@ -161,14 +161,14 @@ class Responder(Thread):
         self.close_connection( socket )
 
     def term( self ):
-        self.logger.info("Terminating responder thread");
+        self.logger.info("Terminating responder thread")
         self.active = False
 
     def close_connection( self, socket: zmq.Socket ):
         try:
             for response in self.executing_jobs.values():
                 self.doSendErrorReport( socket, ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") );
-            socket.close();
+            socket.close()
         except Exception: pass
 
 
@@ -180,10 +180,10 @@ class EDASPortal:
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
         self.logger =  logging.getLogger("portal")
         try:
-            self.request_port = request_port;
-            self.zmqContext: zmq.Context = zmq.context(1);
-            self.request_socket: zmq.Socket = self.zmqContext.socket(zmq.REP);
-            self.responder = Responder( self.zmqContext, client_address, response_port);
+            self.request_port = request_port
+            self.zmqContext: zmq.Context = zmq.Context()
+            self.request_socket: zmq.Socket = self.zmqContext.socket(zmq.REP)
+            self.responder = Responder( self.zmqContext, client_address, response_port)
             self.responder.setDaemon(True)
             self.responder.start()
             self.active = True
@@ -211,7 +211,7 @@ class EDASPortal:
 
     def sendArrayData( self, clientId: str, rid: str, origin: list[int], shape: list[int], data: bytes, metadata: dict[str,str] ):
         self.logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
-        array_header_fields = [ "array", rid, ia2s(origin), ia2s(shape), m2s(metadata), "1" ]
+        array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
         header = "!".join(header_fields)
@@ -278,7 +278,7 @@ class EDASPortal:
             self.responder.registerClient( parts[0] )
             try:
                 timeStamp = datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-                self.logger.info(String.format("  ###  Processing %s request: %s @(%s)", parts[1], request_header, timeStamp) )
+                self.logger.info( "  ###  Processing %s request: %s @(%s)".format( parts[1], request_header, timeStamp) )
                 if parts[1] == "execute":
                     self.sendResponseMessage( self.execute(parts) )
                 elif parts[1] == "util":
@@ -319,12 +319,12 @@ class EDASPortal:
         self.shutdown()
         self.logger.info( "shutdown complete")
 
-    def ia2s( array: list[int] ) -> str:
+    def ia2s( self, array: list[int] ) -> str:
         return str(array).strip("[]")
 
-    def sa2s( array: list[str] ) -> str:
+    def sa2s( self, array: list[str] ) -> str:
         return ",".join(array)
 
-    def m2s( metadata: dict[str,str] ) -> str:
+    def m2s( self, metadata: dict[str,str] ) -> str:
         items = [ ":".join(item) for item in metadata.items() ]
         return ";".join(items)

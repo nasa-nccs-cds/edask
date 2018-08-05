@@ -4,7 +4,7 @@ import xarray as xr
 import time, traceback
 from dask.distributed import Client
 
-print "STARTUP"
+print ( "STARTUP" )
 client = None
 dataset_month = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/01/*.nc4'
 dataset_year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/*/*.nc4'
@@ -17,21 +17,21 @@ dataset = dataset_35year
 try:
     client = Client( 'cldradn101:8786' )
 
-    print "READ " + dataset
+    print( "READ " + dataset )
     
     ds_m=xr.open_mfdataset( dataset, autoclose=True, data_vars=['KE'], parallel=True ) 
 
-    print "COMPUTE MEAN, Result:"
+    print( "COMPUTE MEAN, Result:" )
 
 #    print ds_m.KE.mean(dim='time').mean(dim='lon').mean(dim='lat').values
-    print ds_m.KE.mean().values
+    print( ds_m.KE.mean().values )
 
-    print " Completed computation in " + str(time.time() - start) + " seconds"
+    print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
 
 except Exception:
     traceback.print_exc()
 
 finally:
-    print "SHUTDOWN"
+    print( "SHUTDOWN" )
     if client: client.close()
