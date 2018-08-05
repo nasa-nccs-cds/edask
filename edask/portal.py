@@ -1,9 +1,8 @@
-import zmq, traceback, time, logging, xml, cdms2
+import zmq, traceback, time, logging, xml, cdms2, socket
 from threading import Thread
 from cdms2.variable import DatasetVariable
 from random import SystemRandom
 import random, string, os, queue, datetime
-import defusedxml
 from enum import Enum
 MB = 1024 * 1024
 
@@ -211,17 +210,17 @@ class EDASPortal:
 
 
     def sendArrayData( self, clientId: str, rid: str, origin: list[int], shape: list[int], data: bytes, metadata: dict[str,str] ):
-        logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
+        self.logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
         array_header_fields = [ "array", rid, ia2s(origin), ia2s(shape), m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
         header = "!".join(header_fields)
-        logger.debug("Sending header: " + header)
-        responder.sendDataPacket( DataPacket( clientId, rid, header, data ) )
+        self.logger.debug("Sending header: " + header)
+        self.responder.sendDataPacket( DataPacket( clientId, rid, header, data ) )
 
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
-        logger.debug( "Portal: Sending file data to client for %s, filePath=%s".format( name, filePath ) )
+        self.logger.debug( "Portal: Sending file data to client for %s, filePath=%s".format( name, filePath ) )
         file = open(filePath)
         file_header_fields = [ "array", jobId, name, file.getName() ]
         if not sendData: file_header_fields.append(filePath)
@@ -233,7 +232,7 @@ class EDASPortal:
             self.logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
             self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
             self.logger.debug("Done sending file data packet: " + header)
-        except IOException as ex:
+        except Exception as ex:
             self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
         return file.name
 
@@ -264,75 +263,68 @@ class EDASPortal:
 
     def getHostInfo(self) -> str:
         try:
-            InetAddress ip = InetAddress.getLocalHost();
-            return  "%s (%s)".format( ip.getHostName(), ip.getHostAddress() )
-        except UnknownHostException as e:
+            hostname = socket.gethostname()
+            address = socket.gethostbyname(hostname)
+            return  "%s (%s)".format( hostname, address )
+        except Exception as e:
             return "UNKNOWN"
 
 
     def run(self):
-        parts = ["","",""]
         while self.active:
-          try:
-            self.logger.info(  "Listening for requests on port: %d, host: %s".format(  request_port, getHostInfo() ) )
-            String request_header = new String(request_socket.recv(0)).trim();
-            parts = request_header.split("[!]");
-            responder.registerClient( parts[0] );
-            try {
+            self.logger.info(  "Listening for requests on port: %d, host: %s".format( self.request_port, self.getHostInfo() ) )
+            request_header = str( self.request_socket.recv(0) ).strip()
+            parts = request_header.split("!")
+            self.responder.registerClient( parts[0] )
+            try:
                 timeStamp = datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-                logger.info(String.format("  ###  Processing %s request: %s @(%s)", parts[1], request_header, timeStamp));
-                if (parts[1].equals("execute")) {
-                    sendResponseMessage(execute(parts));
-                } else if (parts[1].equals("util")) {
-                    sendResponseMessage(execUtility(parts));
-                } else if (parts[1].equals("quit") || parts[1].equals("shutdown")) {
-                    sendResponseMessage(new Message(parts[0], "quit", "Terminating"));
-                    logger.info("Received Shutdown Message");
-                    System.exit(0);
-                } else if (parts[1].toLowerCase().equals("getcapabilities")) {
-                    sendResponseMessage(getCapabilities(parts));
-                } else if (parts[1].toLowerCase().equals("describeprocess")) {
-                    sendResponseMessage(describeProcess(parts));
-                } else {
-                    String msg = "Unknown request header type: " + parts[1];
-                    logger.info(msg);
-                    sendResponseMessage(new Message(parts[0], "error", msg));
-                }
-            } catch ( Exception ex ) {   // TODO: COnvert to Java
-//                String clientId = elem(taskSpec,0)
-//                val runargs = getRunArgs( taskSpec )
-//                String jobId = runargs.getOrElse("jobId",randomIds.nextString)
-//                sendResponseMessage( error_response );
-            }
-        } catch ( Exception ex ) {
-            logger.info( "Request Communication error: Shutting down." );
-            active = false;
-        }
-        logger.info( "EXIT EDASPortal");
-    }
+                self.logger.info(String.format("  ###  Processing %s request: %s @(%s)", parts[1], request_header, timeStamp) )
+                if parts[1] == "execute":
+                    self.sendResponseMessage( self.execute(parts) )
+                elif parts[1] == "util":
+                    self.sendResponseMessage( self.execUtility(parts));
+                elif parts[1] == "quit" or parts[1] == "shutdown":
+                    self.sendResponseMessage( Message(parts[0], "quit", "Terminating") )
+                    self.logger.info("Received Shutdown Message")
+                    exit(0)
+                elif parts[1].lower() == "getcapabilities":
+                    self.sendResponseMessage( self.getCapabilities(parts) )
+                elif parts[1].lower() == "describeprocess":
+                    self.sendResponseMessage( self.describeProcess(parts) )
+                else:
+                    msg = "Unknown request header type: " + parts[1]
+                    self.logger.info(msg)
+                    self.sendResponseMessage( Message(parts[0], "error", msg) )
+            except Exception as ex:
+                # clientId = elem( self.taskSpec, 0 )
+                # runargs = self.getRunArgs( self.taskSpec )
+                # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
+                error_response = str(ex)
+                self.sendResponseMessage( error_response )
 
 
-    public void term(String msg) {
-        logger.info( "!!EDAS Shutdown: " + msg );
-        active = false;
-        try { CollectionLoadServices.term(); }  catch ( Exception ex ) { ; }
-        PythonWorkerPortal.getInstance().quit();
-        logger.info( "QUIT PythonWorkerPortal");
-        try { request_socket.close(); }  catch ( Exception ex ) { ; }
-        logger.info( "CLOSE request_socket");
-        responder.term();
-        logger.info( "TERM responder");
-        shutdown();
-        logger.info( "shutdown complete");
-    }
+        self.logger.info( "EXIT EDASPortal");
 
-    public String ia2s( int[] array ) { return Arrays.toString(array).replaceAll("\\[|\\]|\\s", ""); }
-    public String sa2s( String[] array ) { return StringUtils.join(array,","); }
-    public String m2s( Map<String, String> metadata ) {
-        ArrayList<String> items = new ArrayList<String>();
-        for (Map.Entry<String,String> entry : metadata.entrySet() ) {
-            items.add( entry.getKey() + ":" + entry.getValue() );
-        }
-        return StringUtils.join(items,";" );
-    }
-}
+
+
+    def term( self, msg ):
+        self.logger.info( "!!EDAS Shutdown: " + msg )
+        self.active = False
+        self.logger.info( "QUIT PythonWorkerPortal")
+        try: self.request_socket.close()
+        except Exception: pass
+        self.logger.info( "CLOSE request_socket")
+        self.responder.term()
+        self.logger.info( "TERM responder")
+        self.shutdown()
+        self.logger.info( "shutdown complete")
+
+    def ia2s( array: list[int] ) -> str:
+        return str(array).strip("[]")
+
+    def sa2s( array: list[str] ) -> str:
+        return ",".join(array)
+
+    def m2s( metadata: dict[str,str] ) -> str:
+        items = [ ":".join(item) for item in metadata.items() ]
+        return ";".join(items)
