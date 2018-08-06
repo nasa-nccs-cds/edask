@@ -6,6 +6,10 @@ import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
 
+class ExecutionCallback:
+  def success( results: xml.Node  ): pass
+  def failure( msg: str ): pass
+
 class Response:
 
     def __init__(self, _rtype: str, _clientId: str, _responseId: str ):
@@ -199,6 +203,10 @@ class EDASPortal:
         except Exception as err:
             self.logger.error( "Error initializing request socket on port %d: %s".format( request_port, err ) )
 
+
+    def randomStr(self, length )-> str:
+        tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        return ''.join( random.SystemRandom().choice( tokens ) for _ in range( length ) )
 
     def sendErrorReport( self, clientId: str, responseId: str, msg: str ):
         self.logger.info("-----> SendErrorReport[" + clientId +":" + responseId + "]" )
