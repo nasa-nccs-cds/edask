@@ -1,8 +1,7 @@
-import numpy as np
-import pandas as pd
+import dask
+from dask.distributed import Client
 import xarray as xr
 import time, traceback
-from dask.distributed import Client
 from xarray.ufuncs import cos
 
 if __name__ == '__main__':
@@ -25,8 +24,8 @@ if __name__ == '__main__':
         print( "Var shape:" + str(variable.shape) )
         print( "weighted_var shape:" + str(weighted_var.shape) )
         sum = weighted_var.sum(['time','lon','lat'])
-        norm = weights * variable.count( 'lon')  * variable.dims['time']
-        mean: xr.DataArray =  sum / norm
+        norm = weights * variable.count( ['lon','time'] )
+        mean: xr.DataArray =  sum / norm.sum()
 
         print( "COMPUTE MEAN, Result:" + str( mean.values ) )
 

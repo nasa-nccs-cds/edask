@@ -14,6 +14,7 @@ To install:
     > conda activate edask
     > conda install dask xarray bottleneck paramiko netCDF4 defusedxml
     > conda install -c anaconda zeromq
+    > conda install dask distributed -c conda-forge
 ```
 
 
