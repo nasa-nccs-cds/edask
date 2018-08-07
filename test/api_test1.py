@@ -16,7 +16,7 @@ if __name__ == '__main__':
     try:
         client = Client()
 
-        print( "READ " + dataset )
+        print( "READ " +   dataset )
 
         ds_m = xr.open_mfdataset(dataset, autoclose=True, data_vars=['tas'], parallel=True)
         variable: xr.DataArray = ds_m["tas"]
