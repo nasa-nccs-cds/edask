@@ -2,6 +2,10 @@
 
 ##### Earth data analytics using the Dask / XArray toolkit.
 
+  *NOTE: THIS IS A DEVELOPMENTAL PROJECT.*
+  
+  *NO LEVEL OF FUNCTIONALITY SHOULD BE ASSUMED.*
+
 #### Installation
 
 To install:

@@ -1,6 +1,7 @@
 from typing import Dict, Any, Union
 
-import zmq, traceback, time, logging, xml, cdms2, socket
+import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml
+from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
 from cdms2.variable import DatasetVariable
 from random import SystemRandom
@@ -75,7 +76,7 @@ class EDASapp(EDASPortal):
           if( responseToks[0].lower() == "collection" and len(responseToks) > 1  ): new_runargs["cid"] = responseToks[-1]
           return new_runargs
 
-    def defaultResponseType( runargs:  Dict[str, Any] )-> str:
+    def defaultResponseType( self, runargs:  Dict[str, Any] )-> str:
          status = bool(str(runargs.get("status","false")))
          return "file" if status else "xml"
 
@@ -91,60 +92,58 @@ class EDASapp(EDASPortal):
         responseType = runargs.get("response","file")
 
 
-        try {
-          val (rid, responseElem) = processManager.executeProcess( process, Job(jobId, process_name, dataInputsSpec, runargs, 1f ), Some(executionCallback) )
-          new Message(clientId, jobId, printer.format(responseElem))
-        } catch  {
-          case e: Throwable =>
-            logger.error( "Caught execution error: " + e.getMessage )
-            logger.error( "\n" + e.getStackTrace().mkString("\n") )
-            executionCallback.failure( e.getMessage )
-            new ErrorReport( clientId, jobId, e.getClass.getSimpleName + ": " + e.getMessage )
+        try:
+          (rid, responseElem) = processManager.executeProcess( process, Job(jobId, process_name, dataInputsSpec, runargs, 1f ), Some(executionCallback) )
+          return Message(clientId, jobId, responseElem )
+        except Exception as err:
+            self.logger.error( "Caught execution error: " + str(err) )
+            self.logger.error( "\n" + err.getStackTrace().mkString("\n") )
+            self.executionCallback.failure( str(err) )
+            return ErrorReport( clientId, jobId, str(err) )
 
-  def sendErrorReport( response_format: ResponseSyntax.Value, clientId: String, responseId: String, exc: Exception ): Unit = {
-    val err = new WPSExceptionReport(exc)
-    sendErrorReport( clientId, responseId, printer.format( err.toXml(response_format) ) )
-  }
+    def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):
+        err = WPSExceptionReport(exc)
+        self.sendErrorReport( clientId, responseId, err.toXml() )
 
-  def sendErrorReport( taskSpec: Array[String], exc: Exception ): Unit = {
-    val clientId = taskSpec(0)
-    val runargs = getRunArgs( taskSpec )
-    val syntax = getResponseSyntax(runargs)
-    val err = new WPSExceptionReport(exc)
-    sendErrorReport( clientId, "requestError", printer.format( err.toXml(syntax) ) )
-  }
+    def sendErrorReport( self, taskSpec: list[str], exc: Exception ):
+        clientId = taskSpec[0]
+        runargs = self.getRunArgs( taskSpec )
+        syntax = self.getResponseSyntax(runargs)
+        err = WPSExceptionReport(exc)
+        return self.sendErrorReport( clientId, "requestError", err.toXml() )
 
-  override def shutdown = processManager.term
 
-  def sendDirectResponse( response_format: ResponseSyntax.Value, clientId: String, responseId: String, response: xml.Node ): Map[String,String] =  {
-    val refs: xml.NodeSeq = response \\ "data"
-    val resultHref = refs.flatMap( _.attribute("href") ).find( _.nonEmpty ).map( _.text ) match {
-      case Some( href ) =>
-        val rid = href.split("[/]").last
-        logger.info( "\n\n     **** Found result Id: " + rid + " ****** \n\n")
-        processManager.getResultVariable("edas",rid) match {
-          case Some( resultVar ) =>
-            val slice: CDRecord = resultVar.result.concatSlices.records.head
-            slice.elements.foreach { case ( id, array ) =>
-              sendArrayData( clientId, rid, array.origin, array.shape, array.toByteArray, resultVar.result.metadata  + ( "elem" -> id ) )  // + ("gridfile" -> gridfilename)
+    def shutdown(self):
+        self.processManager.term()
+
+    def sendDirectResponse( self, clientId: str, responseId: str, response: Element ) -> Dict[str,str]:
+        refs: list[Element] = response.findall( "data" )
+        val resultHref = refs.flatMap( _.attribute("href") ).find( _.nonEmpty ).map( _.text ) match {
+          case Some( href ) =>
+            val rid = href.split("[/]").last
+            logger.info( "\n\n     **** Found result Id: " + rid + " ****** \n\n")
+            processManager.getResultVariable("edas",rid) match {
+              case Some( resultVar ) =>
+                val slice: CDRecord = resultVar.result.concatSlices.records.head
+                slice.elements.foreach { case ( id, array ) =>
+                  sendArrayData( clientId, rid, array.origin, array.shape, array.toByteArray, resultVar.result.metadata  + ( "elem" -> id ) )  // + ("gridfile" -> gridfilename)
+                }
+
+    //            var gridfilename = ""
+    //            resultVar.result.slices.foreach { case (key, data) =>
+    //              if( gridfilename.isEmpty ) {
+    //                val gridfilepath = data.metadata("gridfile")
+    //                gridfilename = sendFile( clientId, rid, "gridfile", gridfilepath, true )
+    //              }
+              case None =>
+                logger.error( "Can't find result variable " + rid)
+                sendErrorReport( response_format, clientId, rid, new Exception( "Can't find result variable " + rid + " in [ " + processManager.getResultVariables("edas").mkString(", ") + " ]") )
             }
-
-//            var gridfilename = ""
-//            resultVar.result.slices.foreach { case (key, data) =>
-//              if( gridfilename.isEmpty ) {
-//                val gridfilepath = data.metadata("gridfile")
-//                gridfilename = sendFile( clientId, rid, "gridfile", gridfilepath, true )
-//              }
           case None =>
-            logger.error( "Can't find result variable " + rid)
-            sendErrorReport( response_format, clientId, rid, new Exception( "Can't find result variable " + rid + " in [ " + processManager.getResultVariables("edas").mkString(", ") + " ]") )
+            logger.error( "Can't find result Id in direct response: " + response.toString() )
+            sendErrorReport( response_format, clientId, responseId, new Exception( "Can't find result Id in direct response: " + response.toString()  ) )
         }
-      case None =>
-        logger.error( "Can't find result Id in direct response: " + response.toString() )
-        sendErrorReport( response_format, clientId, responseId, new Exception( "Can't find result Id in direct response: " + response.toString()  ) )
-    }
-    Map.empty[String,String]
-  }
+        Map.empty[String,String]
 
   def getNodeAttribute( node: xml.Node, attrId: String ): Option[String] = {
     node.attribute( attrId ).flatMap( _.find( _.nonEmpty ).map( _.text ) )

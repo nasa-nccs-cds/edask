@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 import time, traceback
 from dask.distributed import Client
+from xarray.ufuncs import cos
 
 if __name__ == '__main__':
     print( "STARTUP" )
@@ -18,11 +19,16 @@ if __name__ == '__main__':
         print( "READ " + dataset )
 
         ds_m = xr.open_mfdataset(dataset, autoclose=True, data_vars=['tas'], parallel=True)
+        variable: xr.DataArray = ds_m["tas"]
+        weights: xr.DataArray  = cos( ds_m.coords['lat'] )
+        weighted_var = variable * weights
+        print( "Var shape:" + str(variable.shape) )
+        print( "weighted_var shape:" + str(weighted_var.shape) )
+        sum = weighted_var.sum(['time','lon','lat'])
+        norm = weights * variable.count( 'lon')  * variable.dims['time']
+        mean: xr.DataArray =  sum / norm
 
-        print( "COMPUTE MEAN, Result:" )
-
-        #    print ds_m.KE.mean(dim='time').mean(dim='lon').mean(dim='lat').values
-        print( ds_m.tas.mean().values )
+        print( "COMPUTE MEAN, Result:" + str( mean.values ) )
 
         print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
