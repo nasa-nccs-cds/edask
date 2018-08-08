@@ -3,7 +3,7 @@ import sortedcontainers
 import numpy as np
 import edask
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict
+from typing import List, Dict, Sequence, BinaryIO, TextIO
 
 def parse_dict( dict_spec ):
     result = {}
@@ -44,25 +44,23 @@ class Collection:
         agg_file = os.path.join( Collection.baseDir, agg_id + ".ag1")
         return Aggregation( self.name, agg_file )
 
-    def getVariable( self, varName ):
+    def getVariable( self, varName ) -> Variable:
         agg =  self.getAggregation( varName )
         return agg.getVariable(varName)
 
-    def fileList(self, varName):
-        # type: (str) -> list[File]
+    def fileList(self, varName: str ) -> List[BinaryIO]:
         agg = self.getAggregation(varName)
         return agg.fileList()
 
-    def sortVarsByAgg(self, varNames: str ) -> Dict[str,List[str]]:
+    def sortVarsByAgg(self, varNames: Sequence[str] ) -> Dict[str,List[str]]:
         bins = {}
         for varName in varNames:
-            agg = self.getAggregation(varName)
-            bin = bins.setdefault(agg.name,[])
+            agg_id = self.aggs.get(varName)
+            bin = bins.setdefault( agg_id, [] )
             bin.append( varName )
         return bins
 
-    def pathList(self, varName):
-        # type: (str) -> list[str]
+    def pathList(self, varName: str) -> List[str]:
         agg = self.getAggregation(varName)
         return agg.pathList()
 
@@ -113,7 +111,7 @@ class Aggregation:
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
-        self.files = sortedcontainers.SortedDict()
+        self.files: Dict[str,File] = sortedcontainers.SortedDict()
         self.axes = {}
         self.dims = {}
         self.vars = {}
@@ -137,19 +135,15 @@ class Aggregation:
     def getAxis( self, atype ):
         return next((x for x in self.axes.values() if x.type == atype), None)
 
-    def fileList(self):
-        # type: () -> list[File]
+    def fileList(self) -> List[BinaryIO]:
         return self.files.values()
 
-    def pathList(self):
-        # type: () -> list[str]
+    def pathList(self)-> List[str]:
         return [ file.getPath() for file in self.files.values() ]
 
-    def getVariable( self, varName ):
-        # type: (str) -> Variable
+    def getVariable( self, varName: str ) -> Variable:
         ds = self.getDataset()
         return ds.variables[varName]
 
-    def getDataset( self ):
-        # type: () -> MFDataset
+    def getDataset( self ) -> MFDataset:
         return MFDataset( self.pathList() )
