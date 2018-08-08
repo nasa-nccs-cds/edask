@@ -39,17 +39,19 @@ class Collection:
                 toks = line.split(",")
                 self.aggs[toks[0].strip()] = ",".join(toks[1:]).strip()
 
-    def getAggregation( self, varName: str ) -> edask.collection.Aggregation:
-        agg_id = self.aggs.get( varName )
-        agg_file = os.path.join( Collection.baseDir, agg_id + ".ag1")
+    def getAggId( self, varName: str ) -> str:
+        return self.aggs.get( varName )
+
+    def getAggregation( self, aggId: str ) -> edask.collection.Aggregation:
+        agg_file = os.path.join( Collection.baseDir, aggId + ".ag1")
         return Aggregation( self.name, agg_file )
 
     def getVariable( self, varName ) -> Variable:
         agg =  self.getAggregation( varName )
         return agg.getVariable(varName)
 
-    def fileList(self, varName: str ) -> List[BinaryIO]:
-        agg = self.getAggregation(varName)
+    def fileList(self, aggId: str ) -> List[BinaryIO]:
+        agg = self.getAggregation( aggId )
         return agg.fileList()
 
     def sortVarsByAgg(self, varNames: Sequence[str] ) -> Dict[str,List[str]]:
@@ -60,8 +62,8 @@ class Collection:
             bin.append( varName )
         return bins
 
-    def pathList(self, varName: str) -> List[str]:
-        agg = self.getAggregation(varName)
+    def pathList(self, aggId: str ) -> List[str]:
+        agg = self.getAggregation( aggId )
         return agg.pathList()
 
 # class EVariable:

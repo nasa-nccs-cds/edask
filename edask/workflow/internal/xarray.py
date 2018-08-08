@@ -21,8 +21,8 @@ class InputKernel(Kernel):
             if collection is not None:
                 collection = Collection.new(collection)
                 aggs = collection.sortVarsByAgg(task.inputs)
-                for vars in aggs.values():
-                    result_datasets.append( xr.open_mfdataset(collection.pathList(vars[0]), autoclose=True, data_vars=vars, parallel=True) )
+                for ( aggId, vars ) in aggs.items():
+                    result_datasets.append( xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True) )
         return xr.merge( result_datasets )
 
 
