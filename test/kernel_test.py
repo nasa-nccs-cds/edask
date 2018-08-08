@@ -22,17 +22,16 @@ if __name__ == '__main__':
         kernel = AverageKernel()
         task = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
 
-        def get_results( task: Task, kernel: Kernel, dataset_path: str ) -> Dict[str,np.ndarray]:
+        def get_results( task: Task, kernel: Kernel, dataset_path: str ) -> List[xr.DataArray]:
             dataset: xr.Dataset = xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True)
             workflow = kernel.buildWorkflow(dataset, task)
-            results = task.getResults(workflow)
-            return { result.name: result.values for result in results }
+            return task.getResults(workflow)
 
         tsubmit = time.time()
         result_future = client.submit( get_results, task, kernel, dataset_path )
         print("Submitted computation")
-        result_map = result_future.result()
-        print( result_map )
+        results = result_future.result()
+        print( results )
 
         print( "Completed computation in {} seconds, workflow setup time = {}, cluster startup time = {}".format( str(time.time() - tsubmit), str(tsubmit - tdefine), str(tdefine - tstart) ) )
 

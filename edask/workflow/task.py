@@ -66,9 +66,11 @@ class Task:
     def getMappedVariables(self, dataset: xr.Dataset ) -> List[xr.DataArray]:
         return [ self.mapCoordinates( dataset[varName] ) for varName in self.varNames() ]
 
-    def getResults(self, dataset: xr.Dataset ) -> List[xr.DataArray]:
+    def getResults(self, dataset: xr.Dataset, load = True ) -> List[xr.DataArray]:
         resultNames = dataset.attrs[ "results-" + self.rId ]
-        return [ dataset[varName] for varName in resultNames ]
+        results = [ dataset[varName] for varName in resultNames ]
+        if load: map( lambda x: x.load(), results )
+        return results
 
 
 

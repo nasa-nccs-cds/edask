@@ -21,14 +21,6 @@ if __name__ == '__main__':
 
         ds_m = xr.open_mfdataset(dataset, autoclose=True, data_vars=['tas'], parallel=True)
         variable: xr.DataArray = ds_m["tas"]
-
-        axis_map = { coord.attrs["axis"].lower(): name  for ( name, coord ) in variable.coords.items() }
-        print( Task.getAxisMapT(variable) )
-
-#        for coord in ds_m.coords.values(): print( coord  )
-#        for coord in ds_m.coords.variables: print( coord  )
-
-
         weights: xr.DataArray  = cos( ds_m.coords['lat'] )
         weighted_var = variable * weights
         print( "Var shape:" + str(variable.shape) )
