@@ -1,5 +1,5 @@
 from edask.messageParser import mParse
-from typing import List, Dict, Sequence, Mapping
+from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xr
 
 class Task:
@@ -18,13 +18,22 @@ class Task:
 
         return Task( module, op, rId, inputs, metadata )
 
-    def __init__( self, module: str, op: str, rId: str, inputs: Sequence[str], metadata: Dict[str,str] ):
+    def __init__( self, module: str, op: str, rId: str, inputs: Sequence[str], metadata: Dict[str,Any] ):
         self.module = module
         self.op = op
         self.rId = rId
-        self.inputs = inputs
-        self.metadata = metadata
-        self.axes = self.metadata.get("axes", [])
+        self.inputs: Sequence[str] = inputs
+        self.metadata: Dict[str,Any] = metadata
+        self.axes: List[str] = self._getAxes()
+
+    def _getAxes(self) -> List[str]:
+        raw_axes = self.metadata.get("axes", [] )
+        if isinstance(raw_axes, str):
+            raw_axes = raw_axes.replace(" ","").strip("[]")
+            if( raw_axes.find(",") >= 0 ): return raw_axes.split(",")
+            else: return list(raw_axes)
+        else:
+            return raw_axes
 
     def varNames(self) -> List[str]:
         return [ inputId.split('-')[0] for inputId in self.inputs ]
@@ -56,6 +65,10 @@ class Task:
 
     def getMappedVariables(self, dataset: xr.Dataset ) -> List[xr.DataArray]:
         return [ self.mapCoordinates( dataset[varName] ) for varName in self.varNames() ]
+
+    def getResults(self, dataset: xr.Dataset ) -> List[xr.DataArray]:
+        resultNames = dataset.attrs[ "results-" + self.rId ]
+        return [ dataset[varName] for varName in resultNames ]
 
 
 

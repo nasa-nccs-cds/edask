@@ -13,13 +13,16 @@ class AverageKernel(Kernel):
     def buildWorkflow(self, input_dataset: xr.Dataset, task: Task ) -> xr.Dataset:
         variables = task.getMappedVariables( input_dataset )
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(task.axes) )
+        result_names = []
         for variable in variables:
             weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if task.hasAxis('y') else None
             resultName = "-".join( [task.rId, variable.name] )
+            result_names.append( resultName )
             input_dataset[ resultName ] = self.ave( variable, task.axes, weights )
+        input_dataset.attrs[ "results-" + task.rId ] = result_names
         return input_dataset
 
-    def ave(self, variable, axes, weights ) -> xr.DataArray:
+    def ave( self, variable, axes, weights ) -> xr.DataArray:
         if weights is None:
             return variable.mean(axes)
         else:
