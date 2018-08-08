@@ -11,23 +11,23 @@ class AverageKernel(Kernel):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
     def buildWorkflow(self, input_dataset: xr.Dataset, task: Task ) -> xr.Dataset:
-        axes: list[str] = task.metadata.get("axes",[])
-        weights: xr.DataArray  = cos( input_dataset.coords['lat'] )
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(axes) )
-        for varName in task.varNames():
-            variable = input_dataset[varName]
-            resultName = "-".join( [task.rId, varName] )
-            input_dataset[ resultName ] = self.ave( variable, axes, weights )
+        variables = task.getMappedVariables( input_dataset )
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(task.axes) )
+        for variable in variables:
+            weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if task.hasAxis('y') else None
+            resultName = "-".join( [task.rId, variable.name] )
+            input_dataset[ resultName ] = self.ave( variable, task.axes, weights )
         return input_dataset
 
     def ave(self, variable, axes, weights ) -> xr.DataArray:
-        if axes.count("y") > 0:
+        if weights is None:
+            return variable.mean(axes)
+        else:
             weighted_var = variable * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
             norm = weights * variable.count( axes ) if len( axes ) else weights
             return sum / norm.sum("y")
-        else:
-            return variable.mean( axes )
+
 
 

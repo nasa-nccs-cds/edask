@@ -10,11 +10,11 @@
 
 To install:
 ```
-    > conda create -n edask -c cdat/label/v80 -c conda-forge -c cdat python=3.6 cdms2 cdutil 
+    > conda create -n edask -c conda-forge -c cdat python=3.6 cdms2 cdutil 
     > conda activate edask
-    > conda install dask xarray bottleneck paramiko netCDF4 defusedxml
-    > conda install -c anaconda zeromq
     > conda install dask distributed -c conda-forge
+    > conda install xarray bottleneck paramiko netCDF4 defusedxml
+    > conda install -c anaconda zeromq
 ```
 
 

@@ -37,12 +37,12 @@ class KernelModule(OperationModule):
     def executeTask( self, task, inputs ):
         key = task.op.lower()
         kernel = self._kernels.get( key )
-        if( kernel is None ): raise Exception( "Unrecognized kernel key: "+ key +", registered kernels = " + ", ".join( self._kernels.keys() ) )
+        if( kernel is None ): raise Exception( "Unrecognized kernel.py key: "+ key +", registered kernels = " + ", ".join( self._kernels.keys() ) )
         self.logger.info( "Executing Kernel: " + kernel.name() )
         action = task.metadata.get("action","execute")
         if( action == "execute"): return kernel.executeTask(task, inputs)
         elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
-        else: raise Exception( "Unrecognized kernel action: " + action )
+        else: raise Exception( "Unrecognized kernel.py action: " + action )
 
     def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
     def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilitiesStr() for kernel in self._kernels.values() ])
