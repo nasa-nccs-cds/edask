@@ -1,16 +1,36 @@
 from ..kernel import Kernel, KernelSpec
 import xarray as xr
 from ..task import Task
+from edask.collection import Collection
 import numpy as np
 import numpy.ma as ma
 import time, traceback
 from xarray.ufuncs import cos
 
+class InputKernel(Kernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
+
+    def buildWorkflow( self, task: Task, input_dataset: xr.Dataset ) -> xr.Dataset:
+        dataset_path = task.getAttr("dataset")
+        result_datasets = [ input_dataset ] if input_dataset is not None else []
+        if dataset_path is not None:
+            result_datasets.append( xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True) )
+        else:
+            collection = task.getAttr("collection")
+            if collection is not None:
+                collection = Collection.new(collection)
+                aggs = collection.sortVarsByAgg(task.inputs)
+                for vars in aggs.values():
+                    result_datasets.append( xr.open_mfdataset(collection.pathList(vars[0]), autoclose=True, data_vars=vars, parallel=True) )
+        return xr.merge( result_datasets )
+
+
 class AverageKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def buildWorkflow(self, input_dataset: xr.Dataset, task: Task ) -> xr.Dataset:
+    def buildWorkflow( self, task: Task, input_dataset: xr.Dataset ) -> xr.Dataset:
         variables = task.getMappedVariables( input_dataset )
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(task.axes) )
         result_names = []

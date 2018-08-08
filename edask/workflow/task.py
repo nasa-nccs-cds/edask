@@ -72,5 +72,8 @@ class Task:
         if load: map( lambda x: x.load(), results )
         return results
 
+    def getAttr(self, key ) -> Any:
+        return self.metadata.get( key )
+
 
 

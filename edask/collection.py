@@ -1,7 +1,9 @@
 import os, datetime
 import sortedcontainers
 import numpy as np
+import edask
 from netCDF4 import MFDataset, Variable
+from typing import List, Dict
 
 def parse_dict( dict_spec ):
     result = {}
@@ -15,8 +17,7 @@ class Collection:
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
-    def new(cls, name ):
-        # type: (str) -> Collection
+    def new(cls, name: str ) -> edask.collection.Collection:
         spec_file = os.path.join( cls.baseDir, name + ".csv" )
         return Collection(name, spec_file)
 
@@ -38,8 +39,7 @@ class Collection:
                 toks = line.split(",")
                 self.aggs[toks[0].strip()] = ",".join(toks[1:]).strip()
 
-    def getAggregation( self, varName ):
-        # type: (str) -> Aggregation
+    def getAggregation( self, varName: str ) -> edask.collection.Aggregation:
         agg_id = self.aggs.get( varName )
         agg_file = os.path.join( Collection.baseDir, agg_id + ".ag1")
         return Aggregation( self.name, agg_file )
@@ -53,22 +53,30 @@ class Collection:
         agg = self.getAggregation(varName)
         return agg.fileList()
 
+    def sortVarsByAgg(self, varNames: str ) -> Dict[str,List[str]]:
+        bins = {}
+        for varName in varNames:
+            agg = self.getAggregation(varName)
+            bin = bins.setdefault(agg.name,[])
+            bin.append( varName )
+        return bins
+
     def pathList(self, varName):
         # type: (str) -> list[str]
         agg = self.getAggregation(varName)
         return agg.pathList()
 
-class Variable:
-
-   def __init__(self, *args ):
-       self.name = args[0].strip()
-       self.long_name = args[1].strip()
-       self.dods_name = args[2].strip()
-       self.description = args[3].strip()
-       self.shape = [ int(sval.strip()) for sval in args[4].split(",") ]
-       self.resolution = parse_dict( args[5] )
-       self.dims = args[6].strip().split(' ')
-       self.units = args[7].strip()
+# class EVariable:
+#
+#    def __init__(self, *args ):
+#        self.name = args[0].strip()
+#        self.long_name = args[1].strip()
+#        self.dods_name = args[2].strip()
+#        self.description = args[3].strip()
+#        self.shape = [ int(sval.strip()) for sval in args[4].split(",") ]
+#        self.resolution = parse_dict( args[5] )
+#        self.dims = args[6].strip().split(' ')
+#        self.units = args[7].strip()
 
 class Axis:
 

@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 import time, traceback
 from dask.distributed import Client
-from edask.dataCollection import Collection
+from edask.collection import Collection
 
 print ( "STARTUP" )
 client = None

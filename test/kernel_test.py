@@ -19,12 +19,14 @@ if __name__ == '__main__':
 
         tdefine = time.time()
         print("Defining workflow")
+
+
         kernel = AverageKernel()
         task = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
 
         def get_results( task: Task, kernel: Kernel, dataset_path: str ) -> List[xr.DataArray]:
             dataset: xr.Dataset = xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True)
-            workflow = kernel.buildWorkflow(dataset, task)
+            workflow = kernel.buildWorkflow(task, dataset)
             return task.getResults(workflow)
 
         tsubmit = time.time()

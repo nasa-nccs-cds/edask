@@ -31,7 +31,7 @@ class Kernel:
     def getCapabilitiesStr(self): return str(self._spec)
 
     @abstractmethod
-    def buildWorkflow(self, dataset: xr.Dataset, task: Task ) -> xr.Dataset: pass
+    def buildWorkflow(self, task: Task, dataset: xr.Dataset ) -> xr.Dataset: pass
 
 
 class LegacyKernel:
