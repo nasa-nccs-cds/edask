@@ -25,6 +25,22 @@ class Task:
         self.inputs: Sequence[str] = inputs
         self.metadata: Dict[str,Any] = metadata
         self.axes: List[str] = self._getAxes()
+        self.processUrl()
+
+
+    def processUrl(self):
+        url = self.metadata.get("url")
+        if url:
+            toks = url.split(":")
+            scheme = toks[0].lower()
+            if scheme == "collection":
+               self.metadata["collection"] = toks[1].strip("/")
+            elif scheme == "http":
+               self.metadata["dap"] = url
+            elif scheme == "file":
+               self.metadata["file"] = toks[1]
+            else:
+                raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,url) )
 
     def _getAxes(self) -> List[str]:
         raw_axes = self.metadata.get("axes", [] )
@@ -74,6 +90,9 @@ class Task:
 
     def getAttr(self, key ) -> Any:
         return self.metadata.get( key )
+
+#    def getKernel(self):
+#        return edasOpManager.getKernel(self)
 
 
 

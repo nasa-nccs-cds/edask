@@ -4,9 +4,9 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xr
 import time, traceback
 import numpy as np
-from edask.workflow.internal.xarray import AverageKernel
-from edask.workflow.kernel import Kernel
+from edask.workflow.internal.xarray import *
 from edask.workflow.task import Task
+from edask.workflow.module import edasOpManager
 
 if __name__ == '__main__':
     print( "STARTUP" )
@@ -20,17 +20,19 @@ if __name__ == '__main__':
         tdefine = time.time()
         print("Defining workflow")
 
+        aveTask = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
+        inputTask = Task(  "xarray", "input", "result", ['tas'], { "file": '/Users/tpmaxwel/Dropbox/Tom/Data/GISS/CMIP5/E2H/r1i1p1/*.nc' } )
 
-        kernel = AverageKernel()
-        task = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
-
-        def get_results( task: Task, kernel: Kernel, dataset_path: str ) -> List[xr.DataArray]:
-            dataset: xr.Dataset = xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True)
-            workflow = kernel.buildWorkflow(task, dataset)
-            return task.getResults(workflow)
+        def get_results( ) -> List[xr.DataArray]:
+            from edask.workflow.kernel import Kernel
+            inputKernel: Kernel =  edasOpManager.getKernel(inputTask)
+            workflow = inputKernel.buildWorkflow( inputTask, None )
+            aveKernel: Kernel =  edasOpManager.getKernel(aveTask)
+            workflow = aveKernel.buildWorkflow( aveTask, workflow )
+            return aveTask.getResults(workflow)
 
         tsubmit = time.time()
-        result_future = client.submit( get_results, task, kernel, dataset_path )
+        result_future = client.submit( get_results )
         print("Submitted computation")
         results = result_future.result()
         print( results )

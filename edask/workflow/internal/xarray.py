@@ -1,7 +1,7 @@
 from ..kernel import Kernel, KernelSpec
 import xarray as xr
 from ..task import Task
-from edask.collection import Collection
+from edask.agg import Collection
 import numpy as np
 import numpy.ma as ma
 import time, traceback
@@ -12,7 +12,7 @@ class InputKernel(Kernel):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
     def buildWorkflow( self, task: Task, input_dataset: xr.Dataset ) -> xr.Dataset:
-        dataset_path = task.getAttr("dataset")
+        dataset_path = task.getAttr("file")
         result_datasets = [ input_dataset ] if input_dataset is not None else []
         if dataset_path is not None:
             result_datasets.append( xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True) )
@@ -23,6 +23,11 @@ class InputKernel(Kernel):
                 aggs = collection.sortVarsByAgg(task.inputs)
                 for ( aggId, vars ) in aggs.items():
                     result_datasets.append( xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True) )
+            else:
+                dap_url = task.getAttr("dap")
+                if dap_url is not None:
+                    result_datasets.append( xr.open_mfdataset( dap_url, autoclose=True, data_vars=task.inputs, parallel=True) )
+
         return xr.merge( result_datasets )
 
 

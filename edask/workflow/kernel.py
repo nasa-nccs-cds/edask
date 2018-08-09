@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
 import logging, cdms2, time, os, socket
 from edask.messageParser import mParse
-import xarray as xr
 from .task import Task
+import xarray as xr
+
 
 class KernelSpec:
     def __init__( self, name, title, description, **kwargs ):
@@ -19,6 +20,7 @@ class KernelSpec:
     def getTitle(self): return self._title.translate(None, ";,|!~^")
 
 class Kernel:
+
     __metaclass__ = ABCMeta
 
     def __init__( self, spec: KernelSpec ):

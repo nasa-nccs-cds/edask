@@ -1,5 +1,5 @@
 import os, datetime
-import sortedcontainers
+from collections import OrderedDict
 import numpy as np
 import edask
 from netCDF4 import MFDataset, Variable
@@ -17,7 +17,7 @@ class Collection:
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
-    def new(cls, name: str ) -> edask.collection.Collection:
+    def new(cls, name: str ):
         spec_file = os.path.join( cls.baseDir, name + ".csv" )
         return Collection(name, spec_file)
 
@@ -42,7 +42,7 @@ class Collection:
     def getAggId( self, varName: str ) -> str:
         return self.aggs.get( varName )
 
-    def getAggregation( self, aggId: str ) -> edask.collection.Aggregation:
+    def getAggregation( self, aggId: str ):
         agg_file = os.path.join( Collection.baseDir, aggId + ".ag1")
         return Aggregation( self.name, agg_file )
 
@@ -113,7 +113,7 @@ class Aggregation:
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
-        self.files: Dict[str,File] = sortedcontainers.SortedDict()
+        self.files: Dict[str,File] = OrderedDict()
         self.axes = {}
         self.dims = {}
         self.vars = {}

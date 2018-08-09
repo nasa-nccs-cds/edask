@@ -15,6 +15,7 @@ To install:
     > conda install dask distributed -c conda-forge
     > conda install xarray bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh
     > conda install -c anaconda zeromq
+    > conda install -c conda-forge libnetcdf
 ```
 
 
