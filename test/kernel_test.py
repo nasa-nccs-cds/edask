@@ -19,6 +19,7 @@ if __name__ == '__main__':
 
         tdefine = time.time()
         print("Defining workflow")
+        print( "*Capabilities: \n " + edasOpManager.getCapabilitiesStr().replace("!","\n ").replace("~","\n ") )
 
         aveTask = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
         inputTask = Task(  "xarray", "input", "result", ['tas'], { "file": '/Users/tpmaxwel/Dropbox/Tom/Data/GISS/CMIP5/E2H/r1i1p1/*.nc' } )

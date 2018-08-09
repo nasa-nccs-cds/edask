@@ -16,8 +16,8 @@ class KernelSpec:
 
     def __str__(self): return ";".join( [ self._name, self.getTitle(), self.getDescription(), str(self._options) ] )
 
-    def getDescription(self): return self._description.translate(None, ";,|!~^")
-    def getTitle(self): return self._title.translate(None, ";,|!~^")
+    def getDescription(self): return self._description
+    def getTitle(self): return self._title
 
 class Kernel:
 
