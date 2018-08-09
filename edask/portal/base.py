@@ -1,14 +1,15 @@
 import zmq, traceback, time, logging, xml, cdms2, socket
 from threading import Thread
+from typing import List, Dict, Sequence
 from cdms2.variable import DatasetVariable
 from random import SystemRandom
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
 
-class ExecutionCallback:
-  def success( results: xml.Node  ): pass
-  def failure( msg: str ): pass
+# class ExecutionCallback:
+#   def success( results: xml.Node  ): pass
+#   def failure( msg: str ): pass
 
 class Response:
 
@@ -178,7 +179,7 @@ class Responder(Thread):
 
 class EDASPortal:
 
-#    def sendErrorReport( taskSpec: list[str],  err: Exception  ):
+#    def sendErrorReport( taskSpec: Sequence[str],  err: Exception  ):
 #        pass
 
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
@@ -217,7 +218,7 @@ class EDASPortal:
         self.responder.setExeStatus(clientId,rid,status)
 
 
-    def sendArrayData( self, clientId: str, rid: str, origin: list[int], shape: list[int], data: bytes, metadata: dict[str,str] ):
+    def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
         self.logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
@@ -245,11 +246,11 @@ class EDASPortal:
         return file.name
 
 
-    def execUtility( self, utilSpec: list[str] ) -> Message: pass
-    def execute( self, taskSpec: list[str] ) -> Response: pass
+    def execUtility( self, utilSpec: Sequence[str] ) -> Message: pass
+    def execute( self, taskSpec: Sequence[str] ) -> Response: pass
     def shutdown( self ): pass
-    def getCapabilities( self, utilSpec: list[str] ) -> Message: pass
-    def describeProcess( self, utilSpec: list[str] ) -> Message: pass
+    def getCapabilities( self, utilSpec: Sequence[str] ) -> Message: pass
+    def describeProcess( self, utilSpec: Sequence[str] ) -> Message: pass
 
     def sendResponseMessage( self, msg: Response ) -> str:
         request_args = [ msg.id(), msg.message() ]
@@ -327,12 +328,12 @@ class EDASPortal:
         self.shutdown()
         self.logger.info( "shutdown complete")
 
-    def ia2s( self, array: list[int] ) -> str:
+    def ia2s( self, array: Sequence[int] ) -> str:
         return str(array).strip("[]")
 
-    def sa2s( self, array: list[str] ) -> str:
+    def sa2s( self, array: Sequence[str] ) -> str:
         return ",".join(array)
 
-    def m2s( self, metadata: dict[str,str] ) -> str:
+    def m2s( self, metadata: Dict[str,str] ) -> str:
         items = [ ":".join(item) for item in metadata.items() ]
         return ";".join(items)

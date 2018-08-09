@@ -32,7 +32,7 @@ class KernelModule(OperationModule):
 
     def __init__( self, name, kernels ):
         self.logger =  logging.getLogger()
-        self._kernels = {}
+        self._kernels: Dict[str,Kernel] = {}
         for kernel in kernels: self._kernels[ kernel.name().lower() ] = kernel
         OperationModule.__init__( self, name )
 
@@ -53,7 +53,11 @@ class KernelModule(OperationModule):
         return self._kernels.get( key )
 
     def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
-    def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilitiesStr() for kernel in self._kernels.values() ])
+    def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilities() for kernel in self._kernels.values() ])
+
+    def describeProcess( self, op ):
+        kernel = self._kernels.get( op )
+        return kernel.describeProcess()
 
 class OperationsManager:
 
@@ -97,6 +101,10 @@ class OperationsManager:
     def getCapabilitiesStr(self) -> str:
         specs = [ opMod.serialize() for opMod in self.operation_modules.values() ]
         return "|".join( specs )
+
+    def describeProcess(self, module: str, op: str ) -> str:
+        module = self.operation_modules[ module ]
+        return module.describeProcess( op )
 
 edasOpManager = OperationsManager()
 

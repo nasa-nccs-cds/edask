@@ -18,6 +18,7 @@ class KernelSpec:
 
     def getDescription(self): return self._description
     def getTitle(self): return self._title
+    def summary(self): return ";".join( [ self._name, self.getTitle() ] )
 
 class Kernel:
 
@@ -29,8 +30,9 @@ class Kernel:
 
     def name(self): return self._spec.name()
 
-    def getCapabilities(self): return self._spec
-    def getCapabilitiesStr(self): return str(self._spec)
+    def getSpec(self): return self._spec
+    def getCapabilities(self): return self._spec.summary()
+    def describeProcess( self ): return str(self._spec)
 
     @abstractmethod
     def buildWorkflow(self, task: Task, dataset: xr.Dataset ) -> xr.Dataset: pass

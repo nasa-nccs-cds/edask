@@ -1,6 +1,7 @@
 import zmq, traceback, time, logging, xml, cdms2
 from threading import Thread
 from cdms2.variable import DatasetVariable
+from typing import Sequence, List, Dict, Mapping
 import random, string, os
 from enum import Enum
 MB = 1024 * 1024
@@ -53,7 +54,7 @@ class ResponseManager(Thread):
         self.logger.info( "Caching result array: " + id )
         self.getResults(id).append(result)
 
-    def getResults(self, id: str ) -> str:
+    def getResults(self, id: str ) -> List[str]:
         return self.cached_results.setdefault(id,[])
 
     def cacheArray(self, id: str, array ):
@@ -100,7 +101,7 @@ class ResponseManager(Thread):
     #    def getResponse(self, key, default = None ):
     #       return self.cached_results.get( key, default )
 
-    def getItem(self, str_array: list[str], itemIndex: int, default_val="NULL" ) -> str:
+    def getItem(self, str_array: Sequence[str], itemIndex: int, default_val="NULL" ) -> str:
         try: return str_array[itemIndex]
         except Exception as err: return default_val
 
@@ -208,7 +209,7 @@ class ResponseManager(Thread):
 
 class EDASPortalClient:
 
-    def __init__( self, host: str="127.0.0.1", request_port: int=0, response_port: int=0, **kwargs ):
+    def __init__( self, host: str="127.0.0.1", request_port: int=4556, response_port: int=4557, **kwargs ):
         try:
             self.active = True
             self.app_host = host
@@ -269,10 +270,10 @@ class EDASPortalClient:
                 self.log(  " Completed shutdown " )
 
     def randomId(self, length: int ) -> str:
-        sample = string.lowercase+string.digits+string.uppercase
+        sample = string.ascii_lowercase+string.digits+string.ascii_uppercase
         return ''.join(random.choice(sample) for i in range(length))
 
-    def sendMessage( self, type: str, mDataList: list[str] = [""] ):
+    def sendMessage( self, type: str, mDataList: Sequence[str] = [""] ):
         msgStrs = [ str(mData).replace("'",'"') for mData in mDataList ]
         self.log( "Sending {0} request {1} on port {2}.".format( type, msgStrs, self.request_port )  )
         try:
@@ -316,6 +317,5 @@ class AppThread(Thread):
     def block(self):
         self.process.wait()
 
-#if __name__ == "__main__":
-#    env_test = "echo $CLASSPATH"
-#    process = Popen( env_test, shell=True, executable="/bin/bash" )
+if __name__ == "__main__":
+    client = EDASPortalClient()
