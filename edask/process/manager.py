@@ -53,6 +53,7 @@ class ProcessManager(GenericProcessManager):
 
   def executeProcess( self, service: str, job: Job ) -> str:
       dataInputsObj = WpsCwtParser.parseDatainputs( job.datainputs )
+      request: TaskRequest = TaskRequest(job.requestId, job.identifier, dataInputsObj)
       return ""
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
