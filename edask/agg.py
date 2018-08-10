@@ -3,7 +3,7 @@ from collections import OrderedDict
 import numpy as np
 import edask
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict, Sequence, BinaryIO, TextIO
+from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 
 def parse_dict( dict_spec ):
     result = {}
@@ -137,7 +137,7 @@ class Aggregation:
     def getAxis( self, atype ):
         return next((x for x in self.axes.values() if x.type == atype), None)
 
-    def fileList(self) -> List[BinaryIO]:
+    def fileList(self) -> ValuesView[BinaryIO]:
         return self.files.values()
 
     def pathList(self)-> List[str]:

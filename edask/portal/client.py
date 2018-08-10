@@ -36,7 +36,7 @@ class ResponseManager(Thread):
     def __init__(self, context: zmq.Context, clientId: str, host: str, port: int ):
         Thread.__init__(self)
         self.context = context
-        self.logger = logging.getLogger("portal")
+        self.logger = logging.getLogger()
         self.host = host
         self.port = port
         self.clientId = clientId
@@ -215,7 +215,7 @@ class EDASPortalClient:
             self.app_host = host
             self.application_thread = None
             self.clientID = self.randomId(6)
-            self.logger =  logging.getLogger("portal")
+            self.logger =  logging.getLogger()
             self.context = zmq.Context()
             self.request_socket = self.context.socket(zmq.REQ)
 
@@ -245,9 +245,9 @@ class EDASPortalClient:
 
     def __del__(self): self.shutdown()
 
-    def start_EDAS(self):  # Stage the EDAS app using the "{EDAS_HOME}>> sbt stage" command.
-        self.application_thread = AppThread( self.app_host, self.request_port, self.response_port )
-        self.application_thread.start()
+    # def start_EDAS(self):  # Stage the EDAS app using the "{EDAS_HOME}>> sbt stage" command.
+    #     self.application_thread = AppThread( self.app_host, self.request_port, self.response_port )
+    #     self.application_thread.start()
 
     def createResponseManager(self) -> ResponseManager:
         return self.response_manager
@@ -278,7 +278,7 @@ class EDASPortalClient:
         self.log( "Sending {0} request {1} on port {2}.".format( type, msgStrs, self.request_port )  )
         try:
             message = "!".join( [self.clientID,type] + msgStrs )
-            self.request_socket.send( message )
+            self.request_socket.send_string( message )
             response = self.request_socket.recv()
         except zmq.error.ZMQError as err:
             self.logger.error( "Error sending message {0} on request socket: {1}".format( message, str(err) ) )
@@ -288,7 +288,7 @@ class EDASPortalClient:
 class AppThread(Thread):
     def __init__(self, host, request_port, response_port):
         Thread.__init__(self)
-        self.logger = logging.getLogger("portal")
+        self.logger = logging.getLogger()
         self._response_port = response_port
         self._request_port = request_port
         self._host = host
@@ -302,7 +302,7 @@ class AppThread(Thread):
             mem = virtual_memory()
             total_ram = mem.total / MB
             EDAS_DRIVER_MEM = os.environ.get( 'EDAS_DRIVER_MEM', str( total_ram - 1000 ) + 'M' )
-            edas_startup = "edas connect {0} {1} -J-Xmx{2} -J-Xms512M -J-Xss1M -J-XX:+CMSClassUnloadingEnabled -J-XX:+UseConcMarkSweepGC".format( self._request_port, self._response_port, EDAS_DRIVER_MEM )
+            edas_startup = "" # ""edas connect {0} {1} -J-Xmx{2} -J-Xms512M -J-Xss1M -J-XX:+CMSClassUnloadingEnabled -J-XX:+UseConcMarkSweepGC".format( self._request_port, self._response_port, EDAS_DRIVER_MEM )
             self.process = subprocess.Popen(shlex.split(edas_startup))
             print ("Staring EDAS with command: {0}, total RAM: {1}\n".format( edas_startup, mem.total ))
             self.process.wait()

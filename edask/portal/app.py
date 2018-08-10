@@ -9,7 +9,7 @@ import random, string, os, queue, datetime, atexit
 from edask.portal.base import EDASPortal, Message, Response
 from typing import List, Dict, Sequence
 from edask.workflow.module import edasOpManager
-from edask.process.manager import ProcessManager
+from edask.process.manager import ProcessManager, Job
 from enum import Enum
 
 class EDASapp(EDASPortal):
@@ -98,20 +98,12 @@ class EDASapp(EDASPortal):
         dataInputsSpec = self.elem(taskSpec,3)
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
-        responseType = runargs.get("response","file")
-        responseElem = ""
-        return Message(clientId, jobId, responseElem )
-
-        # 
-        # 
-        # try:
-        #   (rid, responseElem) = processManager.executeProcess( process, Job(jobId, process_name, dataInputsSpec, runargs, 1f ), Some(executionCallback) )
-        #   return Message(clientId, jobId, responseElem )
-        # except Exception as err:
-        #     self.logger.error( "Caught execution error: " + str(err) )
-        #     self.logger.error( "\n" + err.getStackTrace().mkString("\n") )
-        #     self.executionCallback.failure( str(err) )
-        #     return ErrorReport( clientId, jobId, str(err) )
+        try:
+          (rid, responseElem) = self.processManager.executeProcess( jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ) )
+          return Message(clientId, jobId, responseElem )
+        except Exception as err:
+            self.logger.error( "Caught execution error: " + str(err) )
+            return Message( clientId, jobId, str(err) )
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):
     #     err = WPSExceptionReport(exc)
@@ -210,3 +202,4 @@ class EDASapp(EDASPortal):
 
 if __name__ == "__main__":
     server = EDASapp()
+    server.run()

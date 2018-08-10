@@ -72,7 +72,7 @@ class Responder(Thread):
 
     def __init__( self,  _context: zmq.Context,  _client_address: str,  _response_port: int ):
         super(Responder, self).__init__()
-        self.logger =  logging.getLogger("portal")
+        self.logger =  logging.getLogger()
         self.context: zmq.Context =  _context
         self.active: bool = True
         self.response_port = _response_port
@@ -145,10 +145,10 @@ class Responder(Thread):
         last_heartbeat_time = time.time()
         socket: zmq.Socket   = self.context.socket(zmq.PUB)
         try:
-            socket.bind( "tcp://%s:%d".format( self.client_address, self.response_port ) )
-            self.logger.info( " --> Bound response socket to client at %s on port: %d".format( self.client_address, self.response_port ) )
+            socket.bind( "tcp://{}:{}".format( self.client_address, self.response_port ) )
+            self.logger.info( " --> Bound response socket to client at {} on port: {}".format( self.client_address, self.response_port ) )
         except Exception as err:
-            self.logger.error( "Error initializing response socket on port %d: %s".format( self.response_port, err ) )
+            self.logger.error( "Error initializing response socket on port {}: {}".format( self.response_port, err ) )
         try:
             while self.active:
                 try:
@@ -183,7 +183,7 @@ class EDASPortal:
 #        pass
 
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
-        self.logger =  logging.getLogger("portal")
+        self.logger =  logging.getLogger()
         try:
             self.request_port = request_port
             self.zmqContext: zmq.Context = zmq.Context()
@@ -195,14 +195,14 @@ class EDASPortal:
             self.initSocket( client_address, request_port )
 
         except Exception as err:
-            self.logger.error( "\n-------------------------------\nEDAS Init error: %s -------------------------------\n".format( err ) )
+            self.logger.error( "\n-------------------------------\nEDAS Init error: {} -------------------------------\n".format( err ) )
 
     def initSocket(self, client_address, request_port):
         try:
-            self.request_socket.bind( "tcp://%s:%d".format( client_address, request_port ) )
-            self.logger.info( " --> Bound request socket to client at %s on port: %d".format( client_address, request_port ) )
+            self.request_socket.bind( "tcp://{}:{}".format( client_address, request_port ) )
+            self.logger.info( " --> Bound request socket to client at {} on port: {}".format( client_address, request_port ) )
         except Exception as err:
-            self.logger.error( "Error initializing request socket on port %d: %s".format( request_port, err ) )
+            self.logger.error( "Error initializing request socket on port {}: {}".format( request_port, err ) )
 
 
     def randomStr(self, length )-> str:
@@ -219,7 +219,7 @@ class EDASPortal:
 
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
-        self.logger.debug( "@@ Portal: Sending response data to client for rid %s, nbytes=%d".format( rid, data.length ) )
+        self.logger.debug( "@@ Portal: Sending response data to client for rid {}, nbytes={}".format( rid, data.length ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
@@ -229,9 +229,9 @@ class EDASPortal:
 
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
-        self.logger.debug( "Portal: Sending file data to client for %s, filePath=%s".format( name, filePath ) )
+        self.logger.debug( "Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
         file = open(filePath)
-        file_header_fields = [ "array", jobId, name, file.getName() ]
+        file_header_fields = [ "array", jobId, name, file.name ]
         if not sendData: file_header_fields.append(filePath)
         file_header = "|".join( file_header_fields )
         header_fields = [ jobId,"file", file_header ]
@@ -256,8 +256,8 @@ class EDASPortal:
         request_args = [ msg.id(), msg.message() ]
         packaged_msg = "!".join( request_args )
         timeStamp =  datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-        self.logger.info( "@@ Sending response %s on request_socket @(%s): %s".format( msg.responseId, timeStamp, msg.toString() ) )
-        self.request_socket.send( bytes(packaged_msg), 0 )
+        self.logger.info( "@@ Sending response {} on request_socket @({}): {}".format( msg.responseId, timeStamp, msg.toString() ) )
+        self.request_socket.send_string( packaged_msg )
         return packaged_msg
 
 
@@ -274,20 +274,19 @@ class EDASPortal:
         try:
             hostname = socket.gethostname()
             address = socket.gethostbyname(hostname)
-            return  "%s (%s)".format( hostname, address )
+            return  "{} ({})".format( hostname, address )
         except Exception as e:
             return "UNKNOWN"
 
-
     def run(self):
         while self.active:
-            self.logger.info(  "Listening for requests on port: %d, host: %s".format( self.request_port, self.getHostInfo() ) )
+            self.logger.info(  "Listening for requests on port: {}, host: {}".format( self.request_port, self.getHostInfo() ) )
             request_header = str( self.request_socket.recv(0) ).strip()
             parts = request_header.split("!")
             self.responder.registerClient( parts[0] )
             try:
                 timeStamp = datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-                self.logger.info( "  ###  Processing %s request: %s @(%s)".format( parts[1], request_header, timeStamp) )
+                self.logger.info( "  ###  Processing {} request: {} @({})".format( parts[1], request_header, timeStamp) )
                 if parts[1] == "execute":
                     self.sendResponseMessage( self.execute(parts) )
                 elif parts[1] == "util":
@@ -308,13 +307,9 @@ class EDASPortal:
                 # clientId = elem( self.taskSpec, 0 )
                 # runargs = self.getRunArgs( self.taskSpec )
                 # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
-                error_response = str(ex)
-                self.sendResponseMessage( error_response )
-
+                self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
 
         self.logger.info( "EXIT EDASPortal");
-
-
 
     def term( self, msg ):
         self.logger.info( "!!EDAS Shutdown: " + msg )

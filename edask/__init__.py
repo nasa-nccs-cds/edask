@@ -1,5 +1,5 @@
 import logging, os, time
-LOG_DIR = os.path.expanduser("~/.edas/logs")
+LOG_DIR = os.path.expanduser("~/.edask/logs")
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 

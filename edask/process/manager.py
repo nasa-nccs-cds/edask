@@ -7,6 +7,8 @@ from random import SystemRandom
 import random, string, os, queue, datetime, atexit
 from enum import Enum
 from edask.workflow.module import edasOpManager
+from edask.portal.parsers import WpsCwtParser
+
 
 class Job:
   def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
@@ -18,14 +20,9 @@ class Job:
 
 class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
-  @abc.abstractmethod
-  def describeProcess(self, service: str, name: str, runArgs: Dict[str,str])-> Element: pass
 
   @abc.abstractmethod
-  def getCapabilities( self, service: str, identifier: str, runArgs: Dict[str,str])-> Element: pass
-
-  @abc.abstractmethod
-  def executeProcess( self,  service: str, job: Job )-> ( str, Element ): pass
+  def executeProcess( self,  service: str, job: Job )-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -46,13 +43,23 @@ class GenericProcessManager:
     while( not self.hasResult(service,resultId) ): time.sleep(0.5)
 
 
-
 class ProcessManager(GenericProcessManager):
+  parser = WpsCwtParser()
 
-  def __init_( self, serverConfiguration: Dict[str,str] ):
-    pass
+  def __init__( self, serverConfiguration: Dict[str,str] ):
+    self.config = serverConfiguration
 
   def term(self): pass
+
+  def executeProcess( self, service: str, job: Job ) -> str:
+      dataInputsObj = WpsCwtParser.parseDatainputs( job.datainputs )
+      return ""
+
+      # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
+      #
+      # serviceProvider = apiManager.getServiceProvider("edas")
+      # ( job.requestId, serviceProvider.executeProcess( request, job.datainputs, job.runargs, executionCallback ) )
+
 
 #
 #
@@ -69,7 +76,7 @@ class ProcessManager(GenericProcessManager):
 #
 #   def describeProcess(service: str, name: str, runArgs: Dict[str,str]): xml.Elem = {
 #     val serviceProvider = apiManager.getServiceProvider(service)
-#     //        logger.info("Executing Service %s, Service provider = %s ".format( service, serviceProvider.getClass.getName ))
+#     //        logger.info("Executing Service {}, Service provider = {} ".format( service, serviceProvider.getClass.getName ))
 #     serviceProvider.describeWPSProcess( name, runArgs )
 #   }
 #
@@ -77,12 +84,6 @@ class ProcessManager(GenericProcessManager):
 #     edasOpManager
 #   }
 #
-#   def executeProcess( service: str, job: Job, executionCallback: Option[ExecutionCallback] = None ): ( str, xml.Elem ) = {
-#     val dataInputsObj = if( !job.datainputs.isEmpty ) wpsObjectParser.parseDataInputs( job.datainputs ) else Dict.empty[str, Seq[Dict[str, Any]]]
-#     val request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
-#     val serviceProvider = apiManager.getServiceProvider("edas")
-#     ( job.requestId, serviceProvider.executeProcess( request, job.datainputs, job.runargs, executionCallback ) )
-#   }
 #
 # //  def getResultFilePath( service: str, resultId: str, executor: WorkflowExecutor ): Option[str] = {
 # //    val serviceProvider = apiManager.getServiceProvider(service)
