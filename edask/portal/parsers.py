@@ -5,40 +5,44 @@ def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in inpu
 def str2int( input: ParseResults ): return int( sval(input) )
 def str2float( input: ParseResults ): return float( sval(input) )
 
-def keymap( key: Token, value: Token, enclosing: str = "{}", sep=":", delim="," ):
-    elem = ( key + Suppress(sep) + value + Suppress(ZeroOrMore(delim) ) )
-    return ( Suppress(enclosing[0]) + OneOrMore(Group(elem)) + Suppress(enclosing[1]) ).setParseAction( list2dict )
-
-def list( item, enclosing: str = "[]", delim="," ):
-    elem = item + Suppress( ZeroOrMore(delim) )
-    return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
 
 class WpsCwtParser:
+
+    integer = (Optional("-") + Word(nums)).setParseAction(str2int)
+    float = (Optional("-") + Word(nums + ".") + Optional(CaselessLiteral("E") + Optional("-") + Word(nums))).setParseAction(str2float)
+    numval = integer ^ float
+    key = QuotedString('"')
+    name = Word(alphanums)
+    token = key ^ numval
 
     def __init__(self):
         self.datainputsParser = self.getDatainputsParser()
 
-    def getDatainputsParser(self):
+    @classmethod
+    def getDatainputsParser(cls):
+        dict = cls.keymap( cls.key, cls.token )
+        spec = cls.keymap( cls.key, dict ^ cls.token )
+        return cls.keymap( cls.name, cls.list( spec ), "[]", "=" )
 
-        integer = ( Optional("-") + Word(nums) ).setParseAction(str2int)
-        float = ( Optional("-") + Word( nums + ".Ee" ) ).setParseAction(str2float)
-        numval = integer ^ float
-        key = QuotedString( '"' )
-        name = Word( alphanums )
-        token = key ^ numval
+    @classmethod
+    def parseDatainputs(cls, datainputs):
+        return cls.getDatainputsParser().parseString(datainputs)[0]
 
-        dict = keymap( key, token )
-        spec = keymap( key, dict ^ token )
-        return keymap( name, list( spec ), "[]", "=" )
+    @staticmethod
+    def keymap( key: Token, value: Token, enclosing: str = "{}", sep=":", delim="," ):
+        elem = ( key + Suppress(sep) + value + Suppress(ZeroOrMore(delim) ) )
+        return ( Suppress(enclosing[0]) + OneOrMore(Group(elem)) + Suppress(enclosing[1]) ).setParseAction( list2dict )
 
-    def parseDatainputs(self, datainputs):
-        return self.datainputsParser.parseString(datainputs)[0]
+    @staticmethod
+    def list( item, enclosing: str = "[]", delim="," ):
+        elem = item + Suppress( ZeroOrMore(delim) )
+        return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
+
 
 if __name__ == "__main__":
-    parser = WpsCwtParser()
 
-    testStr = '[ domain=[{ "name":"d0",   \n   "lat":{"start":-40.25,  "end":-4.025E1, "system":"values" }, "lon":{ "start":8.975e1,"end":89.75, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" }, "level":{ "start":0,     "end":5,     "system":"indices" } }, { "name":"d1", "level":{ "start":0,"end":5, "system":"indices" } }], variable=[{ "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml", "name":"hur", "domain":"d0" } ], operation=[{ "name":"CDSpark.average", "input":"hur", "domain":"d0","axes":"xy"}]    ]'
+    testStr = '[ domain=[{ "name":"d0",   \n   "lat":{"start":-40.25,  "end":-4.025E1, "system":"values" }, "lon":{ "start":8975e-2,"end":-897.5E-1, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" }, "level":{ "start":0,     "end":5,     "system":"indices" } }, { "name":"d1", "level":{ "start":0,"end":5, "system":"indices" } }], variable=[{ "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml", "name":"hur", "domain":"d0" } ], operation=[{ "name":"CDSpark.average", "input":"hur", "domain":"d0","axes":"xy"}]    ]'
 
-    result = parser.parseDatainputs( testStr )
+    result = WpsCwtParser.parseDatainputs( testStr )
 
     print( result )

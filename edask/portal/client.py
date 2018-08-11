@@ -2,6 +2,7 @@ import zmq, traceback, time, logging, xml, cdms2
 from threading import Thread
 from cdms2.variable import DatasetVariable
 from typing import Sequence, List, Dict, Mapping
+from edask.process.task import UID
 import random, string, os
 from enum import Enum
 MB = 1024 * 1024
@@ -214,7 +215,7 @@ class EDASPortalClient:
             self.active = True
             self.app_host = host
             self.application_thread = None
-            self.clientID = self.randomId(6)
+            self.clientID = UID.randomId(6)
             self.logger =  logging.getLogger()
             self.context = zmq.Context()
             self.request_socket = self.context.socket(zmq.REQ)
@@ -268,10 +269,6 @@ class EDASPortalClient:
                 self.response_manager.term()
                 self.response_manager = None
                 self.log(  " Completed shutdown " )
-
-    def randomId(self, length: int ) -> str:
-        sample = string.ascii_lowercase+string.digits+string.ascii_uppercase
-        return ''.join(random.choice(sample) for i in range(length))
 
     def sendMessage( self, type: str, mDataList: Sequence[str] = [""] ):
         msgStrs = [ str(mData).replace("'",'"') for mData in mDataList ]
