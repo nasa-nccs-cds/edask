@@ -1,15 +1,17 @@
 from pyparsing import *
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
-def list2dict( input: ParseResults ): return {elem[0]: elem[1] for elem in input.asList() }
-def aslist( input: ParseResults ): return { input.asList() }
+def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
 def str2int( input: ParseResults ): return int( sval(input) )
 def str2float( input: ParseResults ): return float( sval(input) )
+
 def keymap( key: Token, value: Token, enclosing: str = "{}", sep=":", delim="," ):
-    elem = (key + Suppress(sep) + value + Suppress(ZeroOrMore(delim)))
+    elem = ( key + Suppress(sep) + value + Suppress(ZeroOrMore(delim) ) )
     return ( Suppress(enclosing[0]) + OneOrMore(Group(elem)) + Suppress(enclosing[1]) ).setParseAction( list2dict )
+
 def list( item, enclosing: str = "[]", delim="," ):
-    return (Suppress(enclosing[0]) + delimitedList( item, delim=delim )  + Suppress(enclosing[1]))
+    elem = item + Suppress( ZeroOrMore(delim) )
+    return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
 
 class WpsCwtParser:
 
