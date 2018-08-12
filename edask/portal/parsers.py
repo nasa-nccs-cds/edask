@@ -1,10 +1,10 @@
 from pyparsing import *
+from typing import Sequence, List, Dict, Any
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
 def str2int( input: ParseResults ): return int( sval(input) )
 def str2float( input: ParseResults ): return float( sval(input) )
-
 
 class WpsCwtParser:
 
@@ -25,7 +25,7 @@ class WpsCwtParser:
         return cls.keymap( cls.name, cls.list( spec ), "[]", "=" )
 
     @classmethod
-    def parseDatainputs(cls, datainputs):
+    def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
         return cls.getDatainputsParser().parseString(datainputs)[0]
 
     @staticmethod

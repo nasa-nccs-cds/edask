@@ -8,6 +8,7 @@ import random, string, os, queue, datetime, atexit
 from enum import Enum
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
+from edask.process.task import TaskRequest
 
 
 class Job:
@@ -53,7 +54,7 @@ class ProcessManager(GenericProcessManager):
 
   def executeProcess( self, service: str, job: Job ) -> str:
       dataInputsObj = WpsCwtParser.parseDatainputs( job.datainputs )
-      request: TaskRequest = TaskRequest(job.requestId, job.identifier, dataInputsObj)
+      request: TaskRequest = TaskRequest.new( job.requestId, job.identifier, dataInputsObj )
       return ""
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
