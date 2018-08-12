@@ -31,3 +31,6 @@ class OperationManager:
 
     def getOperation( self, name: str ) -> Operation:
         return self.operations.get( name.lower() )
+
+#    def getkernels(self):
+

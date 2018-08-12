@@ -59,7 +59,7 @@ class KernelModule(OperationModule):
         kernel = self._kernels.get( op )
         return kernel.describeProcess()
 
-class OperationsManager:
+class KernelManager:
 
     def __init__( self ):
         self.logger =  logging.getLogger()
@@ -106,7 +106,7 @@ class OperationsManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-edasOpManager = OperationsManager()
+edasOpManager = KernelManager()
 
 
 
