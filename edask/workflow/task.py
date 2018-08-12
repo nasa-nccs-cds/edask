@@ -18,7 +18,7 @@ class Task:
 
         return Task( module, op, rId, inputs, metadata )
 
-    def __init__( self, module: str, op: str, rId: str, inputs: Sequence[str], metadata: Dict[str,Any] ):
+    def __init__( self, module: str, op: str, rId: str, inputs: List[str], metadata: Dict[str,Any] ):
         self.module = module
         self.op = op
         self.rId = rId
