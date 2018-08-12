@@ -1,5 +1,6 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
+from edask.process.task import TaskRequest
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
@@ -41,8 +42,12 @@ class WpsCwtParser:
 
 if __name__ == "__main__":
 
-    testStr = '[ domain=[{ "name":"d0",   \n   "lat":{"start":-40.25,  "end":-4.025E1, "system":"values" }, "lon":{ "start":8975e-2,"end":-897.5E-1, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" }, "level":{ "start":0,     "end":5,     "system":"indices" } }, { "name":"d1", "level":{ "start":0,"end":5, "system":"indices" } }], variable=[{ "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml", "name":"hur", "domain":"d0" } ], operation=[{ "name":"CDSpark.average", "input":"hur", "domain":"d0","axes":"xy"}]    ]'
+    testStr = '[ domain=[{ "name":"d0",   \n   "lat":{"start":-40.25,  "end":-4.025E1, "system":"values" }, "lon":{ "start":8975e-2,"end":-897.5E-1, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" }, "level":{ "start":0,     "end":5,     "system":"indices" } }, { "name":"d1", "level":{ "start":0,"end":5, "system":"indices" } }], ' \
+              'variable=[{ "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml", "name":"hur", "domain":"d0" } ], ' \
+              'operation=[{ "name":"CDSpark.average", "input":"hur", "domain":"d0","axes":"xy"}]    ]'
 
-    result = WpsCwtParser.parseDatainputs( testStr )
+    dataInputs = WpsCwtParser.parseDatainputs( testStr )
 
-    print( result )
+    request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs)
+
+    print( request )

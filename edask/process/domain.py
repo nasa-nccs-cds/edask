@@ -1,12 +1,12 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional
-from enum import Enum
+from enum import Enum, auto
 
 class Axis(Enum):
-    UNKNOWN = 0
-    X = 1
-    Y = 2
-    Z = 3
-    T = 4
+    UNKNOWN = auto()
+    X = auto()
+    Y = auto()
+    Z = auto()
+    T = auto()
 
     @classmethod
     def parse(cls, name: str):
@@ -44,22 +44,21 @@ class Domain:
     @classmethod
     def new(cls, domainSpec: Dict[str, Any] ):
         name = "d0"
-        axisBounds = {}
+        axisBounds: Dict[Axis,AxisBounds] = {}
         for ( key, value ) in domainSpec.items():
-            if( key.lower() in [ "name, :id"]):
+            if( key.lower() in [ "name", "id" ] ):
                 name = value
             else:
-                axisBounds[ key ] = AxisBounds.new( key, value )
+                bounds = AxisBounds.new( key, value )
+                axisBounds[ bounds.type ] = bounds
         return Domain( name,  axisBounds )
 
-    def __init__( self, _name: str, _axisBounds: List[AxisBounds] ):
+    def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
         self.axisBounds = _axisBounds
 
     def findAxisBounds( self, type: Axis ) -> Optional[AxisBounds]:
-        for axis in self.axisBounds:
-            if axis.type == type: return axis
-        return None
+        self.axisBounds.get( type, None )
 
     def hasUnknownAxes(self) -> bool :
         return self.findAxisBounds(Axis.UNKNOWN) is not None
