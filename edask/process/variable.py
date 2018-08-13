@@ -47,7 +47,7 @@ class Variable:
 
     @classmethod
     def new(cls, variableSpec: Dict[str, Any] ):
-        nameToks = variableSpec.get("name").split(".")
+        nameToks = variableSpec.get("name").split(":")
         name = nameToks[0]
         id = nameToks[-1]
         domain = variableSpec.get("domain")

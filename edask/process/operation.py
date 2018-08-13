@@ -30,6 +30,8 @@ class WorkflowInput(OperationInput):
 
     def setConnection(self, connection: 'Operation' ):
         self._connection = connection
+        
+    def isConnected(self): return self._connection is not None
 
     def __str__(self):
         return "WI({})[ connection: {} ]".format( self.name, self._connection.rid if self._connection else "UNDEF" )
@@ -85,7 +87,7 @@ class OperationManager:
         return OperationManager( operations, domainManager, variableManager )
 
     def __init__(self, _operations: List[Operation], domainManager: DomainManager, variableManager: VariableManager ):
-        self.operations = _operations
+        self.operations: List[Operation] = _operations
         self.domains = domainManager
         self.variables = variableManager
         self.addInputOperations()
@@ -96,8 +98,24 @@ class OperationManager:
             op.addInput( SourceInput.new( variable ) )
             self.operations.append( op )
 
+    def findOperationByResult(self, rid ):
+        for operation in self.operations:
+            if operation.rid == rid: return operation
+        return None
+
     def __str__(self):
         return "OperationManager[ {} ]:\n\t\t{}\n\t\t{}".format( "; ".join( [ str(op) for op in self.operations ] ), str(self.domains), str(self.variables) )
+
+    def createWorkflow(self):
+        for operation in self.operations:
+            for input in operation.inputs:
+                if isinstance( input, WorkflowInput ) and not input.isConnected():
+                    connection = self.findOperationByResult( input.name )
+                    if connection is not None: input.setConnection( connection )
+                    else: raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
+                    
+                    
+
 
 #    def getkernels(self):
 

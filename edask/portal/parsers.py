@@ -43,11 +43,13 @@ class WpsCwtParser:
 if __name__ == "__main__":
 
     testStr = '[ domain=[ {"name":"d0",   \n   "lat":{"start":0.0,  "end":20.0, "system":"values" }, "lon":{ "start":0.0,"end":20.0, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" } } ], ' \
-              'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas", "domain":"d0" } ], ' \
-              'operation=[{ "name":"xarray.average", "input":"hur", "domain":"d0","axes":"xy"}] ]'
+              'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas:v0", "domain":"d0" } ], ' \
+              'operation=[{ "name":"xarray.average", "input":"v0", "domain":"d0","axes":"xy"}] ]'
 
     dataInputs = WpsCwtParser.parseDatainputs( testStr )
 
     request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
+
+    request.createWorkflow()
 
     print( request )

@@ -52,6 +52,9 @@ class TaskRequest:
       self.name = name
       self.operationManager = _operationManager
 
+  def createWorkflow(self):
+      self.operationManager.createWorkflow()
+
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
 
