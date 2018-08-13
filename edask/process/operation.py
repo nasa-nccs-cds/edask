@@ -1,4 +1,4 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional
+from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator
 from enum import Enum, auto
 from .variable import VariableManager, Variable, DataSource
 from .domain import DomainManager, Domain
@@ -58,6 +58,9 @@ class Operation:
         self.inputs = []
         self._addWorkflowInputs()
 
+    def isResult(self):
+        return self.rid is None
+
     def _addWorkflowInputs(self):
         for inputName in self.metadata.get("input","").split(","):
             if inputName: self.addInput( WorkflowInput( inputName ) )
@@ -98,10 +101,8 @@ class OperationManager:
             op.addInput( SourceInput.new( variable ) )
             self.operations.append( op )
 
-    def findOperationByResult(self, rid ):
-        for operation in self.operations:
-            if operation.rid == rid: return operation
-        return None
+    def findOperationByResult(self, rid ) -> Optional[Operation]:
+        return next( (op for op in self.operations if op.rid == rid), None )
 
     def __str__(self):
         return "OperationManager[ {} ]:\n\t\t{}\n\t\t{}".format( "; ".join( [ str(op) for op in self.operations ] ), str(self.domains), str(self.variables) )
@@ -114,7 +115,8 @@ class OperationManager:
                     if connection is not None: input.setConnection( connection )
                     else: raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
                     
-                    
+    def getResultOperations(self) -> List[Operation]:
+         return list( filter( lambda x: x.isResult(), self.operations ) )
 
 
 #    def getkernels(self):

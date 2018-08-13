@@ -6,7 +6,6 @@ from cdms2.variable import DatasetVariable
 from random import SystemRandom
 import random, string, os, queue, datetime, atexit
 from enum import Enum
-from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.process.task import TaskRequest
 

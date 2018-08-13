@@ -52,7 +52,7 @@ class TaskRequest:
       self.name = name
       self.operationManager = _operationManager
 
-  def createWorkflow(self):
+  def linkWorkflow(self):
       self.operationManager.createWorkflow()
 
   def __str__(self):

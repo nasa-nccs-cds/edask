@@ -1,6 +1,7 @@
 from ..kernel import Kernel, KernelSpec
 import xarray as xr
-from edask.process.operation import Operation
+from edask.process.operation import Operation, SourceInput, SourceType
+from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.agg import Collection
 import numpy as np
 import numpy.ma as ma
@@ -12,21 +13,19 @@ class InputKernel(Kernel):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
     def buildWorkflow(self, task: Operation, input_dataset: xr.Dataset) -> xr.Dataset:
-        dataset_path = task.getAttr("file")
         result_datasets = [ input_dataset ] if input_dataset is not None else []
-        if dataset_path is not None:
-            result_datasets.append( xr.open_mfdataset(dataset_path, autoclose=True, data_vars=task.inputs, parallel=True) )
-        else:
-            collection = task.getAttr("collection")
-            if collection is not None:
-                collection = Collection.new(collection)
+        inputs: List[SourceInput] = task.inputs
+        for input in inputs:
+            stype = input.source.type
+            if stype == SourceType.file:
+                result_datasets.append( xr.open_mfdataset(input.source.address, autoclose=True, data_vars=task.inputs, parallel=True) )
+            elif stype == SourceType.collection:
+                collection = Collection.new( input.source.address )
                 aggs = collection.sortVarsByAgg(task.inputs)
                 for ( aggId, vars ) in aggs.items():
                     result_datasets.append( xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True) )
-            else:
-                dap_url = task.getAttr("dap")
-                if dap_url is not None:
-                    result_datasets.append( xr.open_mfdataset( dap_url, autoclose=True, data_vars=task.inputs, parallel=True) )
+            elif stype == SourceType.dap:
+                result_datasets.append( xr.open_mfdataset( input.source.address, autoclose=True, data_vars=task.inputs, parallel=True) )
 
         return xr.merge( result_datasets )
 

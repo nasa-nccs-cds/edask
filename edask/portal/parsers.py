@@ -1,6 +1,7 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
 from edask.process.task import TaskRequest
+from edask.workflow.module import edasOpManager
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
@@ -44,12 +45,16 @@ if __name__ == "__main__":
 
     testStr = '[ domain=[ {"name":"d0",   \n   "lat":{"start":0.0,  "end":20.0, "system":"values" }, "lon":{ "start":0.0,"end":20.0, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" } } ], ' \
               'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas:v0", "domain":"d0" } ], ' \
-              'operation=[{ "name":"xarray.average", "input":"v0", "domain":"d0","axes":"xy"}] ]'
+              'operation=[{ "name":"xarray.ave", "input":"v0", "domain":"d0","axes":"xy"}] ]'
 
     dataInputs = WpsCwtParser.parseDatainputs( testStr )
 
     request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
 
-    request.createWorkflow()
+    request.linkWorkflow()
+
+    results = request.operationManager.getResultOperations()
+
+    result_kernels = [  edasOpManager.getKernel( op ) for op in results ]
 
     print( request )
