@@ -2,7 +2,7 @@ from typing import Dict, Any, Union, Sequence, List
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager
 from edask.process.variable import VariableManager
-from edask.process.operation import OperationManager
+from edask.process.operation import OperationManager, Operation
 
 class UID:
     ndigits = 6
@@ -45,8 +45,6 @@ class TaskRequest:
     logger.info( " -> Generated TaskRequest, uid = " + str(uid) )
     return rv
 
-  
-  
   def __init__( self, id: UID, name: str, _operationManager: OperationManager ):
       self.uid = id
       self.name = name
@@ -57,6 +55,9 @@ class TaskRequest:
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
+
+  def getResultOperations(self) -> List[Operation]:
+      return self.operationManager.getResultOperations()
 
 
       # variableMap: Dict[str, DataContainer], domainMap: Dict[str, DomainContainer],

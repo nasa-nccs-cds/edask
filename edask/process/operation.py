@@ -30,7 +30,10 @@ class WorkflowInput(OperationInput):
 
     def setConnection(self, connection: 'Operation' ):
         self._connection = connection
-        
+
+    def getConnection( self ):
+        return self._connection
+
     def isConnected(self): return self._connection is not None
 
     def __str__(self):
@@ -54,8 +57,8 @@ class Operation:
         nameToks = _name.split(".")
         self.module = nameToks[0]
         self.op = nameToks[1]
-        self.axes = self._getAxes()
-        self.inputs = []
+        self.axes: List[str] = self._getAxes()
+        self.inputs: List[OperationInput] = []
         self._addWorkflowInputs()
 
     def isResult(self):
