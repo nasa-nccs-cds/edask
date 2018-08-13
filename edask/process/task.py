@@ -47,11 +47,9 @@ class TaskRequest:
 
   
   
-  def __init__( self, id: UID, name: str, _domainManager: DomainManager, _variableManager: VariableManager, _operationManager: OperationManager ):
+  def __init__( self, id: UID, name: str, _operationManager: OperationManager ):
       self.uid = id
       self.name = name
-      self.domainManager = _domainManager
-      self.variableManager = _variableManager
       self.operationManager = _operationManager
 
       # variableMap: Dict[str, DataContainer], domainMap: Dict[str, DomainContainer],

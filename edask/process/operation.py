@@ -1,7 +1,32 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional
 from enum import Enum, auto
-from .variable import VariableManager, Variable
+from .variable import VariableManager, Variable, DataSource
 from .domain import DomainManager, Domain
+import edask
+
+class OperationInput:
+
+    def __init__( self, _name: str ):
+        self.name = _name
+
+class SourceInput(OperationInput):
+
+    def __init__( self, _name: str, _source: DataSource ):
+        super(SourceInput, self).__init__( _name )
+        self.source = _source
+
+    @staticmethod
+    def new( variable: Variable ) -> 'SourceInput':
+        return SourceInput( variable.name, variable.source )
+
+class WorkflowInput(OperationInput):
+
+    def __init__( self, name: str ):
+        super(WorkflowInput, self).__init__( name )
+        self._connection: Operation = None
+
+    def setConnection(self, connection: 'Operation' ):
+        self._connection = connection
 
 class Operation:
 
@@ -10,20 +35,27 @@ class Operation:
         name = operationSpec.get("name",None)
         domain = operationSpec.get("domain",None)
         rid = operationSpec.get("result",None)
-        inputs = operationSpec.get("input","").split(",")
-        axes = operationSpec.get("axes","").split(",")
-        return Operation( name, domain, inputs, rid, axes, operationSpec )
 
-    def __init__(self, _name: str, _domain: str, _inputs: List[str], _rid: str, _metadata: Dict[str,Any] ):
+        return Operation( name, domain, rid, operationSpec )
+
+    def __init__(self, _name: str, _domain: str, _rid: str, _metadata: Dict[str,Any] ):
         self.name = _name
         self.domain = _domain
-        self.inputs = _inputs
         self.rid = _rid
         self.metadata = _metadata
         nameToks = _name.split(".")
         self.module = nameToks[0]
         self.op = nameToks[1]
         self.axes = self._getAxes()
+        self.inputs = []
+        self._addWorkflowInputs()
+
+    def _addWorkflowInputs(self):
+        for inputName in self.metadata.get("input","").split(","):
+            if inputName: self.addInput( WorkflowInput( inputName ) )
+
+    def addInput(self, input: OperationInput ):
+        self.inputs.append( input )
 
     def _getAxes(self) -> List[str]:
         raw_axes = self.metadata.get("axes", [] )
@@ -33,7 +65,6 @@ class Operation:
             else: return list(raw_axes)
         else:
             return raw_axes
-
 
     variableManager: VariableManager
 
@@ -52,7 +83,9 @@ class OperationManager:
 
     def addInputOperations(self):
         for variable in self.variables.getVariables():
-           self.operations.append( Operation("xarray.input", variable.domain, [], variable.id, { "source": variable.source, "name": variable.name } ) )
+            op = Operation( "xarray.input", variable.domain, variable.id, {} )
+            op.addInput( SourceInput.new( variable ) )
+            self.operations.append( op )
 
 #    def getkernels(self):
 

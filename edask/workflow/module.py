@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel
 from os import listdir
 from os.path import isfile, join, os
-from edask.workflow.operation import Operation
+from edask.process.operation import Operation
 from typing import List, Dict
 
 class OperationModule:
