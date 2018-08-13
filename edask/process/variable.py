@@ -21,25 +21,27 @@ class DataSource:
     def __init__(self, address: str,  type: SourceType = SourceType.UNKNOWN ):
         self.processUri( type, address )
 
-    def processUri( self, stype: SourceType, address: str ):
+    def processUri( self, stype: SourceType, _address: str ):
         if stype.name.lower() == "uri":
-            toks = address.split(":")
+            toks = _address.split(":")
             scheme = toks[0].lower()
             if scheme == "collection":
                 self.type = SourceType.collection
                 self.address =  toks[1].strip("/")
             elif scheme == "http":
                 self.type = SourceType.collection
-                self.address = address
+                self.address = _address
             elif scheme == "file":
                 self.type = SourceType.file
                 self.address = toks[1]
             else:
-                raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,address) )
+                raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,_address) )
         else:
             self.type = stype
-            self._address = address
+            self.address = _address
 
+    def __str__(self):
+        return "DS({})[ {} ]".format( self.type, self.address )
 
 class Variable:
 
@@ -58,6 +60,8 @@ class Variable:
         self.domain = _domain
         self.source = _source
 
+    def __str__(self):
+        return "V({}:{})[ domain: {}, source: {} ]".format( self.name, self.id, self.domain, str(self.source) )
 
 class VariableManager:
 
@@ -74,3 +78,6 @@ class VariableManager:
 
     def getVariables(self) -> ValuesView[Variable]:
         return self.variables.values()
+
+    def __str__(self):
+        return "Variables[ {} ]".format( ";".join( [ str(v) for v in self.variables.values() ] ) )

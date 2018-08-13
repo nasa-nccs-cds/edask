@@ -4,7 +4,7 @@ import xarray as xr
 import time, traceback
 from xarray.ufuncs import cos
 from typing import List, Dict
-from edask.workflow.operation import Operation
+from edask.workflow.task import Operation
 
 if __name__ == '__main__':
     print( "STARTUP" )

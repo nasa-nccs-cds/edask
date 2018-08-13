@@ -19,6 +19,9 @@ class SourceInput(OperationInput):
     def new( variable: Variable ) -> 'SourceInput':
         return SourceInput( variable.name, variable.source )
 
+    def __str__(self):
+        return "SI({})[ source: {} ]".format( self.name, str(self.source) )
+
 class WorkflowInput(OperationInput):
 
     def __init__( self, name: str ):
@@ -27,6 +30,9 @@ class WorkflowInput(OperationInput):
 
     def setConnection(self, connection: 'Operation' ):
         self._connection = connection
+
+    def __str__(self):
+        return "WI({})[ connection: {} ]".format( self.name, self._connection.rid if self._connection else "UNDEF" )
 
 class Operation:
 
@@ -68,6 +74,9 @@ class Operation:
 
     variableManager: VariableManager
 
+    def __str__(self):
+        return "Op({}:{})[ domain: {}, rid: {}, axes: {}, inputs: {} ]".format( self.name, self.op, self.domain, self.rid, str(self.axes), "; ".join( [ str(i) for i in self.inputs ] ) )
+
 class OperationManager:
 
     @classmethod
@@ -86,6 +95,9 @@ class OperationManager:
             op = Operation( "xarray.input", variable.domain, variable.id, {} )
             op.addInput( SourceInput.new( variable ) )
             self.operations.append( op )
+
+    def __str__(self):
+        return "OperationManager[ {} ]:\n\t\t{}\n\t\t{}".format( "; ".join( [ str(op) for op in self.operations ] ), str(self.domains), str(self.variables) )
 
 #    def getkernels(self):
 

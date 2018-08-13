@@ -39,6 +39,9 @@ class AxisBounds:
         self.system = _system
         self.metadata = _metadata
 
+    def __str__(self):
+        return "B({}:{})[ start: {}, end: {}, system: {} ]".format( self.type.name, self.name, self.start, self.end, self.system )
+
 class Domain:
 
     @classmethod
@@ -63,6 +66,9 @@ class Domain:
     def hasUnknownAxes(self) -> bool :
         return self.findAxisBounds(Axis.UNKNOWN) is not None
 
+    def __str__(self):
+        return "D({})[ {} ]".format( self.name, "; ".join( [ str(b) for b in self.axisBounds.values()] ) )
+
 
 class DomainManager:
 
@@ -76,6 +82,9 @@ class DomainManager:
 
     def getDomain( self, name: str ) -> Domain:
         return self.domains.get( name.lower() )
+
+    def __str__(self):
+        return "Domains[ {} ]".format( "; ".join( [ str(d) for d in self.domains.values() ] )  )
 
 
 

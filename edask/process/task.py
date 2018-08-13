@@ -52,6 +52,10 @@ class TaskRequest:
       self.name = name
       self.operationManager = _operationManager
 
+  def __str__(self):
+      return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
+
+
       # variableMap: Dict[str, DataContainer], domainMap: Dict[str, DomainContainer],
       #             operations: Sequence[OperationContext] = [], metadata: Dict[str, str] = Dict("id" -> "#META"), user: User = User());
         

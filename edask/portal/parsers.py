@@ -42,12 +42,12 @@ class WpsCwtParser:
 
 if __name__ == "__main__":
 
-    testStr = '[ domain=[{ "name":"d0",   \n   "lat":{"start":-40.25,  "end":-4.025E1, "system":"values" }, "lon":{ "start":8975e-2,"end":-897.5E-1, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" }, "level":{ "start":0,     "end":5,     "system":"indices" } }, { "name":"d1", "level":{ "start":0,"end":5, "system":"indices" } }], ' \
-              'variable=[{ "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml", "name":"hur", "domain":"d0" } ], ' \
-              'operation=[{ "name":"CDSpark.average", "input":"hur", "domain":"d0","axes":"xy"}]    ]'
+    testStr = '[ domain=[ {"name":"d0",   \n   "lat":{"start":0.0,  "end":20.0, "system":"values" }, "lon":{ "start":0.0,"end":20.0, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" } } ], ' \
+              'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas", "domain":"d0" } ], ' \
+              'operation=[{ "name":"xarray.average", "input":"hur", "domain":"d0","axes":"xy"}] ]'
 
     dataInputs = WpsCwtParser.parseDatainputs( testStr )
 
-    request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs)
+    request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
 
     print( request )
