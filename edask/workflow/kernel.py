@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import logging, cdms2, time, os, socket
 from edask.messageParser import mParse
-from .task import Task
+from edask.process.operation import Operation
 import xarray as xr
 
 
@@ -35,7 +35,7 @@ class Kernel:
     def describeProcess( self ): return str(self._spec)
 
     @abstractmethod
-    def buildWorkflow(self, task: Task, dataset: xr.Dataset ) -> xr.Dataset: pass
+    def buildWorkflow(self, task: Operation, dataset: xr.Dataset) -> xr.Dataset: pass
 
 
 class LegacyKernel:

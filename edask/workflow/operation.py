@@ -16,7 +16,7 @@ class Task:
         inputs = headerToks[2].split(',')
         metadata = mParse.s2m( headerToks[3] )
 
-        return Task( module, op, rId, inputs, metadata )
+        return Task(module, op, rId, inputs, metadata)
 
     def __init__( self, module: str, op: str, rId: str, inputs: List[str], metadata: Dict[str,Any] ):
         self.module = module

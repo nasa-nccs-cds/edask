@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel
 from os import listdir
 from os.path import isfile, join, os
-from edask.workflow.task import Task
+from edask.workflow.operation import Operation
 from typing import List, Dict
 
 class OperationModule:
@@ -15,7 +15,7 @@ class OperationModule:
 
     def getName(self) -> str: return self._name
 
-    def executeTask( self, task: Task, inputs ):
+    def executeTask(self, task: Operation, inputs):
         self.logger.error( "Executing Unimplemented method on abstract base class: " + self.getName() )
         return []
 
@@ -39,7 +39,7 @@ class KernelModule(OperationModule):
     def isLocal( self, obj )-> bool:
         return str(obj).split('\'')[1].split('.')[0] == "__main__"
 
-    def executeTask( self, task: Task, inputs ):
+    def executeTask(self, task: Operation, inputs):
         kernel = self.getKernel( task )
         if( kernel is None ): raise Exception( "Unrecognized kernel.py key: "+ task.op.lower() +", registered kernels = " + ", ".join( self._kernels.keys() ) )
         self.logger.info( "Executing Kernel: " + kernel.name() )
@@ -48,7 +48,7 @@ class KernelModule(OperationModule):
         elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
         else: raise Exception( "Unrecognized kernel.py action: " + action )
 
-    def getKernel( self, task: Task ):
+    def getKernel(self, task: Operation):
         key = task.op.lower()
         return self._kernels.get( key )
 
@@ -91,10 +91,10 @@ class KernelManager:
                 self.logger.debug(  " ----------->> Adding Module: " + str( module_name ) )
             else: self.logger.debug(  " XXXXXXXX-->> Skipping Empty Module: " + str( module_name ) )
 
-    def getModule(self, task: Task ) -> KernelModule:
+    def getModule(self, task: Operation) -> KernelModule:
         return self.operation_modules[ task.module ]
 
-    def getKernel( self, task: Task ):
+    def getKernel(self, task: Operation):
         module = self.operation_modules[ task.module ]
         return module.getKernel(task)
 

@@ -29,7 +29,7 @@ class TaskRequest:
     uid = UID(rId)
     domainManager = DomainManager.new( datainputs.get("domain") )
     variableManager = VariableManager.new( datainputs.get("variable") )
-    operationManager = OperationManager.new( datainputs.get("operation") )
+    operationManager = OperationManager.new( datainputs.get("operation"), domainManager, variableManager )
     # op_spec_list: Sequence[Dict[str, Any]] = datainputs .get( "operation", [] )
     # data_list: List[DataContainer] = datainputs.get("variable", []).flatMap(DataContainer.factory(uid, _, op_spec_list.isEmpty )).toList
     # domain_list: List[DomainContainer] = datainputs.get("domain", []).map(DomainContainer(_)).toList
@@ -41,7 +41,7 @@ class TaskRequest:
     # inferDomains(operation_list, variableMap )
     # gridId = datainputs.get("grid", data_list.headOption.map(dc => dc.uid).get("#META")).toString
     # gridSpec = Dict("id" -> gridId.toString)
-    rv = TaskRequest( uid, process_name, domainManager, variableManager, operationManager )
+    rv = TaskRequest( uid, process_name, operationManager )
     logger.info( " -> Generated TaskRequest, uid = " + str(uid) )
     return rv
 

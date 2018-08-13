@@ -1,6 +1,6 @@
 from ..kernel import Kernel, KernelSpec
 import xarray as xr
-from ..task import Task
+from edask.process.operation import Operation
 from edask.agg import Collection
 import numpy as np
 import numpy.ma as ma
@@ -11,7 +11,7 @@ class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
-    def buildWorkflow( self, task: Task, input_dataset: xr.Dataset ) -> xr.Dataset:
+    def buildWorkflow(self, task: Operation, input_dataset: xr.Dataset) -> xr.Dataset:
         dataset_path = task.getAttr("file")
         result_datasets = [ input_dataset ] if input_dataset is not None else []
         if dataset_path is not None:
@@ -35,7 +35,7 @@ class AverageKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def buildWorkflow( self, task: Task, input_dataset: xr.Dataset ) -> xr.Dataset:
+    def buildWorkflow(self, task: Operation, input_dataset: xr.Dataset) -> xr.Dataset:
         variables = task.getMappedVariables( input_dataset )
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(task.axes) )
         result_names = []

@@ -5,7 +5,7 @@ import xarray as xr
 import time, traceback
 import numpy as np
 from edask.workflow.internal.xarray import *
-from edask.workflow.task import Task
+from edask.process.operation import Operation
 from edask.workflow.module import edasOpManager
 
 if __name__ == '__main__':
@@ -20,9 +20,10 @@ if __name__ == '__main__':
         tdefine = time.time()
         print("Defining workflow")
         print( "*Capabilities: \n " + edasOpManager.getCapabilitiesStr().replace("!","\n ").replace("~","\n ") )
+        domain = None
 
-        aveTask = Task( "xarray", "ave", "result", ['tas'], { "axes": "xyt" } )
-        inputTask = Task(  "xarray", "input", "result", ['tas'], { "file": '/Users/tpmaxwel/Dropbox/Tom/Data/GISS/CMIP5/E2H/r1i1p1/*.nc' } )
+        aveTask = Operation( "xarray.ave", domain, ['tas'], "result", {"axes": "xyt"} )
+        inputTask = Operation( "xarray.input", domain, ['tas'], "result", {"file": '/Users/tpmaxwel/Dropbox/Tom/Data/GISS/CMIP5/E2H/r1i1p1/*.nc'})
 
         def get_results( ) -> List[xr.DataArray]:
             from edask.workflow.kernel import Kernel
