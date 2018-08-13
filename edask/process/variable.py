@@ -41,7 +41,7 @@ class DataSource:
             self.address = _address
 
     def __str__(self):
-        return "DS({})[ {} ]".format( self.type, self.address )
+        return "DS({})[ {} ]".format( self.type.name, self.address )
 
 class Variable:
 
