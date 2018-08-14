@@ -1,49 +1,49 @@
 from ..kernel import Kernel, KernelSpec
 import xarray as xr
-from edask.process.operation import Operation, SourceInput, SourceType
+from edask.process.operation import WorkflowNode, SourceInput
+from edask.process.source import SourceType
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.agg import Collection
 import numpy as np
 import numpy.ma as ma
 import time, traceback
 from xarray.ufuncs import cos
+from edask.process.source import VariableSource, DataSource
 
 class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
-    def buildWorkflow(self, task: Operation, input_dataset: xr.Dataset) -> xr.Dataset:
+    def buildWorkflow(self, op: WorkflowNode, input_dataset: xr.Dataset) -> xr.Dataset:
         result_datasets = [ input_dataset ] if input_dataset is not None else []
-        inputs: List[SourceInput] = task.inputs
-        for input in inputs:
-            stype = input.source.type
-            if stype == SourceType.file:
-                result_datasets.append( xr.open_mfdataset(input.source.address, autoclose=True, data_vars=task.inputs, parallel=True) )
-            elif stype == SourceType.collection:
-                collection = Collection.new( input.source.address )
-                aggs = collection.sortVarsByAgg(task.inputs)
-                for ( aggId, vars ) in aggs.items():
-                    result_datasets.append( xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True) )
-            elif stype == SourceType.dap:
-                result_datasets.append( xr.open_mfdataset( input.source.address, autoclose=True, data_vars=task.inputs, parallel=True) )
-
+        varSource: VariableSource = op.source
+        stype = varSource.source.type
+        if stype == SourceType.collection:
+            collection = Collection.new( varSource.source.address )
+            aggs = collection.sortVarsByAgg(varSource.vids)
+            for ( aggId, vars ) in aggs.items():
+                result_datasets.append( xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True) )
+        else:
+            if stype in [ SourceType.file, SourceType.dap ]:
+                result_datasets.append( xr.open_mfdataset(varSource.source.address, autoclose=True, data_vars=varSource.getNames(), parallel=True) )
         return xr.merge( result_datasets )
-
 
 class AverageKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def buildWorkflow(self, task: Operation, input_dataset: xr.Dataset) -> xr.Dataset:
-        variables = task.getMappedVariables( input_dataset )
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( task.inputs ) + ", task metadata = " + str(task.metadata) + ", axes = " + str(task.axes) )
+    def buildWorkflow(self, op: WorkflowNode, input_dataset: xr.Dataset) -> xr.Dataset:
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( op.inputs ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result_names = []
-        for variable in variables:
-            weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if task.hasAxis('y') else None
-            resultName = "-".join( [task.rId, variable.name] )
-            result_names.append( resultName )
-            input_dataset[ resultName ] = self.ave( variable, task.axes, weights )
-        input_dataset.attrs[ "results-" + task.rId ] = result_names
+        for input in op.inputs:
+            inop: WorkflowNode = input.getConnection()
+            for vid in inop.source.getIds():
+                variable = input_dataset[vid]
+                weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if op.hasAxis('y') else None
+                resultName = "-".join( [op.rid, variable.name] )
+                result_names.append( resultName )
+                input_dataset[ resultName ] = self.ave( variable, op.axes, weights )
+        input_dataset.attrs[ "results-" + op.rid ] = result_names
         return input_dataset
 
     def ave( self, variable, axes, weights ) -> xr.DataArray:

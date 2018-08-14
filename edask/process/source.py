@@ -43,40 +43,68 @@ class DataSource:
     def __str__(self):
         return "DS({})[ {} ]".format( self.type.name, self.address )
 
-class Variable:
+class VID:
+
+   def __init__(self, _name: str, _id: str ):
+        self.name = _name
+        self.id = _id
+
+   def __str__(self):
+        return "{}:{}".format( self.name, self.id )
+
+class VariableSource:
 
     @classmethod
     def new(cls, variableSpec: Dict[str, Any] ):
-        nameToks = variableSpec.get("name").split(":")
-        name = nameToks[0]
-        id = nameToks[-1]
+        varnames = variableSpec.get("name").split(",")
+        vars = []
+        for varname in varnames:
+            nameToks = varname.split(":")
+            name = nameToks[0]
+            id = nameToks[-1]
+            vars.append(VID(name, id))
         domain = variableSpec.get("domain")
         source = DataSource.new( variableSpec )
-        return Variable( name, id, domain, source )
+        return VariableSource(vars, domain, source)
 
-    def __init__(self, _name: str, _id: str, _domain: str, _source: DataSource  ):
-        self.name = _name
-        self.id = _id
-        self.domain = _domain
-        self.source = _source
+    def __init__(self, vars: List[VID], _domain: str, _source: DataSource):
+        self.vids: List[VID] = vars
+        self.domain: str = _domain
+        self.source: DataSource = _source
+
+    def getNames(self):
+        return [ v.name for v in self.vids ]
+
+    def getIds(self):
+        return [ v.id for v in self.vids ]
+
+    def providesId(self, vid: str ):
+        return vid in self.getIds()
+
+    def getId(self):
+        return ":".join( self.getIds() )
 
     def __str__(self):
-        return "V({}:{})[ domain: {}, source: {} ]".format( self.name, self.id, self.domain, str(self.source) )
+        return "V({})[ domain: {}, source: {} ]".format( ",".join([str(v) for v in self.vids]), self.domain, str(self.source))
 
 class VariableManager:
 
     @classmethod
     def new(cls, variableSpecs: List[Dict[str, Any]] ):
-        variables = [ Variable.new(variableSpec) for variableSpec in variableSpecs ]
-        return VariableManager( { v.name.lower(): v for v in variables } )
+        vsources = [ VariableSource.new(variableSpec) for variableSpec in variableSpecs ]
+        vmap = {}
+        for vsource in vsources:
+            for var in vsource.vids:
+                vmap[var.id] = vsource
+        return VariableManager( vmap )
 
-    def __init__(self, _variables: Dict[str,Variable] ):
-        self.variables: Dict[str,Variable] = _variables
+    def __init__(self, _variables: Dict[str, VariableSource]):
+        self.variables: Dict[str, VariableSource] = _variables
 
-    def getVariable( self, name: str ) -> Variable:
-        return self.variables.get( name.lower() )
+    def getVariable( self, id: str ) -> VariableSource:
+        return self.variables.get( id )
 
-    def getVariables(self) -> ValuesView[Variable]:
+    def getVariableSources(self) -> ValuesView[VariableSource]:
         return self.variables.values()
 
     def __str__(self):

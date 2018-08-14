@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel
 from os import listdir
 from os.path import isfile, join, os
-from edask.process.operation import Operation, SourceInput, WorkflowInput
+from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
 from edask.process.task import TaskRequest
 from typing import List, Dict
 import xarray as xr
@@ -17,7 +17,7 @@ class OperationModule:
 
     def getName(self) -> str: return self._name
 
-    def executeTask(self, task: Operation, inputs):
+    def executeTask(self, task: WorkflowNode, inputs):
         self.logger.error( "Executing Unimplemented method on abstract base class: " + self.getName() )
         return []
 
@@ -41,7 +41,7 @@ class KernelModule(OperationModule):
     def isLocal( self, obj )-> bool:
         return str(obj).split('\'')[1].split('.')[0] == "__main__"
 
-    def executeTask(self, task: Operation, inputs):
+    def executeTask(self, task: WorkflowNode, inputs):
         kernel = self.getKernel( task )
         if( kernel is None ): raise Exception( "Unrecognized kernel.py key: "+ task.op.lower() +", registered kernels = " + ", ".join( self._kernels.keys() ) )
         self.logger.info( "Executing Kernel: " + kernel.name() )
@@ -50,7 +50,7 @@ class KernelModule(OperationModule):
         elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
         else: raise Exception( "Unrecognized kernel.py action: " + action )
 
-    def getKernel(self, task: Operation):
+    def getKernel(self, task: WorkflowNode):
         key = task.op.lower()
         return self._kernels.get( key )
 
@@ -93,10 +93,10 @@ class KernelManager:
                 self.logger.debug(  " ----------->> Adding Module: " + str( module_name ) )
             else: self.logger.debug(  " XXXXXXXX-->> Skipping Empty Module: " + str( module_name ) )
 
-    def getModule(self, task: Operation) -> KernelModule:
+    def getModule(self, task: WorkflowNode) -> KernelModule:
         return self.operation_modules[ task.module ]
 
-    def getKernel(self, task: Operation):
+    def getKernel(self, task: WorkflowNode):
         module = self.operation_modules[ task.module ]
         return module.getKernel(task)
 
@@ -108,7 +108,7 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow( self, op: Operation ) -> xr.Dataset:
+    def buildSubWorkflow(self, op: WorkflowNode) -> xr.Dataset:
         inputDatasets = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
@@ -116,9 +116,10 @@ class KernelManager:
                 connection = input.getConnection()
                 inputDatasets.append( self.buildSubWorkflow( connection ) )
         inputDataset = xr.merge( inputDatasets ) if inputDatasets else None
-        return kernel.buildWorkflow( op, inputDataset )
+        return kernel.getResultDataset( op, inputDataset )
 
     def buildRequest(self, request: TaskRequest ) -> List[xr.Dataset]:
+        request.linkWorkflow()
         resultOps = request.getResultOperations()
         return [ self.buildSubWorkflow(op) for op in resultOps ]
 

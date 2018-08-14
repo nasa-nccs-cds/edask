@@ -1,8 +1,8 @@
 from typing import Dict, Any, Union, Sequence, List
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager
-from edask.process.variable import VariableManager
-from edask.process.operation import OperationManager, Operation
+from edask.process.source import VariableManager
+from edask.process.operation import OperationManager, WorkflowNode
 
 class UID:
     ndigits = 6
@@ -56,7 +56,7 @@ class TaskRequest:
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
 
-  def getResultOperations(self) -> List[Operation]:
+  def getResultOperations(self) -> List[WorkflowNode]:
       return self.operationManager.getResultOperations()
 
 

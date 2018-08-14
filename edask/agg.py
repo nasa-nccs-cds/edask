@@ -4,6 +4,9 @@ import numpy as np
 import edask
 from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
+from edask.process.operation import SourceInput
+from edask.process.source import VID
+
 
 def parse_dict( dict_spec ):
     result = {}
@@ -54,12 +57,12 @@ class Collection:
         agg = self.getAggregation( aggId )
         return agg.fileList()
 
-    def sortVarsByAgg(self, varNames: Sequence[str] ) -> Dict[str,List[str]]:
+    def sortVarsByAgg(self, vids: List[VID] ) -> Dict[str,List[str]]:
         bins = {}
-        for varName in varNames:
-            agg_id = self.aggs.get(varName)
+        for vid in vids:
+            agg_id = self.aggs.get(vid.name)
             bin = bins.setdefault( agg_id, [] )
-            bin.append( varName )
+            bin.append( vid.name )
         return bins
 
     def pathList(self, aggId: str ) -> List[str]:
@@ -107,13 +110,40 @@ class File:
     def parm(self, key ):
         return self.collection.parm( key )
 
+class VarRec:
+
+    @staticmethod
+    def new( parms: List[str]):
+        metadata = {}
+        metadata["shortName"] = parms[0].strip()
+        metadata["longName"] = parms[1].strip()
+        metadata["dodsName"] = parms[2].strip()
+        metadata["description"] = parms[3].strip()
+        shape = list( map( lambda x: int(x), parms[4].strip().split(",") ) )
+        resolution = { key: float(value) for (key,value) in map( lambda x: x.split(":"), parms[5].strip().split(",") ) }
+        dims = parms[6].strip().split(" ")
+        units = parms[7].strip()
+        return VarRec( parms[0], shape, resolution, dims, units, metadata )
+
+    def __init__(self, name, shape, resolution, dims, units, metadata ):
+        self.name = name
+        self.shape = shape
+        self.resolution = resolution
+        self.dims = dims
+        self.units = units
+        self.metadata = metadata
+
+    def parm(self, key ):
+        return self.metadata.get( key )
+
+
 class Aggregation:
 
     def __init__(self, _name, _agg_file ):
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
-        self.files: Dict[str,File] = OrderedDict()
+        self.files: Dict[str,BinaryIO] = OrderedDict()
         self.axes = {}
         self.dims = {}
         self.vars = {}
@@ -123,13 +153,14 @@ class Aggregation:
         file = open( self.spec, "r" )
         for line in file.readlines():
             if not line: break
-            toks = line.split(";")
-            type = toks[0]
-            if type == 'P': self.parms[ toks[1].strip() ] = ";".join( toks[2:] ).strip()
-            elif type == 'A': self.axes[ toks[3].strip() ] = Axis( *toks[1:] )
-            elif type == 'C': self.dims[ toks[1].strip() ] = int( toks[2].strip() )
-            elif type == 'V': self.vars[ toks[1].strip() ] = Variable( *toks[1:] )
-            elif type == 'F': self.files[ toks[1].strip() ] = File( self, *toks[1:] )
+            if line[1] == ";":
+                type = line[0]
+                value = line[2:].split(";")
+                if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
+                elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
+                elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
 
     def parm(self, key ):
         return self.parms.get( key, "" )

@@ -51,10 +51,6 @@ if __name__ == "__main__":
 
     request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
 
-    request.linkWorkflow()
+    results = edasOpManager.buildRequest( request )
 
-    results = request.operationManager.getResultOperations()
-
-    result_kernels = [  edasOpManager.getKernel( op ) for op in results ]
-
-    print( request )
+    print( "\n".join( [ str(result) for result in results ] ) )

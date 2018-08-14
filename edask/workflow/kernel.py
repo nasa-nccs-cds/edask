@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import logging, cdms2, time, os, socket
 from edask.messageParser import mParse
-from edask.process.operation import Operation
+from edask.process.operation import WorkflowNode
 import xarray as xr
 
 
@@ -18,7 +18,7 @@ class KernelSpec:
 
     def getDescription(self): return self._description
     def getTitle(self): return self._title
-    def summary(self): return ";".join( [ self._name, self.getTitle() ] )
+    def summary(self) -> str: return ";".join( [ self._name, self.getTitle() ] )
 
 class Kernel:
 
@@ -26,16 +26,23 @@ class Kernel:
 
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
-        self._spec = spec
+        self._spec: KernelSpec = spec
+        self._cachedresult: xr.Dataset = None
 
     def name(self): return self._spec.name()
 
-    def getSpec(self): return self._spec
-    def getCapabilities(self): return self._spec.summary()
-    def describeProcess( self ): return str(self._spec)
+    def getSpec(self) -> KernelSpec: return self._spec
+    def getCapabilities(self) -> str: return self._spec.summary()
+    def describeProcess( self ) -> str: return str(self._spec)
+    def clear(self): self._cachedresult = None
+
+    def getResultDataset(self, task: WorkflowNode, inputs: xr.Dataset) -> xr.Dataset:
+        if self._cachedresult is None:
+           self._cachedresult = self.buildWorkflow( task, inputs )
+        return self._cachedresult
 
     @abstractmethod
-    def buildWorkflow(self, task: Operation, dataset: xr.Dataset) -> xr.Dataset: pass
+    def buildWorkflow(self, task: WorkflowNode, dataset: xr.Dataset) -> xr.Dataset: pass
 
 
 class LegacyKernel:
