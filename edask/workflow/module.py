@@ -115,13 +115,13 @@ class KernelManager:
             if isinstance( input, WorkflowInput ):
                 connection = input.getConnection()
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
-        inputDataset = KernelResult.merge( inputDatasets ) if inputDatasets else None
+        inputDataset = KernelResult.merge( inputDatasets ) if inputDatasets else KernelResult.empty()
         return kernel.getResultDataset( request, op, inputDataset )
 
     def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
-        return [ self.buildSubWorkflow(op) for op in resultOps ]
+        return [ self.buildSubWorkflow( request, op ) for op in resultOps ]
 
 edasOpManager = KernelManager()
 
