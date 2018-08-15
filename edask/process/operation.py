@@ -88,6 +88,9 @@ class WorkflowNode:
         else:
             return raw_axes
 
+    def hasAxis( self, axis: str ) -> bool:
+        return self.axes.count( axis ) > 0
+
     variableManager: VariableManager
 
     def __str__(self):

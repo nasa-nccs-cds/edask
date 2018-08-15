@@ -1,6 +1,6 @@
 from ..kernel import Kernel, KernelSpec, KernelResult
 import xarray as xr
-from edask.process.operation import WorkflowNode, SourceNode
+from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
 from edask.process.source import SourceType
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
@@ -37,16 +37,17 @@ class AverageKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( node.inputs ) + ", op metadata = " + str(node.metadata) + ", axes = " + str(node.axes) )
+    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+        op: OpNode = wnode
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( op.inputs ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result_names = []
         for inputPort in inputs:
             for variable in inputPort.getInputs():
-                weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if node.hasAxis('y') else None
-                resultName = "-".join( [node., variable.name] )
+                weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if op.hasAxis('y') else None
+                resultName = "-".join( [op.getResultIds(), variable.name] )
                 result_names.append( resultName )
-                inputs[ resultName ] = self.ave( variable, node.axes, weights )
-        input_dataset.attrs[ "results-" + node.rid ] = result_names
+                inputs[ resultName ] = self.ave( variable, op.axes, weights )
+        input_dataset.attrs[ "results-" + op.rid ] = result_names
         return input_dataset
 
     def ave( self, variable, axes, weights ) -> xr.DataArray:
