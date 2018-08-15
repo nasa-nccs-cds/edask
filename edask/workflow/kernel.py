@@ -6,7 +6,6 @@ from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.operation import WorkflowNode
 import xarray as xr
 
-
 class KernelSpec:
     def __init__( self, name, title, description, **kwargs ):
         self._name = name
@@ -29,17 +28,20 @@ class KernelResult:
     @staticmethod
     def empty() -> "KernelResult": return KernelResult()
     def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
-    def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.results ]
+    def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.ids ]
 
     def addResult(self, new_dataset: xr.Dataset, new_ids: List[str] = None ):
         self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
         self.ids.extend( new_ids if new_ids is not None else new_dataset.variables.keys() )
 
+    def addArray(self, array: xr.DataArray, attrs ):
+        if self.dataset is None: self.dataset = xr.Dataset( { array.name: array, }, array.coords,  )
+        else: self.dataset.merge_data_and_coords( array, array.coords )
 
     @staticmethod
     def merge( kresults: List["KernelResult"] ):
         merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
-        merged_ids = list( itertools.chain( *[ kr.results for kr in kresults ] ) )
+        merged_ids = list( itertools.chain( *[ kr.ids for kr in kresults ] ) )
         return KernelResult( merged_dataset, merged_ids )
 
 class Kernel:

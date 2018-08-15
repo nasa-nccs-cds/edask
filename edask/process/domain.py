@@ -1,5 +1,6 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional
 from enum import Enum, auto
+import xarray as xr
 
 class Axis(Enum):
     UNKNOWN = auto()
@@ -9,13 +10,62 @@ class Axis(Enum):
     T = auto()
 
     @classmethod
-    def parse(cls, name: str):
+    def parse(cls, name: str) -> "Axis":
         n = name.lower()
         if n.startswith("x") or n.startswith("lat"): return cls.X
         if n.startswith("y") or n.startswith("lon"): return cls.Y
         if n.startswith("z") or n.startswith("lev") or n.startswith("plev"): return cls.Z
         if n.startswith("t") or n.startswith("time"): return cls.T
         return cls.UNKNOWN
+
+    @classmethod
+    def bestGuess(cls, variable: xr.DataArray, index: int) -> "Axis":
+        firstGuess = cls.parse( variable.name )
+        if firstGuess == cls.UNKNOWN:
+            if "time" in variable.dims:
+                if   len(variable.dims) == 1: return cls.T
+                elif len(variable.dims) == 2: return [ cls.T, cls.Z ][index]
+                elif len(variable.dims) == 3: return [ cls.T, cls.Y, cls.X ][index]
+                elif len(variable.dims) == 4: return [ cls.T, cls.Z, cls.Y, cls.X ][index]
+            else:
+                if   len(variable.dims) == 1: return cls.Z
+                elif len(variable.dims) == 2: return [ cls.Y, cls.X ][index]
+                elif len(variable.dims) == 3: return [ cls.Z, cls.Y, cls.X ][index]
+        else: return firstGuess
+
+    @classmethod
+    def getCoordMap( cls, variable: xr.DataArray ) -> Dict["Axis",str]:
+        try:
+            return { cls.parse(coord.attrs["axis"]): name  for ( name, coord ) in variable.coords.items() }
+        except:
+            return { cls.bestGuess(variable, index): variable.dims[index] for index in range(len(variable.dims)) }
+
+    @classmethod
+    def getAxisMap( cls, variable: xr.DataArray ) -> Dict[str,"Axis"]:
+        try:
+            return { name: cls.parse(coord.attrs["axis"])  for ( name, coord ) in variable.coords.items() }
+        except:
+            return { variable.dims[index]: cls.bestGuess(variable, index) for index in range(len(variable.dims)) }
+
+    @classmethod
+    def getAxisAttr( cls, coord: xr.DataArray ) -> "Axis":
+        if "axis" in coord.attrs: return cls.parse( coord.attrs["axis"] )
+        else: return cls.UNKNOWN
+
+    @classmethod
+    def updateMap( cls, axis_map: Dict, name: str, axis: "Axis", nameToAxis: bool, axis2str: bool ):
+        aval = axis.name if axis2str else axis
+        if nameToAxis:  axis_map[name] = aval
+        else:           axis_map[aval] = name
+
+    @classmethod
+    def getDatasetCoordMap( cls, dset: xr.Dataset, nameToAxis = True, axis2str = True ) -> Dict:
+        axis_map = {}
+        for ( name, coord ) in dset.coords.items():
+            axis = cls.getAxisAttr( coord )
+            if axis == cls.UNKNOWN: axis = cls.parse(name)
+            cls.updateMap( axis_map, name, axis, nameToAxis, axis2str )
+        return axis_map
 
 class AxisBounds:
 

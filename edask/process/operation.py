@@ -1,7 +1,8 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator
 from enum import Enum, auto
 from .source import VariableManager, VariableSource, DataSource
-from .domain import DomainManager, Domain
+from .domain import DomainManager, Domain, Axis
+import xarray as xr
 import edask, abc
 
 class OperationInput:

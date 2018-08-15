@@ -3,13 +3,11 @@ import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
 from edask.process.source import SourceType
+from edask.process.domain import Axis
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.agg import Collection
-import numpy as np
-import numpy.ma as ma
-import time, traceback
-from xarray.ufuncs import cos
 from edask.process.source import VariableSource, DataSource
+import numpy as np
 
 class InputKernel(Kernel):
     def __init__( self ):
@@ -24,12 +22,14 @@ class InputKernel(Kernel):
             aggs = collection.sortVarsByAgg( snode.varSource.vids )
             for ( aggId, vars ) in aggs.items():
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                dset.rename( snode.varSource.name2id, True )
+                coordMap = Axis.getDatasetCoordMap( dset )
+                dset.rename( snode.varSource.name2id(coordMap), True )
                 result.addResult( dset )
         else:
             if dataSource.type in [ SourceType.file, SourceType.dap ]:
                 dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.getIds(), parallel=True)
-                dset.rename( snode.varSource.name2id, True )
+                coordMap = Axis.getDatasetCoordMap( dset )
+                dset.rename( snode.varSource.name2id(coordMap), True )
                 result.addResult( dset, snode.varSource.getIds() )
         return result
 
@@ -40,15 +40,19 @@ class AverageKernel(Kernel):
     def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( op.inputs ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result_names = []
-        for inputPort in inputs:
-            for variable in inputPort.getInputs():
-                weights: xr.DataArray = cos( variable.coords.get( "y" ) ) if op.hasAxis('y') else None
-                resultName = "-".join( [op.getResultIds(), variable.name] )
-                result_names.append( resultName )
-                inputs[ resultName ] = self.ave( variable, op.axes, weights )
-        input_dataset.attrs[ "results-" + op.rid ] = result_names
-        return input_dataset
+        result: KernelResult = KernelResult.empty()
+        resultArray: xr.DataArray = None
+        for kernelResult in inputs:
+            for variable in kernelResult.getInputs():
+                if op.hasAxis('y'):
+                    ycoordaxis =  variable.coords.get( "y" )
+                    weights: xr.DataArray = np.cos( ycoordaxis )
+                    resultArray = self.ave( variable, op.axes, weights )
+                else:
+                    resultArray = self.ave( variable, op.axes )
+                resultArray.name = "-".join( [ op.rid, variable.name] )
+                result.addArray( resultArray, kernelResult.dataset.attrs )
+        return result
 
     def ave( self, variable, axes, weights ) -> xr.DataArray:
         if weights is None:

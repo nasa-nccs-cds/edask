@@ -74,8 +74,9 @@ class VariableSource:
         self.domain: str = _domain
         self.dataSource: DataSource = _source
 
-    def name2id(self) -> Dict[str,str]:
-        return dict( { v.elem() for v in self.vids } )
+    def name2id(self, existingMap: Dict[str,str] = {} ) -> Dict[str,str]:
+        existingMap.update( { v.elem() for v in self.vids } )
+        return existingMap
 
     def getNames(self):
         return [ v.name for v in self.vids ]
