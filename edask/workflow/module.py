@@ -1,6 +1,6 @@
 import sys, inspect, logging, os
 from abc import ABCMeta, abstractmethod
-from edask.workflow.kernel import Kernel
+from edask.workflow.kernel import Kernel, KernelResult
 from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
@@ -41,14 +41,14 @@ class KernelModule(OperationModule):
     def isLocal( self, obj )-> bool:
         return str(obj).split('\'')[1].split('.')[0] == "__main__"
 
-    def executeTask(self, task: WorkflowNode, inputs):
-        kernel = self.getKernel( task )
-        if( kernel is None ): raise Exception( "Unrecognized kernel.py key: "+ task.op.lower() +", registered kernels = " + ", ".join( self._kernels.keys() ) )
-        self.logger.info( "Executing Kernel: " + kernel.name() )
-        action = task.metadata.get("action","execute")
-        if( action == "execute"): return kernel.executeTask(task, inputs)
-        elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
-        else: raise Exception( "Unrecognized kernel.py action: " + action )
+    # def executeTask(self, task: WorkflowNode, inputs):
+    #     kernel = self.getKernel( task )
+    #     if( kernel is None ): raise Exception( "Unrecognized kernel.py key: "+ task.op.lower() +", registered kernels = " + ", ".join( self._kernels.keys() ) )
+    #     self.logger.info( "Executing Kernel: " + kernel.name() )
+    #     action = task.metadata.get("action","execute")
+    #     if( action == "execute"): return kernel.executeTask(task, inputs)
+    #     elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
+    #     else: raise Exception( "Unrecognized kernel.py action: " + action )
 
     def getKernel(self, task: WorkflowNode):
         key = task.op.lower()
@@ -108,17 +108,17 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, op: WorkflowNode) -> xr.Dataset:
-        inputDatasets = [ ]
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> KernelResult:
+        inputDatasets: List[KernelResult] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
             if isinstance( input, WorkflowInput ):
                 connection = input.getConnection()
-                inputDatasets.append( self.buildSubWorkflow( connection ) )
-        inputDataset = xr.merge( inputDatasets ) if inputDatasets else None
-        return kernel.getResultDataset( op, inputDataset )
+                inputDatasets.append( self.buildSubWorkflow( request, connection ) )
+        inputDataset = KernelResult.merge( inputDatasets ) if inputDatasets else None
+        return kernel.getResultDataset( request, op, inputDataset )
 
-    def buildRequest(self, request: TaskRequest ) -> List[xr.Dataset]:
+    def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
         return [ self.buildSubWorkflow(op) for op in resultOps ]

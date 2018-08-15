@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
-import logging, cdms2, time, os, socket
+import logging, cdms2, time, os, itertools
 from edask.messageParser import mParse
+from edask.process.task import TaskRequest
+from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.operation import WorkflowNode
 import xarray as xr
 
@@ -13,12 +15,27 @@ class KernelSpec:
         self._options = kwargs
 
     def name(self): return self._name
-
     def __str__(self): return ";".join( [ self._name, self.getTitle(), self.getDescription(), str(self._options) ] )
-
     def getDescription(self): return self._description
     def getTitle(self): return self._title
     def summary(self) -> str: return ";".join( [ self._name, self.getTitle() ] )
+
+class KernelResult:
+
+    def __init__( self, dataset: xr.Dataset = None, results: List[str] = [] ):
+        self.dataset = dataset
+        self.results = results
+
+    @staticmethod
+    def empty() -> "KernelResult": return KernelResult()
+    def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
+    def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.results ]
+
+    @staticmethod
+    def merge( kresults: List["KernelResult"] ):
+        merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
+        merged_ids = list( itertools.chain( *[ kr.results for kr in kresults ] ) )
+        return KernelResult( merged_dataset, merged_ids )
 
 class Kernel:
 
@@ -27,7 +44,7 @@ class Kernel:
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
-        self._cachedresult: xr.Dataset = None
+        self._cachedresult: KernelResult = None
 
     def name(self): return self._spec.name()
 
@@ -36,13 +53,13 @@ class Kernel:
     def describeProcess( self ) -> str: return str(self._spec)
     def clear(self): self._cachedresult = None
 
-    def getResultDataset(self, task: WorkflowNode, inputs: xr.Dataset) -> xr.Dataset:
+    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: KernelResult) -> KernelResult:
         if self._cachedresult is None:
-           self._cachedresult = self.buildWorkflow( task, inputs )
+           self._cachedresult = self.buildWorkflow( request, node, inputs )
         return self._cachedresult
 
     @abstractmethod
-    def buildWorkflow(self, task: WorkflowNode, dataset: xr.Dataset) -> xr.Dataset: pass
+    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: KernelResult ) -> KernelResult: pass
 
 
 class LegacyKernel:
