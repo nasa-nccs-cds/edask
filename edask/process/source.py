@@ -1,4 +1,4 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView
+from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
 from enum import Enum, auto
 
 class SourceType(Enum):
@@ -49,6 +49,8 @@ class VID:
         self.name = _name
         self.id = _id
 
+   def elem(self) -> Tuple[str,str]: return ( self.name, self.id  )
+
    def __str__(self):
         return "{}:{}".format( self.name, self.id )
 
@@ -70,7 +72,10 @@ class VariableSource:
     def __init__(self, vars: List[VID], _domain: str, _source: DataSource):
         self.vids: List[VID] = vars
         self.domain: str = _domain
-        self.source: DataSource = _source
+        self.dataSource: DataSource = _source
+
+    def name2id(self) -> Dict[str,str]:
+        return dict( { v.elem() for v in self.vids } )
 
     def getNames(self):
         return [ v.name for v in self.vids ]
@@ -85,7 +90,7 @@ class VariableSource:
         return ":".join( self.getIds() )
 
     def __str__(self):
-        return "V({})[ domain: {}, source: {} ]".format( ",".join([str(v) for v in self.vids]), self.domain, str(self.source))
+        return "V({})[ domain: {}, source: {} ]".format( ",".join([str(v) for v in self.vids]), self.domain, str(self.dataSource))
 
 class VariableManager:
 

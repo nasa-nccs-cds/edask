@@ -22,14 +22,19 @@ class KernelSpec:
 
 class KernelResult:
 
-    def __init__( self, dataset: xr.Dataset = None, results: List[str] = [] ):
+    def __init__( self, dataset: xr.Dataset = None, ids: List[str] = [] ):
         self.dataset = dataset
-        self.results = results
+        self.ids = ids
 
     @staticmethod
     def empty() -> "KernelResult": return KernelResult()
     def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
     def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.results ]
+
+    def addResult(self, new_dataset: xr.Dataset, new_ids: List[str] = None ):
+        self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
+        self.ids.extend( new_ids if new_ids is not None else new_dataset.variables.keys() )
+
 
     @staticmethod
     def merge( kresults: List["KernelResult"] ):
@@ -53,13 +58,13 @@ class Kernel:
     def describeProcess( self ) -> str: return str(self._spec)
     def clear(self): self._cachedresult = None
 
-    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: KernelResult) -> KernelResult:
+    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         if self._cachedresult is None:
            self._cachedresult = self.buildWorkflow( request, node, inputs )
         return self._cachedresult
 
     @abstractmethod
-    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: KernelResult ) -> KernelResult: pass
+    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult: pass
 
 
 class LegacyKernel:

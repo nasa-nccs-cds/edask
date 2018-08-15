@@ -115,8 +115,7 @@ class KernelManager:
             if isinstance( input, WorkflowInput ):
                 connection = input.getConnection()
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
-        inputDataset = KernelResult.merge( inputDatasets ) if inputDatasets else KernelResult.empty()
-        return kernel.getResultDataset( request, op, inputDataset )
+        return kernel.getResultDataset( request, op, inputDatasets )
 
     def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
         request.linkWorkflow()

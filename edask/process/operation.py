@@ -104,16 +104,16 @@ class SourceNode(WorkflowNode):
 
     def __init__(self, name: str, domain: str, src: VariableSource, metadata: Dict[str,Any] ):
         super( SourceNode, self ).__init__( name, domain, metadata)
-        self.source = src
+        self.varSource = src
 
     def getId(self):
-        return self.source.getId()
+        return self.varSource.getId()
 
     def getResultIds(self):
-        return self.source.getIds()
+        return self.varSource.getIds()
 
     def suppliesDownstreamInput(self, inputId ):
-        return self.source.providesId( inputId )
+        return self.varSource.providesId(inputId)
 
     def isResult(self):
         return False
