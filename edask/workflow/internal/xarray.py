@@ -4,7 +4,7 @@ from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
 from edask.process.source import SourceType
 from edask.process.domain import Axis
-from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
+from typing import List, Dict, Optional
 from edask.agg import Collection
 from edask.process.source import VariableSource, DataSource
 import numpy as np
@@ -41,16 +41,10 @@ class AverageKernel(Kernel):
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( op.inputs ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: KernelResult = KernelResult.empty()
-        resultArray: xr.DataArray = None
         for kernelResult in inputs:
             for variable in kernelResult.getInputs():
-                if op.hasAxis('y'):
-                    ycoordaxis =  variable.coords.get( "y" )
-                    weights: xr.DataArray = np.cos( ycoordaxis )
-                    resultArray = self.ave( variable, op.axes, weights )
-                else:
-                    resultArray = self.ave( variable, op.axes )
-                resultArray.name = "-".join( [ op.rid, variable.name] )
+                resultArray = self.ave( variable, op.axes, self.getWeights( op, variable ) )
+                resultArray.name = op.getResultId( variable.name )
                 result.addArray( resultArray, kernelResult.dataset.attrs )
         return result
 
@@ -64,5 +58,11 @@ class AverageKernel(Kernel):
             norm = weights * variable.count( axes ) if len( axes ) else weights
             return sum / norm.sum("y")
 
+    def getWeights(self, op: OpNode, variable: xr.DataArray  ) -> Optional[xr.DataArray]:
+        if op.hasAxis('y'):
+            ycoordaxis =  variable.coords.get( "y" )
+            assert( ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.coords.keys() ) )
+            return np.cos( ycoordaxis )
+        else: return None
 
 

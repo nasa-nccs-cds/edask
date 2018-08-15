@@ -54,7 +54,7 @@ class Axis(Enum):
 
     @classmethod
     def updateMap( cls, axis_map: Dict, name: str, axis: "Axis", nameToAxis: bool, axis2str: bool ):
-        aval = axis.name if axis2str else axis
+        aval = axis.name.lower() if axis2str else axis
         if nameToAxis:  axis_map[name] = aval
         else:           axis_map[aval] = name
 

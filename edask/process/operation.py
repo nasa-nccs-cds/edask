@@ -147,6 +147,10 @@ class OpNode(WorkflowNode):
     def isResult(self):
         return self.rid is None
 
+    def getResultId(self, varName: str ) -> str:
+        nodeName = self.rid if self.rid else self.name
+        return "-".join( [ nodeName, varName ] )
+
 class OperationManager:
 
     @classmethod
