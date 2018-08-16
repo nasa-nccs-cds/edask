@@ -22,19 +22,27 @@ if __name__ == '__main__':
 
     try:
         tstart = time.time()
-        logger.info("Defining workflow")
-        dataInputs = WpsCwtParser.parseDatainputs( testStr )
-        request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
-        results: List[KernelResult] = edasOpManager.buildRequest( request )
+        client = Client()
 
-        texe = time.time()
+        tdefine = time.time()
+        logger.info("Defining workflow")
+
+        def get_results( ) -> List[xr.DataArray]:
+            dataInputs = WpsCwtParser.parseDatainputs( testStr )
+            request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
+            return edasOpManager.buildRequest( request )
+
+        tsubmit = time.time()
+        result_future = client.submit( get_results )
+        logger.info("Submitted computation")
+        results: List[KernelResult] = result_future.result()
+
+        logger.info( "\n Completed computation in {} seconds, workflow setup time = {}, cluster startup time = {}\n".format( str(time.time() - tsubmit), str(tsubmit - tdefine), str(tdefine - tstart) ) )
+
         for result in results:
             for variable in result.getVariables():
                 logger.info( "\n Result: ")
-                logger.info( variable.load() )
-
-        tend = time.time()
-        logger.info( "\n Completed computation in {} seconds, workflow setup time = {}, exe time = {}\n".format( str(tend - tstart), str(texe - tstart), str(tend - texe) ) )
+                logger.info( variable )
 
 
     except Exception:

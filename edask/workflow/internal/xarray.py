@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 from edask.agg import Collection
 from edask.process.source import VariableSource, DataSource
 import numpy as np
-
+import xarray as xr
 class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
@@ -22,16 +22,18 @@ class InputKernel(Kernel):
             aggs = collection.sortVarsByAgg( snode.varSource.vids )
             for ( aggId, vars ) in aggs.items():
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                coordMap = Axis.getDatasetCoordMap( dset )
-                dset.rename( snode.varSource.name2id(coordMap), True )
-                result.addResult( dset, snode.varSource.ids() )
+                result.addResult( *self.processDataset( request, dset, snode )  )
         else:
             if dataSource.type in [ SourceType.file, SourceType.dap ]:
                 dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-                coordMap = Axis.getDatasetCoordMap( dset )
-                dset.rename( snode.varSource.name2id(coordMap), True )
-                result.addResult(dset, snode.varSource.ids())
+                result.addResult( *self.processDataset( request, dset, snode ) )
         return result
+
+    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, List[str] ):
+        coordMap = Axis.getDatasetCoordMap( dset )
+        dset.rename( snode.varSource.name2id(coordMap), True )
+        indexers = request.getIndexers( snode.domain, dset )
+        return ( dset.sel( indexers ), snode.varSource.ids() )
 
 class AverageKernel(Kernel):
     def __init__( self ):

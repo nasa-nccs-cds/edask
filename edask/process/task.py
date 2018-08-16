@@ -1,8 +1,10 @@
 from typing import Dict, Any, Union, Sequence, List
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
-from edask.process.domain import DomainManager
+from edask.process.domain import DomainManager, Domain
+import xarray as xr
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
+from edask.process.domain import Axis, AxisBounds
 
 class UID:
     ndigits = 6
@@ -40,6 +42,18 @@ class TaskRequest:
 
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
+
+  def getIndexers(self, domain: str, dataset: xr.Dataset ) -> List[xr.DataArray]:     # TODO - complete
+      domain: Domain = self.operationManager.getDomain( domain )
+      axisBounds: Dict[Axis,AxisBounds] = domain.axisBounds
+      indexers: List[xr.DataArray] = []
+      for ( axis, bounds ) in axisBounds.items():
+          if bounds.system.startswith("val"):
+            pass
+          else:
+            indexers.append( xr.DataArray( range( int(bounds.start), int(bounds.end) ), dims=[axis.name] ) )
+      return indexers
+
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

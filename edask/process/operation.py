@@ -169,6 +169,9 @@ class OperationManager:
             op = SourceNode( "xarray.input", varSource.domain, varSource, {} )
             self.operations.append( op )
 
+    def getDomain( self, name: str ) -> Domain:
+        return self.domains.getDomain( name )
+
     def findOperationByResult(self, inputId ) -> Optional[WorkflowNode]:
         return next( (op for op in self.operations if op.suppliesDownstreamInput( inputId ) ), None )
 
