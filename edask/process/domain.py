@@ -64,7 +64,7 @@ class Axis(Enum):
         for ( name, coord ) in dset.coords.items():
             axis = cls.getAxisAttr( coord )
             if axis == cls.UNKNOWN: axis = cls.parse(name)
-            cls.updateMap( axis_map, name, axis, nameToAxis, axis2str )
+            if axis != cls.UNKNOWN: cls.updateMap( axis_map, name, axis, nameToAxis, axis2str )
         return axis_map
 
 class AxisBounds:
