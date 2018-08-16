@@ -39,18 +39,3 @@ class WpsCwtParser:
     def list( item, enclosing: str = "[]", delim="," ):
         elem = item + Suppress( ZeroOrMore(delim) )
         return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
-
-
-if __name__ == "__main__":
-
-    testStr = '[ domain=[ {"name":"d0",   \n   "lat":{"start":0.0,  "end":20.0, "system":"values" }, "lon":{ "start":0.0,"end":20.0, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" } } ], ' \
-              'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas:v0", "domain":"d0" } ], ' \
-              'operation=[{ "name":"xarray.ave", "input":"v0", "domain":"d0","axes":"xy"}] ]'
-
-    dataInputs = WpsCwtParser.parseDatainputs( testStr )
-
-    request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
-
-    results = edasOpManager.buildRequest( request )
-
-    print( "\n".join( [ str(result) for result in results ] ) )

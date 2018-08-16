@@ -120,6 +120,7 @@ class KernelManager:
     def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
+        self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         return [ self.buildSubWorkflow( request, op ) for op in resultOps ]
 
 edasOpManager = KernelManager()

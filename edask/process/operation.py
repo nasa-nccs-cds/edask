@@ -24,7 +24,7 @@ class SourceInput(OperationInput):
         return "SI({})[ {} ]".format( self.name, str(self.source) )
 
     def getResultIds(self):
-        return self.source.getIds()
+        return self.source.ids()
 
 class WorkflowInput(OperationInput):
 
@@ -114,7 +114,7 @@ class SourceNode(WorkflowNode):
         return self.varSource.getId()
 
     def getResultIds(self):
-        return self.varSource.getIds()
+        return self.varSource.ids()
 
     def suppliesDownstreamInput(self, inputId ):
         return self.varSource.providesId(inputId)

@@ -78,17 +78,17 @@ class VariableSource:
         existingMap.update( { v.elem() for v in self.vids } )
         return existingMap
 
-    def getNames(self):
+    def names(self):
         return [ v.name for v in self.vids ]
 
-    def getIds(self):
+    def ids(self):
         return [ v.id for v in self.vids ]
 
     def providesId(self, vid: str ):
-        return vid in self.getIds()
+        return vid in self.ids()
 
     def getId(self):
-        return ":".join( self.getIds() )
+        return ":".join(self.ids())
 
     def __str__(self):
         return "V({})[ domain: {}, source: {} ]".format( ",".join([str(v) for v in self.vids]), self.domain, str(self.dataSource))

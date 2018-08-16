@@ -24,13 +24,13 @@ class InputKernel(Kernel):
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
                 coordMap = Axis.getDatasetCoordMap( dset )
                 dset.rename( snode.varSource.name2id(coordMap), True )
-                result.addResult( dset )
+                result.addResult( dset, snode.varSource.ids() )
         else:
             if dataSource.type in [ SourceType.file, SourceType.dap ]:
-                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.getIds(), parallel=True)
+                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
                 coordMap = Axis.getDatasetCoordMap( dset )
                 dset.rename( snode.varSource.name2id(coordMap), True )
-                result.addResult( dset, snode.varSource.getIds() )
+                result.addResult(dset, snode.varSource.ids())
         return result
 
 class AverageKernel(Kernel):
@@ -39,12 +39,13 @@ class AverageKernel(Kernel):
 
     def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( op.inputs ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: KernelResult = KernelResult.empty()
         for kernelResult in inputs:
             for variable in kernelResult.getInputs():
                 resultArray = self.ave( variable, op.axes, self.getWeights( op, variable ) )
                 resultArray.name = op.getResultId( variable.name )
+                self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
                 result.addArray( resultArray, kernelResult.dataset.attrs )
         return result
 
@@ -61,7 +62,7 @@ class AverageKernel(Kernel):
     def getWeights(self, op: OpNode, variable: xr.DataArray  ) -> Optional[xr.DataArray]:
         if op.hasAxis('y'):
             ycoordaxis =  variable.coords.get( "y" )
-            assert( ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.coords.keys() ) )
+            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.coords.keys() )
             return np.cos( ycoordaxis )
         else: return None
 
