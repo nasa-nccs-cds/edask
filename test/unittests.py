@@ -9,7 +9,7 @@ from edask.workflow.internal.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
-def q( item: str ) -> str:
+def q( item: str ):
     i0 = item.strip()
     return i0 if i0.startswith('"') or i0.startswith('{') else '"' + i0 + '"'
 def l2s( items: List[str] ) -> str:
