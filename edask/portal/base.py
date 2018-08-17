@@ -230,20 +230,20 @@ class EDASPortal:
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
         self.logger.debug( "Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
-        file = open(filePath)
-        file_header_fields = [ "array", jobId, name, file.name ]
-        if not sendData: file_header_fields.append(filePath)
-        file_header = "|".join( file_header_fields )
-        header_fields = [ jobId,"file", file_header ]
-        header = "!".join(header_fields)
-        try:
-            data =  bytes(file.read()) if sendData else None
-            self.logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
-            self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
-            self.logger.debug("Done sending file data packet: " + header)
-        except Exception as ex:
-            self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
-        return file.name
+        with open(filePath) as file:
+            file_header_fields = [ "array", jobId, name, file.name ]
+            if not sendData: file_header_fields.append(filePath)
+            file_header = "|".join( file_header_fields )
+            header_fields = [ jobId,"file", file_header ]
+            header = "!".join(header_fields)
+            try:
+                data =  bytes(file.read()) if sendData else None
+                self.logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
+                self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
+                self.logger.debug("Done sending file data packet: " + header)
+            except Exception as ex:
+                self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
+            return file.name
 
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message: pass

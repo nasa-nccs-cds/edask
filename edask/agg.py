@@ -32,15 +32,15 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
-        file = open( self.spec, "r" )
-        for line in file.readlines():
-            if not line: break
-            if( line[0] == '#' ):
-                toks = line[1:].split(",")
-                self.parms[toks[0].strip()] = ",".join(toks[1:]).strip()
-            else:
-                toks = line.split(",")
-                self.aggs[toks[0].strip()] = ",".join(toks[1:]).strip()
+        with open( self.spec, "r" ) as file:
+            for line in file.readlines():
+                if not line: break
+                if( line[0] == '#' ):
+                    toks = line[1:].split(",")
+                    self.parms[toks[0].strip()] = ",".join(toks[1:]).strip()
+                else:
+                    toks = line.split(",")
+                    self.aggs[toks[0].strip()] = ",".join(toks[1:]).strip()
 
     def getAggId( self, varName: str ) -> str:
         return self.aggs.get( varName )
@@ -150,17 +150,17 @@ class Aggregation:
         self._parseAggFile()
 
     def _parseAggFile(self):
-        file = open( self.spec, "r" )
-        for line in file.readlines():
-            if not line: break
-            if line[1] == ";":
-                type = line[0]
-                value = line[2:].split(";")
-                if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
-                elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
-                elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
-                elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+        with open(self.spec, "r") as file:
+            for line in file.readlines():
+                if not line: break
+                if line[1] == ";":
+                    type = line[0]
+                    value = line[2:].split(";")
+                    if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
+                    elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                    elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
+                    elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                    elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
 
     def parm(self, key ):
         return self.parms.get( key, "" )

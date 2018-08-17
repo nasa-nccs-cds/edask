@@ -28,8 +28,8 @@ class DataSource:
             if scheme == "collection":
                 self.type = SourceType.collection
                 self.address =  toks[1].strip("/")
-            elif scheme == "http":
-                self.type = SourceType.collection
+            elif scheme.startswith("http"):
+                self.type = SourceType.dap
                 self.address = _address
             elif scheme == "file":
                 self.type = SourceType.file
