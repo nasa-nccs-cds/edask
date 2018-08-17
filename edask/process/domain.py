@@ -119,18 +119,22 @@ class Domain:
     def hasUnknownAxes(self) -> bool :
         return self.findAxisBounds(Axis.UNKNOWN) is not None
 
+    def rename(self, nameMap: Dict[str,str] ) -> "Domain":
+        bounds = []
+        for ( axis, bound ) in self.axisBounds.items():
+            if ( axis == Axis.UNKNOWN ) and ( bound.name in nameMap):
+                bounds.append(( Axis.parse(nameMap[bound.name]), bound))
+            else: bounds.append( (axis, bound) )
+        return Domain( self.name, dict( bounds ) )
+
+    @classmethod
+    def slice( cls, axis: Axis, bounds: AxisBounds ) -> Tuple[str,slice]:
+         return ( bounds.name if axis == Axis.UNKNOWN else axis.name.lower(), bounds.slice() )
+
     def subset( self, dset: xr.Dataset ) -> xr.Dataset:
-        index_bounds = []
-        value_bounds = []
-        for (axis, bounds) in self.axisBounds.items():
-            if bounds.system.startswith("val"):     value_bounds.append( ( axis.name.lower(), bounds.slice() ) )
-            else:                                   index_bounds.append( ( axis.name.lower(), bounds.slice() ) )
-        if( len(value_bounds) ):
-            indexers = dict( value_bounds )
-            dset = dset.sel( indexers )
-        if( len(index_bounds) ):
-            indexers =  dict( index_bounds )
-            dset = dset.isel( indexers )
+        for system in [ "val", "ind" ] :
+            bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
+            if( len(bounds_list) ): dset = dset.sel( dict( bounds_list ) ) if system == "val" else dset.isel( dict( bounds_list ) )
         return dset
 
     def __str__(self):
