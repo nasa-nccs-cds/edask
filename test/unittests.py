@@ -33,10 +33,15 @@ class TestManager:
     def getAddress(self, model: str, varName: str ) -> str:
         return self.addresses[model.lower()].format( varName )
 
-    def testExec( self, domains: List[Dict[str,str]], variables: List[Dict[str,str]], operations: List[Dict[str,str]] ) -> List[KernelResult]:
+    def testParseExec( self, domains: List[Dict[str,str]], variables: List[Dict[str,str]], operations: List[Dict[str,str]] ) -> List[KernelResult]:
         testRequest = l2s( [ "domain = " + dl2s(domains), "variable = " +dl2s(variables), "operation = " +dl2s(operations) ] )
         dataInputs = WpsCwtParser.parseDatainputs( testRequest )
         request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
+        return edasOpManager.buildRequest( request )
+
+    def testExec( self,  domains: List[Dict[str,Any]], variables: List[Dict[str,Any]], operations: List[Dict[str,Any]]  ) -> List[KernelResult]:
+        datainputs = { "domain": domains, "variable": variables, "operation": operations }
+        request: TaskRequest = TaskRequest.new( "requestId", "jobId", datainputs )
         return edasOpManager.buildRequest( request )
 
     def print( self, results: List[KernelResult] ):
@@ -51,10 +56,20 @@ class TestEdask(unittest.TestCase):
     def setUp(self):
         self.mgr = TestManager()
 
-    def test_subset1(self):
+    def test_parse_subset1(self):
         domains = [{ "name":"d0",   "lat":  '{ "start":50, "end":60, "system":"values" }',
                                     "lon":  '{ "start":30, "end":50, "system":"values" }',
                                     "time": '{ "start":0,  "end":15, "system":"indices" }' } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
+        results = self.mgr.testParseExec( domains, variables, operations )
+        self.mgr.print( results )
+        self.assertTrue( True )
+
+    def test_subset1(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":60, "system":"values" },
+                                    "lon":  { "start":30, "end":50, "system":"values" },
+                                    "time": { "start":0,  "end":15, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
         results = self.mgr.testExec( domains, variables, operations )
