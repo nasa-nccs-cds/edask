@@ -1,4 +1,4 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional
+from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple
 from enum import Enum, auto
 import xarray as xr
 
@@ -89,6 +89,9 @@ class AxisBounds:
         self.system = _system
         self.metadata = _metadata
 
+    def slice(self) -> slice:
+        return slice( self.start, self.end )
+
     def __str__(self):
         return "B({}:{})[ start: {}, end: {}, system: {} ]".format( self.type.name, self.name, self.start, self.end, self.system )
 
@@ -108,13 +111,27 @@ class Domain:
 
     def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
-        self.axisBounds = _axisBounds
+        self.axisBounds: Dict[Axis,AxisBounds] = _axisBounds
 
     def findAxisBounds( self, type: Axis ) -> Optional[AxisBounds]:
-        self.axisBounds.get( type, None )
+        return self.axisBounds.get( type, None )
 
     def hasUnknownAxes(self) -> bool :
         return self.findAxisBounds(Axis.UNKNOWN) is not None
+
+    def subset( self, dset: xr.Dataset ) -> xr.Dataset:
+        index_bounds = []
+        value_bounds = []
+        for (axis, bounds) in self.axisBounds.items():
+            if bounds.system.startswith("val"):     value_bounds.append( ( axis.name.lower(), bounds.slice() ) )
+            else:                                   index_bounds.append( ( axis.name.lower(), bounds.slice() ) )
+        if( len(value_bounds) ):
+            indexers = dict( value_bounds )
+            dset = dset.sel( indexers )
+        if( len(index_bounds) ):
+            indexers =  dict( index_bounds )
+            dset = dset.isel( indexers )
+        return dset
 
     def __str__(self):
         return "D({})[ {} ]".format( self.name, "; ".join( [ str(b) for b in self.axisBounds.values()] ) )

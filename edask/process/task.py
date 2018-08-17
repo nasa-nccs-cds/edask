@@ -43,17 +43,9 @@ class TaskRequest:
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
 
-  def getIndexers(self, domain: str, dataset: xr.Dataset ) -> List[xr.DataArray]:     # TODO - complete
+  def subset(self, domain: str, dataset: xr.Dataset) -> xr.Dataset:
       domain: Domain = self.operationManager.getDomain( domain )
-      axisBounds: Dict[Axis,AxisBounds] = domain.axisBounds
-      indexers: List[xr.DataArray] = []
-      for ( axis, bounds ) in axisBounds.items():
-          if bounds.system.startswith("val"):
-            pass
-          else:
-            indexers.append( xr.DataArray( range( int(bounds.start), int(bounds.end) ), dims=[axis.name] ) )
-      return indexers
-
+      return domain.subset( dataset )
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
