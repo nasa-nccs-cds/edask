@@ -3,7 +3,7 @@ import logging, cdms2, time, os, itertools
 from edask.messageParser import mParse
 from edask.process.task import TaskRequest
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
-from edask.process.operation import WorkflowNode
+from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
 
 class KernelSpec:
@@ -87,3 +87,20 @@ class Kernel:
 
     @abstractmethod
     def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult: pass
+
+class OpKernel(Kernel):
+
+    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+        op: OpNode = wnode
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+        result: KernelResult = KernelResult.empty()
+        for kernelResult in inputs:
+            for variable in kernelResult.getInputs():
+                resultArray = self.processVariable( request, op, variable )
+                resultArray.name = op.getResultId( variable.name )
+                self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
+                result.addArray( resultArray, kernelResult.dataset.attrs )
+        return result
+
+    @abstractmethod
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass

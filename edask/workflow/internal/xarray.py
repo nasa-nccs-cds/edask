@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, KernelResult
+from ..kernel import Kernel, KernelSpec, KernelResult, OpKernel
 import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
@@ -39,21 +39,12 @@ class InputKernel(Kernel):
         roi = snode.domain  #  .rename( idMap )
         return ( request.subset( roi, dset ), snode.varSource.ids() )
 
-class AverageKernel(Kernel):
+class AverageKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result: KernelResult = KernelResult.empty()
-        for kernelResult in inputs:
-            for variable in kernelResult.getInputs():
-                resultArray = self.ave( variable, op.axes, self.getWeights( op, variable ) )
-                resultArray.name = op.getResultId( variable.name )
-                self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
-                result.addArray( resultArray, kernelResult.dataset.attrs )
-        return result
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return self.ave( variable, node.axes, self.getWeights(node, variable) )
 
     def ave( self, variable, axes, weights ) -> xr.DataArray:
         if weights is None:
