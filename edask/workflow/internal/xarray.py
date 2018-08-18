@@ -44,12 +44,11 @@ class AverageKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return self.ave( variable, node.axes, self.getWeights(node, variable) )
-
-    def ave( self, variable, axes, weights ) -> xr.DataArray:
+        weights = self.getWeights( node, variable )
         if weights is None:
-            return variable.mean(axes)
+            return variable.mean(node.axes)
         else:
+            axes = list(node.axes)
             weighted_var = variable * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
