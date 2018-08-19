@@ -88,6 +88,8 @@ class AxisBounds:
         self.end = _end
         self.system = _system
         self.metadata = _metadata
+        if _system.startswith("ind"): assert self.end > self.start, "Axis {}: End index must be greater than start index: start={}, end={}".format( self.name, self.start, self.end)
+        if _system.startswith("val"): assert self.end >= self.start, "Axis {}: Start value cannot be greater then end value: start={}, end={}".format( self.name, self.start, self.end)
 
     def slice(self) -> slice:
         return slice( self.start, self.end )
