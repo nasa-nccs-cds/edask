@@ -25,6 +25,7 @@ class InputKernel(Kernel):
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
                 result.addResult( *self.processDataset( request, dset, snode )  )
         elif dataSource.type == SourceType.file:
+            self.logger.info( "Reading data from address: " + dataSource.address )
             dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
             result.addResult( *self.processDataset( request, dset, snode ) )
         elif dataSource.type == SourceType.dap:

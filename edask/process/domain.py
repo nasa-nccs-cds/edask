@@ -12,8 +12,8 @@ class Axis(Enum):
     @classmethod
     def parse(cls, name: str) -> "Axis":
         n = name.lower()
-        if n.startswith("x") or n.startswith("lat"): return cls.X
-        if n.startswith("y") or n.startswith("lon"): return cls.Y
+        if n.startswith("x") or n.startswith("lon"): return cls.X
+        if n.startswith("y") or n.startswith("lat"): return cls.Y
         if n.startswith("z") or n.startswith("lev") or n.startswith("plev"): return cls.Z
         if n.startswith("t") or n.startswith("time"): return cls.T
         return cls.UNKNOWN

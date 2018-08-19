@@ -9,6 +9,7 @@ from edask.workflow.internal.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
+
 def q( item: str ):
     i0 = item.strip()
     return i0 if i0.startswith('"') or i0.startswith('{') else '"' + i0 + '"'
@@ -56,10 +57,11 @@ class TestEdask(unittest.TestCase):
     def setUp(self):
         self.mgr = TestManager()
 
+    @unittest.skip("parsing test")
     def test_parse_subset1(self):
-        domains = [{ "name":"d0",   "lat":  '{ "start":50, "end":60, "system":"values" }',
-                                    "lon":  '{ "start":30, "end":50, "system":"values" }',
-                                    "time": '{ "start":0,  "end":15, "system":"indices" }' } ]
+        domains = [{ "name":"d0",   "lat":  '{ "start":50, "end":55, "system":"values" }',
+                                    "lon":  '{ "start":40, "end":42, "system":"values" }',
+                                    "time": '{ "start":10,  "end":15, "system":"indices" }' } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
         results = self.mgr.testParseExec( domains, variables, operations )
@@ -67,9 +69,10 @@ class TestEdask(unittest.TestCase):
         self.assertTrue( True )
 
     def test_subset1(self):
-        domains = [{ "name":"d0",   "lat":  { "start":50, "end":60, "system":"values" },
-                                    "lon":  { "start":30, "end":50, "system":"values" },
-                                    "time": { "start":0,  "end":15, "system":"indices" } } ]
+        # Verification data: nco_scripts/subset1.sh
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
+                                    "lon":  { "start":40, "end":42, "system":"values" },
+                                    "time": { "start":10, "end":15, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
         results = self.mgr.testExec( domains, variables, operations )
