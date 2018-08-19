@@ -54,7 +54,8 @@ class AverageKernel(OpKernel):
             sum = weighted_var.sum( axes )
             axes.remove("y")
             norm = weights * variable.count( axes ) if len( axes ) else weights
-            return sum / norm.sum("y")
+            rv =  sum / norm.sum("y")
+            return rv
 
     def getWeights(self, op: OpNode, variable: xr.DataArray  ) -> Optional[xr.DataArray]:
         if op.hasAxis('y'):
