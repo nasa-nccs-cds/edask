@@ -83,13 +83,13 @@ class AxisBounds:
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict ):
         self.name = _name
+        if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
+        else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
-        self.start = _start
-        self.end = _end
         self.system = _system
+        self.start = _start
+        self.end = _end + 1 if _system.startswith("ind") else _end
         self.metadata = _metadata
-        if _system.startswith("ind"): assert self.end > self.start, "Axis {}: End index must be greater than start index: start={}, end={}".format( self.name, self.start, self.end)
-        if _system.startswith("val"): assert self.end >= self.start, "Axis {}: Start value cannot be greater then end value: start={}, end={}".format( self.name, self.start, self.end)
 
     def slice(self) -> slice:
         return slice( self.start, self.end )

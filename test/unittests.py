@@ -113,8 +113,8 @@ class TestEdask(unittest.TestCase):
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
         verification_data = ma.array( [ 294.121, 292.1041, 291.5431, 292.8883, 298.2389, 299.0993, 299.0233, 294.7787, 295.0309, 294.4476, 294.4575 ] )
-        domains = [{ "name":"d0",   "lat":  { "start":150, "end":155, "system":"indices" },
-                                    "lon":  { "start":40, "end":43, "system":"indices" },
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
+                                    "lon":  { "start":0, "end":10, "system":"values" },
                                     "time": { "start":40, "end":50, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
