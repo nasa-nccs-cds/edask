@@ -61,8 +61,23 @@ class AverageKernel(OpKernel):
         if op.hasAxis('y'):
             ycoordaxis =  variable.coords.get( "y" )
             assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.coords.keys() )
-            return np.cos( ycoordaxis )
+            return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
+
+
+class MaxKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("max", "Maximum Kernel","Computes the maximum of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.max( dim=node.axes, keep_attrs=True )
+
+class MinKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("min", "Minimum Kernel","Computes the minimum of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.min( dim=node.axes, keep_attrs=True )
 
 
 class SubsetKernel(Kernel):

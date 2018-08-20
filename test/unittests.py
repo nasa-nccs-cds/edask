@@ -93,34 +93,63 @@ class TestEdask(unittest.TestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.assertTrue( self.mgr.equals( results[0], [ verification_data ] ) )
 
-    @unittest.skip("test_ave1_xxx")
-    def test_ave1_xxx(self):
-        # Verification data: nco_scripts/ave1.sh
-        verification_data = ma.array( [ 262.2724, 265.0825, 268.1237, 275.2687, 280.9459, 286.4841, 288.8701,
-                                        287.6568, 283.9872, 277.6257, 269.8073, 266.5727, 265.4136, 266.0101,
-                                        268.6991, 274.8372, 280.7108, 286.715, 289.1821, 288.7784, 283.9922,
-                                        277.8099, 271.1893, 266.1422, 262.264, 264.3005, 268.3983, 275.8602,
-                                        281.3764, 285.9894, 289.224, 287.9005, 283.8038, 276.3279, 270.601,
-                                        267.5748, 266.4533, 265.9156, 270.2026, 275.3463, 281.0724  ] )
-        domains = [{ "name":"d0",   "lat":  { "start":30, "end":80, "system":"values" },
-                                    "lon":  { "start":0, "end":100, "system":"values" },
-                                    "time": { "start":0, "end":40, "system":"indices" } } ]
-        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
-        results = self.mgr.testExec( domains, variables, operations )
-        self.assertTrue( self.mgr.equals( results[0], [ verification_data ] ) )
 
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
-        verification_data = ma.array( [ 294.121, 292.1041, 291.5431, 292.8883, 298.2389, 299.0993, 299.0233, 294.7787, 295.0309, 294.4476, 294.4575 ] )
-        domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
-                                    "lon":  { "start":0, "end":10, "system":"values" },
-                                    "time": { "start":40, "end":50, "system":"indices" } } ]
+        verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,
+                                        287.5726, 290.1945, 294.1584, 297.4008, 298.9573, 299.912, 298.9509,
+                                        296.917, 293.4789, 290.42, 287.2475, 285.871, 286.638, 291.0261  ] )
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":50,  "system":"values" },
+                                    "lon":  { "start":0, "end":100, "system":"values" },
+                                    "time": { "start":30, "end":50, "system":"indices" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+
+    @unittest.skip("test_ave1")
+    def test_ave1_xxxx(self):
+        # Verification data: nco_scripts/ave1.sh
+        verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,
+                                        287.5726, 290.1945, 294.1584, 297.4008, 298.9573, 299.912, 298.9509,
+                                        296.917, 293.4789, 290.42, 287.2475, 285.871, 286.638, 291.0261  ] )
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":52,  "system":"indices" },
+                                    "lon":  { "start":20, "end":22, "system":"indices" },
+                                    "time": { "start":30, "end":30, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
      #   self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+
+    @unittest.skip("test_max1")
+    def test_max1(self):
+        # Verification data: nco_scripts/max1.sh
+        verification_data = ma.array( [ 309.1635, 309.1169, 312.0971, 311.8346, 307.2101, 302.7792, 301.4748, 300.2946, 301.3716, 303.0497, 304.4346 ] )
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
+                                    "lon":  { "start":0, "end":10, "system":"values" },
+                                    "time": { "start":40, "end":50, "system":"indices" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+
+    @unittest.skip("test_min1")
+    def test_min1(self):
+        # Verification data: nco_scripts/min1.sh
+        verification_data = ma.array( [ 258.1156, 252.1156, 254.8867, 262.4825, 269.1955, 271.6146, 272.5411,
+                                        272.7783, 269.4982, 264.5517, 258.8628, 255.9127, 255.4483, 256.3108,
+                                        259.9818, 261.6541, 267.3035, 270.9368, 272.0101, 271.9341, 269.5397 ] )
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":100, "system":"indices" },
+                                    "lon":  { "start":30, "end":120, "system":"indices" },
+                                    "time": { "start":30, "end":50, "system":"indices" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.min", "input":"v0", "domain":"d0", "axes":"xy" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
 
 if __name__ == '__main__':
     unittest.main(verbosity=3)
