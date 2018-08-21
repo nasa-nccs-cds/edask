@@ -46,10 +46,36 @@ class KernelResult:
         self.logger.info( "GetVariables[ ids: {} ]( vars = {} )".format( str(self.ids), str( list(self.dataset.variables.keys()) ) ) )
         return self.getInputs()
 
-    def align( self ) -> "KernelResult":
-      new_arrays = xr.align( *self.getVariables() )
-      dataset = xr.Dataset( { array.name: array for array in new_arrays }  )
-      return KernelResult( self.domain, dataset, [ array.name for array in new_arrays ] )
+    def getLargestVariable(self) -> xr.DataArray:
+        largest: xr.DataArray = None
+        for vid in self.ids:
+            var: xr.DataArray = self.dataset[vid]
+            if largest is None or var.size > largest.size: largest = var
+        return largest
+
+    def getSmallestVariable(self) -> xr.DataArray:
+        smallest: xr.DataArray = None
+        for vid in self.ids:
+            var: xr.DataArray = self.dataset[vid]
+            if smallest is None or var.size < smallest.size: smallest = var
+        return smallest
+
+    def getAlignmentVariable(self, alignRes: str ):
+        if alignRes.startswith("low"): return self.getSmallestVariable()
+        if alignRes.startswith("high"): return self.getLargestVariable()
+        else: raise Exception( "Unrecognized alignment resolution parameter (should be 'high' or 'low'): " + alignRes )
+
+    def align( self, alignRes: str = "lowest" ) -> "KernelResult":
+      if not alignRes: return self
+      target_var =  self.getAlignmentVariable( alignRes )
+      new_vars = []
+      for var in self.getVariables():
+          if (var.shape == target_var.shape) and (var.dims == target_var.dims):
+              new_vars.append( var )
+          else:
+              new_vars.append( var.interp_like( target_var, assume_sorted=True ) )
+      dataset = xr.Dataset( { array.name: array for array in new_vars }  )
+      return KernelResult( self.domain, dataset, [ array.name for array in new_vars ] )
 
     def addResult(self, new_dataset: xr.Dataset, new_ids: List[str] ):
         self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )

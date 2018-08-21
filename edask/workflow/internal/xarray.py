@@ -82,6 +82,14 @@ class SumKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
         return variable.sum( dim=node.axes, keep_attrs=True )
 
+class DiffKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.sum( dim=node.axes, keep_attrs=True )
+
+
 class SubsetKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("subset", "Subset Kernel","NoOp kernel used to return (subsetted) inputs." ) )

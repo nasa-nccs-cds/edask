@@ -60,7 +60,7 @@ class OpKernel(Kernel):
         for kernelInput in kernelInputs:
             for variable in kernelInput.getVariables():
                 result.addArray( variable, kernelInput.ids )
-        return result.align()
+        return result.align( op.getParm("align") )
 
 class InputKernel(Kernel):
     def __init__( self ):
