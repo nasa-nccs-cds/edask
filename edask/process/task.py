@@ -58,6 +58,12 @@ class TaskRequest:
       domain: Domain = self.operationManager.getDomain( domain )
       return domain.subset( dataset )
 
+  def subsetResult(self, domainId: str, kernelResult: KernelResult ) -> KernelResult:
+      if kernelResult.domain == domainId: return kernelResult
+      domain: Domain = self.operationManager.getDomain( domainId )
+      new_dataset = domain.subset( kernelResult.dataset )
+      return KernelResult( domainId, new_dataset, kernelResult.ids )
+
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )
 

@@ -41,22 +41,26 @@ class OpKernel(Kernel):
     def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        merged_domain: str  = request.intersectDomains( { op.domain } | { kr.domain for kr in inputs } )
-        result: KernelResult = KernelResult.empty( merged_domain )
-        inputVars: List[Tuple[xr.DataArray,xr.Dataset]] = self.preprocessInputs( request, op, [ ( var, kernelResult.dataset ) for kernelResult in inputs for var in kernelResult.getInputs() ] )
-        for ( variable, dataset ) in inputVars:
+        inputVars: KernelResult = self.preprocessInputs( request, op, inputs )
+        result: KernelResult = KernelResult.empty( inputVars.domain )
+        for variable in inputVars.getVariables():
             resultArray: xr.DataArray = self.processVariable( request, op, variable )
             resultArray.name = op.getResultId( variable.name )
             self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
-            result.addArray( resultArray, dataset.attrs )
+            result.addArray( resultArray, inputVars.dataset.attrs )
         return result
 
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
 
-    def preprocessInputs( self, request: TaskRequest, op: OpNode, inputs: List[Tuple[xr.DataArray,xr.Dataset]] ) -> List[Tuple[xr.DataArray,xr.Dataset]]:
-        return inputs
-
+    def preprocessInputs( self, request: TaskRequest, op: OpNode, inputs: List[KernelResult] ) -> KernelResult:
+        merged_domain: str  = request.intersectDomains( { op.domain } | { kr.domain for kr in inputs } )
+        result: KernelResult = KernelResult.empty( merged_domain )
+        kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
+        for kernelInput in kernelInputs:
+            for variable in kernelInput.getVariables():
+                result.addArray( variable, kernelInput.ids )
+        return result
 
 class InputKernel(Kernel):
     def __init__( self ):
