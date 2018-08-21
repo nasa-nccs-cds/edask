@@ -1,6 +1,6 @@
 import sys, inspect, logging, os
 from abc import ABCMeta, abstractmethod
-from edask.workflow.kernel import Kernel, KernelResult
+from edask.workflow.kernel import Kernel, InputKernel, KernelResult
 from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
@@ -78,7 +78,7 @@ class KernelManager:
         for module_name in modules:
             module_path = "edask.workflow.internal." + module_name
             module = __import__( module_path, globals(), locals(), ['*']  )
-            kernels = []
+            kernels = [ InputKernel() ]
             for clsname in dir(module):
                 mod_cls = getattr( module, clsname)
                 if( inspect.isclass(mod_cls) and (mod_cls.__module__ == module_path) ):

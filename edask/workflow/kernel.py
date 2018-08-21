@@ -6,6 +6,10 @@ from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView, Tuple
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
 from .results import KernelSpec, KernelResult
+from edask.process.source import SourceType
+from edask.process.source import VariableSource, DataSource
+from edask.process.domain import Axis
+from edask.agg import Collection
 
 class Kernel:
 
@@ -14,7 +18,7 @@ class Kernel:
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
-        self._id: str  = ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(6) ])
+        self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     def name(self): return self._spec.name
 
@@ -37,7 +41,8 @@ class OpKernel(Kernel):
     def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result: KernelResult = KernelResult.empty()
+        merged_domain: str  = request.intersectDomains( { op.domain } | { kr.domain for kr in inputs } )
+        result: KernelResult = KernelResult.empty( merged_domain )
         inputVars: List[Tuple[xr.DataArray,xr.Dataset]] = self.preprocessInputs( request, op, [ ( var, kernelResult.dataset ) for kernelResult in inputs for var in kernelResult.getInputs() ] )
         for ( variable, dataset ) in inputVars:
             resultArray: xr.DataArray = self.processVariable( request, op, variable )
@@ -51,3 +56,34 @@ class OpKernel(Kernel):
 
     def preprocessInputs( self, request: TaskRequest, op: OpNode, inputs: List[Tuple[xr.DataArray,xr.Dataset]] ) -> List[Tuple[xr.DataArray,xr.Dataset]]:
         return inputs
+
+
+class InputKernel(Kernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
+
+    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+        snode: SourceNode = node
+        dataSource: DataSource = snode.varSource.dataSource
+        result: KernelResult = KernelResult.empty(snode.domain)
+        if dataSource.type == SourceType.collection:
+            collection = Collection.new( dataSource.address )
+            aggs = collection.sortVarsByAgg( snode.varSource.vids )
+            for ( aggId, vars ) in aggs.items():
+                dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+                result.addResult( *self.processDataset( request, dset, snode )  )
+        elif dataSource.type == SourceType.file:
+            self.logger.info( "Reading data from address: " + dataSource.address )
+            dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
+            result.addResult( *self.processDataset( request, dset, snode ) )
+        elif dataSource.type == SourceType.dap:
+            dset = xr.open_dataset( dataSource.address, autoclose=True  )
+            result.addResult( *self.processDataset( request, dset, snode ) )
+        return result
+
+    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, List[str] ):
+        coordMap = Axis.getDatasetCoordMap( dset )
+        idMap: Dict[str,str] = snode.varSource.name2id(coordMap)
+        dset.rename( idMap, True )
+        roi = snode.domain  #  .rename( idMap )
+        return ( request.subset( roi, dset ), snode.varSource.ids() )

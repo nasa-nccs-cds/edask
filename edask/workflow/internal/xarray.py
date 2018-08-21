@@ -2,43 +2,11 @@ from ..kernel import Kernel, KernelSpec, KernelResult, OpKernel
 import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
-from edask.process.source import SourceType
-from edask.process.domain import Axis
 from typing import List, Dict, Optional
-from edask.agg import Collection
-from edask.process.source import VariableSource, DataSource
+
+
 import numpy as np
 import xarray as xr
-
-class InputKernel(Kernel):
-    def __init__( self ):
-        Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
-
-    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
-        snode: SourceNode = node
-        dataSource: DataSource = snode.varSource.dataSource
-        result: KernelResult = KernelResult.empty()
-        if dataSource.type == SourceType.collection:
-            collection = Collection.new( dataSource.address )
-            aggs = collection.sortVarsByAgg( snode.varSource.vids )
-            for ( aggId, vars ) in aggs.items():
-                dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                result.addResult( *self.processDataset( request, dset, snode )  )
-        elif dataSource.type == SourceType.file:
-            self.logger.info( "Reading data from address: " + dataSource.address )
-            dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-            result.addResult( *self.processDataset( request, dset, snode ) )
-        elif dataSource.type == SourceType.dap:
-            dset = xr.open_dataset( dataSource.address, autoclose=True  )
-            result.addResult( *self.processDataset( request, dset, snode ) )
-        return result
-
-    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, List[str] ):
-        coordMap = Axis.getDatasetCoordMap( dset )
-        idMap: Dict[str,str] = snode.varSource.name2id(coordMap)
-        dset.rename( idMap, True )
-        roi = snode.domain  #  .rename( idMap )
-        return ( request.subset( roi, dset ), snode.varSource.ids() )
 
 class AverageKernel(OpKernel):
     def __init__( self ):

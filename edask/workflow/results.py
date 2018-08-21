@@ -27,9 +27,10 @@ class KernelSpec:
 
 class KernelResult:
 
-    def __init__( self, dataset: xr.Dataset = None, ids: List[str] = [] ):
-        self.dataset: xr.Dataset = dataset
+    def __init__( self, _domain: str, _dataset: xr.Dataset = None, ids: List[str] = [] ):
+        self.dataset: xr.Dataset = _dataset
         self._ids = []
+        self.domain = _domain
         self.logger = logging.getLogger()
         self.addIds( ids )
 
@@ -38,7 +39,7 @@ class KernelResult:
     def addIds(self, ids: List[str]): self._ids.extend( ids )
 
     @staticmethod
-    def empty() -> "KernelResult": return KernelResult()
+    def empty( domain: str ) -> "KernelResult": return KernelResult( domain )
     def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
     def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.ids ]
     def getVariables(self) -> List[xr.DataArray]:
@@ -58,5 +59,5 @@ class KernelResult:
     @staticmethod
     def merge( kresults: List["KernelResult"] ):
         merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
-        merged_ids = list( itertools.chain( *[ kr.ids for kr in kresults ] ) )
-        return KernelResult( merged_dataset, merged_ids )
+        merged_ids = "-".join( itertools.chain( *[ kr.ids for kr in kresults ] ) )
+        return KernelResult( merged_ids, merged_dataset )

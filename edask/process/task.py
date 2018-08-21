@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, Sequence, List
+from typing import Dict, Any, Union, Sequence, List, Set
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager, Domain
 import xarray as xr
@@ -47,6 +47,9 @@ class TaskRequest:
   def cacheResult( self, key: str, result: KernelResult )-> "TaskRequest":
       self._resultCache[ key ] = result
       return self
+
+  def intersectDomains(self, domainIds = Set[str] ) -> str:
+      return self.operationManager.domains.intersectDomains( domainIds )
 
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
