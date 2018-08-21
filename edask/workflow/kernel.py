@@ -77,7 +77,7 @@ class Kernel:
     def getSpec(self) -> KernelSpec: return self._spec
     def getCapabilities(self) -> str: return self._spec.summary
     def describeProcess( self ) -> str: return str(self._spec)
-    def clear(self): self._cachedresult = None
+    def clear(self) -> "Kernel": self._cachedresult = None; return self
 
     def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         if self._cachedresult is None:
@@ -88,27 +88,7 @@ class Kernel:
     @abstractmethod
     def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult: pass
 
-
-
 class OpKernel(Kernel):
-
-    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result: KernelResult = KernelResult.empty()
-        for kernelResult in inputs:
-            for variable in kernelResult.getInputs():
-                resultArray = self.processVariable( request, op, variable )
-                resultArray.name = op.getResultId( variable.name )
-                self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
-                result.addArray( resultArray, kernelResult.dataset.attrs )
-        return result
-
-    @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
-
-
-class OpKernel1(Kernel):
 
     def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
         op: OpNode = wnode

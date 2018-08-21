@@ -92,7 +92,6 @@ class TestEdask(unittest.TestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.assertTrue( self.mgr.equals( results[0], [ verification_data ] ) )
 
-
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
         verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,

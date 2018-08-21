@@ -52,7 +52,9 @@ class KernelModule(OperationModule):
 
     def getKernel(self, task: WorkflowNode):
         key = task.op.lower()
-        return self._kernels.get( key )
+        rv = self._kernels.get( key )
+        assert rv is not None, "Unidentified Kernel: " + key
+        return rv.clear()
 
     def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
     def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilities() for kernel in self._kernels.values() ])
