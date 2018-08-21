@@ -4,7 +4,7 @@ from edask.process.domain import DomainManager, Domain
 import xarray as xr
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.process.domain import Axis, AxisBounds
+from edask.workflow.results import KernelSpec, KernelResult
 
 class UID:
     ndigits = 6
@@ -39,6 +39,14 @@ class TaskRequest:
       self.uid = id
       self.name = name
       self.operationManager = _operationManager
+      self._resultCache: Dict[str,KernelResult] = {}
+
+  def getCachedResult( self, key: str )-> KernelResult:
+      return self._resultCache.get( key )
+
+  def cacheResult( self, key: str, result: KernelResult )-> "TaskRequest":
+      self._resultCache[ key ] = result
+      return self
 
   def linkWorkflow(self):
       self.operationManager.createWorkflow()

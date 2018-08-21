@@ -54,7 +54,7 @@ class KernelModule(OperationModule):
         key = task.op.lower()
         rv = self._kernels.get( key )
         assert rv is not None, "Unidentified Kernel: " + key
-        return rv.clear()
+        return rv
 
     def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
     def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilities() for kernel in self._kernels.values() ])
