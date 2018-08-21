@@ -46,7 +46,7 @@ class OpKernel(Kernel):
         for variable in inputVars.getVariables():
             resultArray: xr.DataArray = self.processVariable( request, op, variable )
             resultArray.name = op.getResultId( variable.name )
-            self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
+            self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
             result.addArray( resultArray, inputVars.dataset.attrs )
         return result
 
@@ -60,7 +60,7 @@ class OpKernel(Kernel):
         for kernelInput in kernelInputs:
             for variable in kernelInput.getVariables():
                 result.addArray( variable, kernelInput.ids )
-        return result
+        return result.align()
 
 class InputKernel(Kernel):
     def __init__( self ):

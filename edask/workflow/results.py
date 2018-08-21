@@ -46,6 +46,11 @@ class KernelResult:
         self.logger.info( "GetVariables[ ids: {} ]( vars = {} )".format( str(self.ids), str( list(self.dataset.variables.keys()) ) ) )
         return self.getInputs()
 
+    def align( self ) -> "KernelResult":
+      new_arrays = xr.align( *self.getVariables() )
+      dataset = xr.Dataset( { array.name: array for array in new_arrays }  )
+      return KernelResult( self.domain, dataset, [ array.name for array in new_arrays ] )
+
     def addResult(self, new_dataset: xr.Dataset, new_ids: List[str] ):
         self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
         self.addIds( new_ids )
