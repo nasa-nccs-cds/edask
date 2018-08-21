@@ -25,7 +25,7 @@ if __name__ == '__main__':
         logger.info("Defining workflow")
         dataInputs = WpsCwtParser.parseDatainputs( testStr )
         request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
-        results: List[KernelResult] = edasOpManager.buildRequest( request )
+        results: List[EDASDataset] = edasOpManager.buildRequest(request)
 
         texe = time.time()
         for result in results:

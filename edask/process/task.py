@@ -4,7 +4,7 @@ from edask.process.domain import DomainManager, Domain
 import xarray as xr
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.workflow.results import KernelSpec, KernelResult
+from edask.workflow.results import KernelSpec, EDASDataset
 
 class UID:
     ndigits = 6
@@ -39,12 +39,12 @@ class TaskRequest:
       self.uid = id
       self.name = name
       self.operationManager = _operationManager
-      self._resultCache: Dict[str,KernelResult] = {}
+      self._resultCache: Dict[str, EDASDataset] = {}
 
-  def getCachedResult( self, key: str )-> KernelResult:
+  def getCachedResult( self, key: str )-> EDASDataset:
       return self._resultCache.get( key )
 
-  def cacheResult( self, key: str, result: KernelResult )-> "TaskRequest":
+  def cacheResult(self, key: str, result: EDASDataset)-> "TaskRequest":
       self._resultCache[ key ] = result
       return self
 
@@ -58,11 +58,11 @@ class TaskRequest:
       domain: Domain = self.operationManager.getDomain( domain )
       return domain.subset( dataset )
 
-  def subsetResult(self, domainId: str, kernelResult: KernelResult ) -> KernelResult:
+  def subsetResult(self, domainId: str, kernelResult: EDASDataset) -> EDASDataset:
       if kernelResult.domain == domainId: return kernelResult
       domain: Domain = self.operationManager.getDomain( domainId )
       new_dataset = domain.subset( kernelResult.dataset )
-      return KernelResult( domainId, new_dataset, kernelResult.ids )
+      return EDASDataset(domainId, new_dataset, kernelResult.ids)
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

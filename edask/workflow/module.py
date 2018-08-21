@@ -1,6 +1,6 @@
 import sys, inspect, logging, os
 from abc import ABCMeta, abstractmethod
-from edask.workflow.kernel import Kernel, InputKernel, KernelResult
+from edask.workflow.kernel import Kernel, InputKernel, EDASDataset
 from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
@@ -110,8 +110,8 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> KernelResult:
-        inputDatasets: List[KernelResult] = [ ]
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> EDASDataset:
+        inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
             if isinstance( input, WorkflowInput ):
@@ -119,7 +119,7 @@ class KernelManager:
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
         return kernel.getResultDataset( request, op, inputDatasets )
 
-    def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
+    def buildRequest(self, request: TaskRequest ) -> List[EDASDataset]:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))

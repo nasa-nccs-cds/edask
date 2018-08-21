@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, KernelResult, OpKernel
+from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
@@ -94,17 +94,17 @@ class SubsetKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("subset", "Subset Kernel","NoOp kernel used to return (subsetted) inputs." ) )
 
-    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, NoOp inputs: " + str( [ str(w) for w in op.inputs ] ) )
-        return KernelResult.merge(inputs)
+        return EDASDataset.merge(inputs)
 
 
 class NoOp(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("noop", "NoOp Kernel","NoOp kernel used to output intermediate products in workflow." ) )
 
-    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, NoOp inputs: " + str( [ str(w) for w in op.inputs ] ) )
-        return KernelResult.merge(inputs)
+        return EDASDataset.merge(inputs)
