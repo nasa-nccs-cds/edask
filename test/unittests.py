@@ -78,7 +78,6 @@ class TestEdask(unittest.TestCase):
         self.mgr.print( results )
         self.assertTrue( True )
 
-    @unittest.skip("test_subset1")
     def test_subset1(self):
         # Verification data: nco_scripts/subset1.sh
         verification_data = ma.array( [ 271.715, 271.7168, 271.7106, 271.7268, 270.9894, 270.9614, 270.9766, 271.0617,
@@ -108,22 +107,6 @@ class TestEdask(unittest.TestCase):
         self.mgr.print(results)
         self.assertTrue(self.mgr.equals(results[0], [verification_data]))
 
-    @unittest.skip("test_ave1")
-    def test_ave1_xxxx(self):
-        # Verification data: nco_scripts/ave1.sh
-        verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,
-                                        287.5726, 290.1945, 294.1584, 297.4008, 298.9573, 299.912, 298.9509,
-                                        296.917, 293.4789, 290.42, 287.2475, 285.871, 286.638, 291.0261  ] )
-        domains = [{ "name":"d0",   "lat":  { "start":50, "end":52,  "system":"indices" },
-                                    "lon":  { "start":20, "end":22, "system":"indices" },
-                                    "time": { "start":30, "end":30, "system":"indices" } } ]
-        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
-        results = self.mgr.testExec( domains, variables, operations )
-        self.mgr.print(results)
-     #   self.assertTrue(self.mgr.equals(results[0], [verification_data]))
-
-    @unittest.skip("test_max1")
     def test_max1(self):
         # Verification data: nco_scripts/max1.sh
         verification_data = ma.array( [ 309.1635, 309.1169, 312.0971, 311.8346, 307.2101, 302.7792, 301.4748, 300.2946, 301.3716, 303.0497, 304.4346 ] )
@@ -136,7 +119,6 @@ class TestEdask(unittest.TestCase):
         self.mgr.print(results)
         self.assertTrue(self.mgr.equals(results[0], [verification_data]))
 
-    @unittest.skip("test_min1")
     def test_min1(self):
         # Verification data: nco_scripts/min1.sh
         verification_data = ma.array( [ 258.1156, 252.1156, 254.8867, 262.4825, 269.1955, 271.6146, 272.5411,

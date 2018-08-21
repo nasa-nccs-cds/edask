@@ -79,6 +79,40 @@ class MinKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
         return variable.min( dim=node.axes, keep_attrs=True )
 
+class MeanKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("mean", "Mean Kernel","Computes the unweighted average of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.mean( dim=node.axes, keep_attrs=True )
+
+class MedianKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("median", "Median Kernel","Computes the median of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.median( dim=node.axes, keep_attrs=True )
+
+class StdKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel","Computes the standard deviation of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.std( dim=node.axes, keep_attrs=True )
+
+class VarKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("var", "Variance Kernel","Computes the variance of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.var( dim=node.axes, keep_attrs=True )
+
+class SumKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
+        return variable.sum( dim=node.axes, keep_attrs=True )
 
 class SubsetKernel(Kernel):
     def __init__( self ):
