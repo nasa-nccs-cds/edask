@@ -92,11 +92,17 @@ class AxisBounds:
         self.end = _end + 1 if _system.startswith("ind") else _end
         self.metadata = _metadata
 
+    def canBroadcast(self) -> bool:
+        return self.start == self.end
+
     def slice(self) -> slice:
         return slice( self.start, self.end )
 
-    def intersect(self, other: "AxisBounds" ) -> "AxisBounds":
+    def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
+        if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
         assert self.system ==  other.system, "Can't intersect domain axes with different systems: Axis {}, {} vs {}".format( self.name, self.system, other.system )
+        if allow_broadcast and other.canBroadcast(): return self
+        if allow_broadcast and self.canBroadcast(): return other
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
@@ -130,13 +136,15 @@ class Domain:
     def findAxisBounds( self, type: Axis ) -> Optional[AxisBounds]:
         return self.axisBounds.get( type, None )
 
-    def intersect( self, name: str, other: "Domain" ) -> "Domain":
+    def intersect( self, name: str, other: "Domain", allow_broadcast: bool = True ) -> "Domain":
         result_axes: Dict[Axis,AxisBounds]  = {}
         other_axes = dict( other.axisBounds )
         for (axis,bounds) in self.axisBounds:
-            result_axes[axis] = bounds.intersect( other_axes.pop( axis ) )
+            intersected_bounds = bounds.intersect( other_axes.pop( axis ), allow_broadcast )
+            if intersected_bounds: result_axes[axis] = intersected_bounds
         for (axis,bounds) in other_axes:
-            result_axes[axis] = bounds
+            if not (allow_broadcast and bounds.canBroadcast() ):
+                result_axes[axis] = bounds
         return Domain( name, result_axes )
 
     def hasUnknownAxes(self) -> bool :
@@ -177,14 +185,14 @@ class DomainManager:
     def getDomain( self, name: str ) -> Domain:
         return self.domains.get( name.lower() )
 
-    def intersectDomains(self, domainIds: Set[str] ) -> Optional[str]:
+    def intersectDomains(self, domainIds: Set[str], allow_broadcast: bool = True ) -> Optional[str]:
         if len( domainIds ) == 0: return None
         if len( domainIds ) == 1: return domainIds.pop()
         new_domId = self.randomId(4)
         domains: List[Domain] = [ self.getDomain(id) for id in domainIds ]
         result_domain: Domain = domains[0]
         for domain in domains[1:]:
-            result_domain = result_domain.intersect( new_domId, domain )
+            result_domain = result_domain.intersect( new_domId, domain, allow_broadcast )
         self.domains[ new_domId ] = result_domain
         return new_domId
 

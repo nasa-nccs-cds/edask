@@ -48,8 +48,8 @@ class TaskRequest:
       self._resultCache[ key ] = result
       return self
 
-  def intersectDomains(self, domainIds = Set[str] ) -> str:
-      return self.operationManager.domains.intersectDomains( domainIds )
+  def intersectDomains(self, domainIds = Set[str], allow_broadcast: bool = True  ) -> str:
+      return self.operationManager.domains.intersectDomains( domainIds, allow_broadcast )
 
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
