@@ -44,24 +44,27 @@ class OpKernel(Kernel):
         result: EDASDataset = EDASDataset.empty()
         for kernelResult in inputs:
             for variable in kernelResult.getVariables():
-                resultArray: EDASArray = self.processVariable( request, op, variable )
-                resultArray.name = op.getResultId(variable.name)
-                self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
-                result.addArray( resultArray, kernelResult.dataset.attrs )
+                inputArray: EDASArray = self.processVariable( request, op, variable )
+                inputArray.name = op.getResultId(variable.name)
+                self.logger.info( " Process Input {} -> {}".format( variable.name, inputArray.name ) )
+                result.addArray( inputArray, kernelResult.dataset.attrs )
         return result
 
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray: pass
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
-        domains: Set[str] = { op.domain } | EDASDataset.domains( inputs )
-        merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
-        result: EDASDataset = EDASDataset.empty()
-        kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
-        for kernelInput in kernelInputs:
-            for variable in kernelInput.getVariables():
-                result.addArray( variable, kernelInput.dataset.attrs )
-        return result.align( op.getParm("align") )
+        if op.domain is None and op.getParm("align") is None:
+            return EDASDataset.merge( inputs )
+        else:
+            domains: Set[str] = { op.domain } | EDASDataset.domains( inputs )
+            merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
+            result: EDASDataset = EDASDataset.empty()
+            kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
+            for kernelInput in kernelInputs:
+                for variable in kernelInput.getVariables():
+                    result.addArray( variable, kernelInput.dataset.attrs )
+            return result.align( op.getParm("align") )
 
 # class OpKernel2(Kernel):
 #
@@ -72,10 +75,10 @@ class OpKernel(Kernel):
 #         result: EDASDataset = EDASDataset.empty()
 #         for (input0,input1) in zip( inputs[0], inputs[1] ):
 #             inputVars: EDASDataset = self.preprocessInputs(request, op, [input0, input1])
-#             resultArray: xr.DataArray = self.processVariables( request, op, variable )
-#             resultArray.name = op.getResultId( variable.name )
-#             self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
-#             result.addArray( resultArray, inputVars.dataset.attrs )
+#             inputArray: xr.DataArray = self.processVariables( request, op, variable )
+#             inputArray.name = op.getResultId( variable.name )
+#             self.logger.info( " Process Input {} -> {}".format( variable.name, inputArray.name ) )
+#             result.addArray( inputArray, inputVars.dataset.attrs )
 #         return result
 #
 #     @abstractmethod
