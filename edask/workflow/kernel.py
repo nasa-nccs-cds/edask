@@ -37,6 +37,8 @@ class Kernel:
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset: pass
 
 class OpKernel(Kernel):
+    # Operates independently on each input variable.  Will pre-subset to intersected domain if 'domain' is specified.
+    # Will pre-align all variables if 'align' is specified.
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
@@ -75,6 +77,8 @@ class OpKernel(Kernel):
         return True
 
 class TupOpKernel(Kernel):
+    # Operates independently on sets of variables with same index across all input datasets
+    # Will independently pre-subset to intersected domain and pre-align all variables in each set.
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
