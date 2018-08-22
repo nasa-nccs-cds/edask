@@ -55,10 +55,10 @@ class OpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
         alignmentStrategy = op.getParm("align")
-        if op.domain is None and alignmentStrategy is None:
+        domains: Set[str] = EDASDataset.domains( inputs, op.domset )
+        if (op.domain is None and alignmentStrategy is None) or self.simpleInput( domains, inputs ):
             return EDASDataset.merge( inputs )
         else:
-            domains: Set[str] = EDASDataset.domains( inputs, op.domset )
             merged_domain: str  = request.intersectDomains( domains )
             result: EDASDataset = EDASDataset.empty()
             kernelInputs = [request.subsetDataset(merged_domain, input) for input in inputs]
@@ -66,6 +66,13 @@ class OpKernel(Kernel):
                 for variable in kernelInput.getVariables():
                     result.addArray( variable, kernelInput.dataset.attrs )
             return result.align( alignmentStrategy )
+
+    def simpleInput( self, domains: Set[str], inputs: List[EDASDataset] ):
+        if len(domains) == 0: return True
+        if len(domains) > 1:  return False
+        for dset in inputs:
+            if dset.requiresSubset( domains.pop() ): return False
+        return True
 
 class TupOpKernel(Kernel):
 
