@@ -35,7 +35,7 @@ if __name__ == '__main__':
         tsubmit = time.time()
         result_future = client.submit( get_results )
         logger.info("Submitted computation")
-        results: List[KernelResult] = result_future.result()
+        results: List[EDASDataset] = result_future.result()
 
         logger.info( "\n Completed computation in {} seconds, workflow setup time = {}, cluster startup time = {}\n".format( str(time.time() - tsubmit), str(tsubmit - tdefine), str(tdefine - tstart) ) )
 

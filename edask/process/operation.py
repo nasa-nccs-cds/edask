@@ -68,6 +68,9 @@ class WorkflowNode:
     def addInput(self, input: OperationInput ):
         self.inputs.append( input )
 
+    def getParm(self, key: str, default: Any = None ) -> Any:
+        return self.metadata.get( key, default )
+
     @abc.abstractmethod
     def getId(self): pass
 

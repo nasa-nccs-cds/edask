@@ -1,6 +1,6 @@
 import sys, inspect, logging, os
 from abc import ABCMeta, abstractmethod
-from edask.workflow.kernel import Kernel, KernelResult
+from edask.workflow.kernel import Kernel, InputKernel, EDASDataset
 from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
@@ -52,7 +52,9 @@ class KernelModule(OperationModule):
 
     def getKernel(self, task: WorkflowNode):
         key = task.op.lower()
-        return self._kernels.get( key )
+        rv = self._kernels.get( key )
+        assert rv is not None, "Unidentified Kernel: " + key
+        return rv
 
     def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
     def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilities() for kernel in self._kernels.values() ])
@@ -76,7 +78,7 @@ class KernelManager:
         for module_name in modules:
             module_path = "edask.workflow.internal." + module_name
             module = __import__( module_path, globals(), locals(), ['*']  )
-            kernels = []
+            kernels = [ InputKernel() ]
             for clsname in dir(module):
                 mod_cls = getattr( module, clsname)
                 if( inspect.isclass(mod_cls) and (mod_cls.__module__ == module_path) ):
@@ -108,8 +110,8 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> KernelResult:
-        inputDatasets: List[KernelResult] = [ ]
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> EDASDataset:
+        inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
             if isinstance( input, WorkflowInput ):
@@ -117,7 +119,7 @@ class KernelManager:
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
         return kernel.getResultDataset( request, op, inputDatasets )
 
-    def buildRequest(self, request: TaskRequest ) -> List[KernelResult]:
+    def buildRequest(self, request: TaskRequest ) -> List[EDASDataset]:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))

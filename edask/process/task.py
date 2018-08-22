@@ -1,10 +1,10 @@
-from typing import Dict, Any, Union, Sequence, List
+from typing import Dict, Any, Union, Sequence, List, Set
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager, Domain
 import xarray as xr
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.process.domain import Axis, AxisBounds
+from edask.workflow.results import KernelSpec, EDASDataset
 
 class UID:
     ndigits = 6
@@ -39,6 +39,17 @@ class TaskRequest:
       self.uid = id
       self.name = name
       self.operationManager = _operationManager
+      self._resultCache: Dict[str, EDASDataset] = {}
+
+  def getCachedResult( self, key: str )-> EDASDataset:
+      return self._resultCache.get( key )
+
+  def cacheResult(self, key: str, result: EDASDataset)-> "TaskRequest":
+      self._resultCache[ key ] = result
+      return self
+
+  def intersectDomains(self, domainIds = Set[str], allow_broadcast: bool = True  ) -> str:
+      return self.operationManager.domains.intersectDomains( domainIds, allow_broadcast )
 
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
@@ -46,6 +57,12 @@ class TaskRequest:
   def subset(self, domain: str, dataset: xr.Dataset) -> xr.Dataset:
       domain: Domain = self.operationManager.getDomain( domain )
       return domain.subset( dataset )
+
+  def subsetResult(self, domainId: str, kernelResult: EDASDataset) -> EDASDataset:
+      if kernelResult.domain == domainId: return kernelResult
+      domain: Domain = self.operationManager.getDomain( domainId )
+      new_dataset = domain.subset( kernelResult.dataset )
+      return EDASDataset(domainId, new_dataset, kernelResult.ids)
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

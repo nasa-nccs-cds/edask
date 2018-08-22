@@ -15,11 +15,12 @@ To install:
     > conda install dask distributed -c conda-forge
     > conda install xarray bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing
     > conda install -c anaconda zeromq pyzmq
-    > conda install -c conda-forge libnetcdf
+    > conda install -c conda-forge libnetcdf nco
     
     > git clone https://github.com/nasa-nccs-cds/edask.git
     > cd edask
     > python setup.py install
+
 ```
 
 

@@ -1,67 +1,15 @@
 from abc import ABCMeta, abstractmethod
-import logging, cdms2, time, os, itertools
+import logging, cdms2, time, os, itertools, random, string
 from edask.messageParser import mParse
 from edask.process.task import TaskRequest
-from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
+from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView, Tuple, Set
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
-
-class KernelSpec:
-    def __init__( self, name, title, description, **kwargs ):
-        self._name = name
-        self._title = title
-        self._description = description
-        self._options = kwargs
-
-    @property
-    def name(self): return self._name
-
-    @property
-    def description(self): return self._description
-
-    @property
-    def title(self): return self._title
-
-    @property
-    def summary(self) -> str: return ";".join( [ self._name, self.title ] )
-
-    def __str__(self): return ";".join( [ self._name, self.title, self.description, str(self._options) ] )
-
-class KernelResult:
-
-    def __init__( self, dataset: xr.Dataset = None, ids: List[str] = [] ):
-        self.dataset: xr.Dataset = dataset
-        self._ids = []
-        self.logger = logging.getLogger()
-        self.addIds( ids )
-
-    @property
-    def ids(self): return self._ids
-    def addIds(self, ids: List[str]): self._ids.extend( ids )
-
-    @staticmethod
-    def empty() -> "KernelResult": return KernelResult()
-    def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
-    def getInputs(self) -> List[xr.DataArray]: return [ self.dataset[vid] for vid in self.ids ]
-    def getVariables(self) -> List[xr.DataArray]:
-        self.logger.info( "GetVariables[ ids: {} ]( vars = {} )".format( str(self.ids), str( list(self.dataset.variables.keys()) ) ) )
-        return self.getInputs()
-
-    def addResult(self, new_dataset: xr.Dataset, new_ids: List[str] ):
-        self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
-        self.addIds( new_ids )
-
-    def addArray(self, array: xr.DataArray, attrs ):
-        self.logger.info( "AddArray( var = {} )".format( str(array.name) ) )
-        if self.dataset is None: self.dataset = xr.Dataset( { array.name: array, }  )
-        else: self.dataset.merge_data_and_coords( array )
-        self.addIds( [ array.name ] )
-
-    @staticmethod
-    def merge( kresults: List["KernelResult"] ):
-        merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
-        merged_ids = list( itertools.chain( *[ kr.ids for kr in kresults ] ) )
-        return KernelResult( merged_dataset, merged_ids )
+from .results import KernelSpec, EDASDataset
+from edask.process.source import SourceType
+from edask.process.source import VariableSource, DataSource
+from edask.process.domain import Axis
+from edask.agg import Collection
 
 class Kernel:
 
@@ -70,37 +18,105 @@ class Kernel:
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
-        self._cachedresult: KernelResult = None
+        self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     def name(self): return self._spec.name
 
     def getSpec(self) -> KernelSpec: return self._spec
     def getCapabilities(self) -> str: return self._spec.summary
     def describeProcess( self ) -> str: return str(self._spec)
-    def clear(self): self._cachedresult = None
 
-    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
-        if self._cachedresult is None:
-           self._cachedresult = self.buildWorkflow( request, node, inputs )
-        self.logger.info( " GetResultDataset[{}]: ids= {}, vars= {} ".format( self._spec.name, str( self._cachedresult.ids ), str( list( self._cachedresult.dataset.variables.keys()) ) ))
-        return self._cachedresult
+    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+        result = request.getCachedResult( self._id )
+        if result is None:
+           result = self.buildWorkflow( request, node, inputs )
+           request.cacheResult( self._id, result )
+        return result
 
     @abstractmethod
-    def buildWorkflow( self, request: TaskRequest, node: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult: pass
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset: pass
 
 class OpKernel(Kernel):
 
-    def buildWorkflow( self, request: TaskRequest, wnode: WorkflowNode, inputs: List[KernelResult] ) -> KernelResult:
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result: KernelResult = KernelResult.empty()
+        result: EDASDataset = EDASDataset.empty()
         for kernelResult in inputs:
-            for variable in kernelResult.getInputs():
-                resultArray = self.processVariable( request, op, variable )
+            for variable in kernelResult.getVariables():
+                resultArray: xr.DataArray = self.processVariable( request, op, variable )
                 resultArray.name = op.getResultId( variable.name )
-                self.logger.info(" Process Input {} -> {}".format( variable.name, resultArray.name ))
+                self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
                 result.addArray( resultArray, kernelResult.dataset.attrs )
         return result
 
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
+
+    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
+        domains: Set[str] = { op.domain } | { kr.domain for kr in inputs }
+        merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
+        result: EDASDataset = EDASDataset.empty(merged_domain)
+        kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
+        for kernelInput in kernelInputs:
+            for variable in kernelInput.getVariables():
+                result.addArray( variable, kernelInput.ids )
+        return result.align( op.getParm("align") )
+
+class OpKernel2(Kernel):
+
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+        op: OpNode = wnode
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+        assert len(inputs) == 2, "The kernel {} requires 2 inputs, found {}".format( self.name(), len(inputs) )
+        result: EDASDataset = EDASDataset.empty(inputs[0].domain)
+        for (input0,input1) in zip( inputs[0], inputs[1] ):
+            inputVars: EDASDataset = self.preprocessInputs(request, op, [input0, input1])
+            resultArray: xr.DataArray = self.processVariables( request, op, variable )
+            resultArray.name = op.getResultId( variable.name )
+            self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
+            result.addArray( resultArray, inputVars.dataset.attrs )
+        return result
+
+    @abstractmethod
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
+
+    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
+        domains: Set[str] = { op.domain } | { kr.domain for kr in inputs }
+        merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
+        result: EDASDataset = EDASDataset.empty(merged_domain)
+        kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
+        for kernelInput in kernelInputs:
+            for variable in kernelInput.getVariables():
+                result.addArray( variable, kernelInput.ids )
+        return result.align( op.getParm("align") )
+
+class InputKernel(Kernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
+
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+        snode: SourceNode = node
+        dataSource: DataSource = snode.varSource.dataSource
+        result: EDASDataset = EDASDataset.empty()
+        if dataSource.type == SourceType.collection:
+            collection = Collection.new( dataSource.address )
+            aggs = collection.sortVarsByAgg( snode.varSource.vids )
+            for ( aggId, vars ) in aggs.items():
+                dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+                result.addResult( *self.processDataset( request, dset, snode )  )
+        elif dataSource.type == SourceType.file:
+            self.logger.info( "Reading data from address: " + dataSource.address )
+            dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
+            result.addResult( *self.processDataset( request, dset, snode ) )
+        elif dataSource.type == SourceType.dap:
+            dset = xr.open_dataset( dataSource.address, autoclose=True  )
+            result.addResult( *self.processDataset( request, dset, snode ) )
+        return result
+
+    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, Dict[str,str] ):
+        coordMap = Axis.getDatasetCoordMap( dset )
+        idMap: Dict[str,str] = snode.varSource.name2id(coordMap)
+        dset.rename( idMap, True )
+        roi = snode.domain  #  .rename( idMap )
+        return ( request.subset( roi, dset ), { id:snode.domain for id in snode.varSource.ids() } )
