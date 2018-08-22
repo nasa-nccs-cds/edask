@@ -48,13 +48,13 @@ class TestManager:
     def print(self, results: List[EDASDataset]):
         for result in results:
             for variable in result.getVariables():
-                result = variable.load()
+                result = variable.data.load()
                 self.logger.info( "\n\n ***** Result {}, shape = {}".format( result.name, str( result.shape ) ) )
                 self.logger.info( result )
 
     def equals(self, result: EDASDataset, verification_arrays: List[ma.MaskedArray], thresh: float = 0.0001) -> bool:
         for idx, result in enumerate( result.getVariables() ):
-            a1 = result.to_masked_array(copy=False).flatten()
+            a1 = result.data.to_masked_array(copy=False).flatten()
             a2 = verification_arrays[idx].flatten()
             size = min( a1.size, a2.size )
             diff = ( a1[0:size] - a2[0:size] ).ptp(0)

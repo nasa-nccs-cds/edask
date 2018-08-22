@@ -2,9 +2,9 @@ from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
+from edask.workflow.results import EDASArray
 from typing import List, Dict, Optional
-
-
+from edask.process.domain import Domain, Axis
 import numpy as np
 import xarray as xr
 
@@ -12,23 +12,24 @@ class AverageKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        weights = self.getWeights( node, variable )
+    def processVariable( self, request: TaskRequest, node: OpNode, inputVar: EDASArray ) -> EDASArray:
+        weights = self.getWeights( node, inputVar )
+        data = inputVar.data
         if weights is None:
-            return variable.mean(node.axes)
+            return inputVar.mean(node.axes)
         else:
             axes = list(node.axes)
-            weighted_var = variable * weights
+            weighted_var = data * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
-            norm = weights * variable.count( axes ) if len( axes ) else weights
-            rv =  sum / norm.sum("y")
-            return rv
+            norm = weights * data.count( axes ) if len( axes ) else weights
+            new_data =  sum / norm.sum("y")
+            return inputVar.updateData( new_data )
 
-    def getWeights(self, op: OpNode, variable: xr.DataArray  ) -> Optional[xr.DataArray]:
-        if op.hasAxis('y'):
-            ycoordaxis =  variable.coords.get( "y" )
-            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.coords.keys() )
+    def getWeights(self, op: OpNode, variable: EDASArray  ) -> Optional[xr.DataArray]:
+        if op.hasAxis( Axis.Y ):
+            ycoordaxis =  variable.axis( Axis.Y )
+            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.axes() )
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
 
@@ -37,57 +38,57 @@ class MaxKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("max", "Maximum Kernel","Computes the maximum of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.max( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.max( node.axes )
 
 class MinKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("min", "Minimum Kernel","Computes the minimum of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.min( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.min( node.axes )
 
 class MeanKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("mean", "Mean Kernel","Computes the unweighted average of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.mean( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.mean( node.axes )
 
 class MedianKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("median", "Median Kernel","Computes the median of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.median( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.median( node.axes )
 
 class StdKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel","Computes the standard deviation of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.std( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.std( node.axes )
 
 class VarKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("var", "Variance Kernel","Computes the variance of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.var( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.var( node.axes )
 
 class SumKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.sum( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.sum( node.axes )
 
 class DiffKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
+        Kernel.__init__( self, KernelSpec("diff", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: xr.DataArray ) -> xr.DataArray:
-        return variable.sum( dim=node.axes, keep_attrs=True )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return variable.diff( node.axes )
 
 
 class SubsetKernel(Kernel):

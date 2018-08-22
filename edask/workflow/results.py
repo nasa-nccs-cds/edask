@@ -3,7 +3,8 @@ import logging, cdms2, time, os, itertools, random, string
 from edask.messageParser import mParse
 from collections import OrderedDict
 from enum import Enum, auto
-from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView, Tuple, Optional
+from typing import List, Dict, Sequence, BinaryIO, Any, Callable, Tuple, Optional, Set
+from edask.process.domain import Domain, Axis
 import xarray as xr
 
 class Extremity(Enum):
@@ -46,6 +47,12 @@ class EDASArray:
     @property
     def size(self) -> int: return self.data.size
 
+    @property
+    def name(self) -> str: return self.data.name
+
+    @name.setter
+    def name(self, value): self.data.name = value
+
     def aligned( self, other: "EDASArray" ):
         return ( self.domId == other.domId ) and ( self.data.shape == other.data.shape ) and ( self.data.dims == other.data.dims )
 
@@ -54,6 +61,36 @@ class EDASArray:
         if self.aligned( other ): return self
         new_data = self.data.interp_like( other.data, assume_sorted )
         return EDASArray( self.domId, new_data )
+
+    def updateData(self, new_data: xr.DataArray ) -> "EDASArray":
+        return EDASArray( self.domId, new_data )
+
+    # def update(self, op: Callable[[xr.DataArray,Any],xr.DataArray], **kwargs ) -> "EDASArray":
+    #     return EDASArray( self.domId, op(self.data, **kwargs) )
+
+    def axis(self, axis: Axis ):
+        return self.data.coords.get( axis.name.lower() )
+
+    def axes(self) -> List[str]:
+        return self.data.coords.keys()
+
+    def max( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.max( dim=axes, keep_attrs=True ) )
+
+    def min( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.min( dim=axes, keep_attrs=True) )
+
+    def mean( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.mean( dim=axes, keep_attrs=True) )
+
+    def median( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.median( dim=axes, keep_attrs=True) )
+
+    def var( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.var( dim=axes, keep_attrs=True) )
+
+    def sum( self, axes: List[str] ) -> "EDASArray":
+        return EDASArray( self.domId, self.data.sum( dim=axes, keep_attrs=True) )
 
 class EDASDataset:
 
@@ -72,16 +109,32 @@ class EDASDataset:
         return EDASDataset( dataset, varList )
 
     @property
-    def ids(self): return self._varList.keys()
+    def ids(self) -> List[str]: return list(self._varList.keys())
+
+    @property
+    def varMap(self) -> Dict[str,str]: return dict(self._varList)
+
     def addVars(self, varList: Dict[str,str] ): self._varList.update( varList )
 
     @staticmethod
     def empty() -> "EDASDataset": return EDASDataset(None, {})
+
+    @staticmethod
+    def domains( inputs: List["EDASDataset"] ) -> Set[str]:
+        rv = set()
+        for dset in inputs: rv = rv.union( dset.getDomains() )
+        return rv
+
+    @staticmethod
+    def mergeVarMaps( inputs: List["EDASDataset"] ) -> Dict[str,str]:
+        rv = {}
+        for dset in inputs: rv = rv.update( dset.varMap )
+        return rv
+
     def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
     def getInputs(self) -> List[EDASArray]: return [ EDASArray( domId, self.dataset[vid] ) for ( vid, domId ) in self._varList.items() ]
-    def getVariables(self) -> List[EDASArray]:
-        self.logger.info( "GetVariables[ ids: {} ]( vars = {} )".format( str(self.ids), str( list(self.dataset.variables.keys()) ) ) )
-        return self.getInputs()
+    def getVariables(self) -> List[EDASArray]: return self.getInputs()
+    def getDomains(self) -> Set[str]: return { domId for ( vid, domId ) in self._varList.items()  }
 
     def getExtremeVariable(self, ext: Extremity ) -> EDASArray:
         inputs = self.getInputs()
@@ -102,14 +155,14 @@ class EDASDataset:
         self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
         self.addVars( varList )
 
-    def addArray(self, domId: str, array: xr.DataArray, attrs ):
+    def addArray(self, array: EDASArray, attrs: Dict[str,Any] ):
         self.logger.info( "AddArray( var = {} )".format( str(array.name) ) )
-        if self.dataset is None: self.dataset = xr.Dataset( { array.name: array, }  )
-        else: self.dataset.merge_data_and_coords( array )
-        self.addVars( { array.name: domId } )
+        if self.dataset is None: self.dataset = xr.Dataset( { array.name: array.data }, attrs=attrs )
+        else: self.dataset.merge_data_and_coords( array.data )
+        self.addVars( { array.name: array.domId } )
 
     @staticmethod
     def merge(kresults: List["EDASDataset"]):
+        if len( kresults ) == 1: return kresults[0]
         merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
-        merged_ids = "-".join( itertools.chain( *[ kr.ids for kr in kresults ] ) )
-        return EDASDataset(merged_ids, merged_dataset)
+        return EDASDataset( merged_dataset, EDASDataset.mergeVarMaps(kresults) )

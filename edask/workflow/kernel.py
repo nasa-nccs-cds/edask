@@ -5,7 +5,7 @@ from edask.process.task import TaskRequest
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView, Tuple, Set
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
-from .results import KernelSpec, EDASDataset
+from .results import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType
 from edask.process.source import VariableSource, DataSource
 from edask.process.domain import Axis
@@ -44,52 +44,52 @@ class OpKernel(Kernel):
         result: EDASDataset = EDASDataset.empty()
         for kernelResult in inputs:
             for variable in kernelResult.getVariables():
-                resultArray: xr.DataArray = self.processVariable( request, op, variable )
-                resultArray.name = op.getResultId( variable.name )
+                resultArray: EDASArray = self.processVariable( request, op, variable )
+                resultArray.name = op.getResultId(variable.name)
                 self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
                 result.addArray( resultArray, kernelResult.dataset.attrs )
         return result
 
     @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray: pass
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
-        domains: Set[str] = { op.domain } | { kr.domain for kr in inputs }
+        domains: Set[str] = { op.domain } | EDASDataset.domains( inputs )
         merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
-        result: EDASDataset = EDASDataset.empty(merged_domain)
+        result: EDASDataset = EDASDataset.empty()
         kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
         for kernelInput in kernelInputs:
             for variable in kernelInput.getVariables():
-                result.addArray( variable, kernelInput.ids )
+                result.addArray( variable, kernelInput.dataset.attrs )
         return result.align( op.getParm("align") )
 
-class OpKernel2(Kernel):
-
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        assert len(inputs) == 2, "The kernel {} requires 2 inputs, found {}".format( self.name(), len(inputs) )
-        result: EDASDataset = EDASDataset.empty(inputs[0].domain)
-        for (input0,input1) in zip( inputs[0], inputs[1] ):
-            inputVars: EDASDataset = self.preprocessInputs(request, op, [input0, input1])
-            resultArray: xr.DataArray = self.processVariables( request, op, variable )
-            resultArray.name = op.getResultId( variable.name )
-            self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
-            result.addArray( resultArray, inputVars.dataset.attrs )
-        return result
-
-    @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
-
-    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
-        domains: Set[str] = { op.domain } | { kr.domain for kr in inputs }
-        merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
-        result: EDASDataset = EDASDataset.empty(merged_domain)
-        kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
-        for kernelInput in kernelInputs:
-            for variable in kernelInput.getVariables():
-                result.addArray( variable, kernelInput.ids )
-        return result.align( op.getParm("align") )
+# class OpKernel2(Kernel):
+#
+#     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+#         op: OpNode = wnode
+#         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+#         assert len(inputs) == 2, "The kernel {} requires 2 inputs, found {}".format( self.name(), len(inputs) )
+#         result: EDASDataset = EDASDataset.empty()
+#         for (input0,input1) in zip( inputs[0], inputs[1] ):
+#             inputVars: EDASDataset = self.preprocessInputs(request, op, [input0, input1])
+#             resultArray: xr.DataArray = self.processVariables( request, op, variable )
+#             resultArray.name = op.getResultId( variable.name )
+#             self.logger.info( " Process Input {} -> {}".format( variable.name, resultArray.name ) )
+#             result.addArray( resultArray, inputVars.dataset.attrs )
+#         return result
+#
+#     @abstractmethod
+#     def processVariable( self, request: TaskRequest, node: OpNode, inputs: xr.DataArray ) -> xr.DataArray: pass
+#
+#     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
+#         domains: Set[str] = { op.domain } | EDASDataset.domains( inputs )
+#         merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
+#         result: EDASDataset = EDASDataset.empty()
+#         kernelInputs = [ request.subsetResult( merged_domain, input ) for input in inputs ]
+#         for kernelInput in kernelInputs:
+#             for variable in kernelInput.getVariables():
+#                 result.addArray( merged_domain, variable )
+#         return result.align( op.getParm("align") )
 
 class InputKernel(Kernel):
     def __init__( self ):
