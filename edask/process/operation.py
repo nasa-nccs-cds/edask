@@ -1,4 +1,4 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator
+from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from enum import Enum, auto
 from .source import VariableManager, VariableSource, DataSource
 from .domain import DomainManager, Domain, Axis
@@ -70,6 +70,9 @@ class WorkflowNode:
 
     def getParm(self, key: str, default: Any = None ) -> Any:
         return self.metadata.get( key, default )
+
+    @property
+    def domset(self) -> Set[str]: return set() if self.domain is None else { self.domain }
 
     @abc.abstractmethod
     def getId(self): pass

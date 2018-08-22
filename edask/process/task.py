@@ -4,7 +4,7 @@ from edask.process.domain import DomainManager, Domain
 import xarray as xr
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.workflow.results import KernelSpec, EDASDataset
+from edask.workflow.results import KernelSpec, EDASDataset, EDASArray
 
 class UID:
     ndigits = 6
@@ -58,11 +58,18 @@ class TaskRequest:
       domain: Domain = self.operationManager.getDomain( domain )
       return domain.subset( dataset )
 
-  def subsetResult(self, domainId: str, kernelResult: EDASDataset) -> EDASDataset:
-      if kernelResult.domain == domainId: return kernelResult
+  def subsetDataset(self, domainId: str, kernelResult: EDASDataset ) -> EDASDataset:
+      if not kernelResult.requiresSubset(domainId): return kernelResult
       domain: Domain = self.operationManager.getDomain( domainId )
       new_dataset = domain.subset( kernelResult.dataset )
-      return EDASDataset(domainId, new_dataset, kernelResult.ids)
+      varList = { vid:domainId for vid in kernelResult.ids }
+      return EDASDataset( new_dataset, varList )
+
+  def subsetArray(self, domainId: str, input: EDASArray ) -> EDASArray:
+      domain: Domain = self.operationManager.getDomain( domainId )
+      new_dataset = domain.subset( kernelResult.dataset )
+      varList = { vid:domainId for vid in kernelResult.ids }
+      return EDASDataset( new_dataset, varList )
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

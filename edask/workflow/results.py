@@ -68,6 +68,10 @@ class EDASArray:
     # def update(self, op: Callable[[xr.DataArray,Any],xr.DataArray], **kwargs ) -> "EDASArray":
     #     return EDASArray( self.domId, op(self.data, **kwargs) )
 
+    @staticmethod
+    def domains( inputs: List["EDASArray"] ) -> Set[str]:
+        return { var.domId for var in inputs }
+
     def axis(self, axis: Axis ):
         return self.data.coords.get( axis.name.lower() )
 
@@ -108,8 +112,15 @@ class EDASDataset:
         varList: Dict[str,str] = { a.data.name:a.domId for a in edasArrays }
         return EDASDataset( dataset, varList )
 
+    def requiresSubset(self, target_domain: str ) -> bool:
+        domains =  set( self._varList.values() )
+        return len( domains.difference( { target_domain } ) ) > 0
+
     @property
-    def ids(self) -> List[str]: return list(self._varList.keys())
+    def ids(self) -> List[str]: return list( self._varList.keys() )
+
+    @property
+    def id(self) -> str: return "-".join( self._varList.keys() )
 
     @property
     def varMap(self) -> Dict[str,str]: return dict(self._varList)
@@ -120,10 +131,10 @@ class EDASDataset:
     def empty() -> "EDASDataset": return EDASDataset(None, {})
 
     @staticmethod
-    def domains( inputs: List["EDASDataset"] ) -> Set[str]:
+    def domains( inputs: List["EDASDataset"], opDomains: Set[str] = None ) -> Set[str]:
         rv = set()
         for dset in inputs: rv = rv.union( dset.getDomains() )
-        return rv
+        return rv if opDomains is None else rv | opDomains
 
     @staticmethod
     def mergeVarMaps( inputs: List["EDASDataset"] ) -> Dict[str,str]:
