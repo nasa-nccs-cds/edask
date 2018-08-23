@@ -67,9 +67,7 @@ class TaskRequest:
 
   def subsetArray(self, domainId: str, input: EDASArray ) -> EDASArray:
       domain: Domain = self.operationManager.getDomain( domainId )
-      new_dataset = domain.subset( kernelResult.dataset )
-      varList = { vid:domainId for vid in kernelResult.ids }
-      return EDASDataset( new_dataset, varList )
+      return EDASArray( domainId, domain.subsetArray( input.data ) )
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

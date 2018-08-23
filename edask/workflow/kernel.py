@@ -20,6 +20,7 @@ class Kernel:
         self._spec: KernelSpec = spec
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
+    @property
     def name(self): return self._spec.name
 
     def getSpec(self) -> KernelSpec: return self._spec
@@ -76,7 +77,7 @@ class OpKernel(Kernel):
             if dset.requiresSubset( domains.pop() ): return False
         return True
 
-class TupOpKernel(Kernel):
+class EnsOpKernel(Kernel):
     # Operates independently on sets of variables with same index across all input datasets
     # Will independently pre-subset to intersected domain and pre-align all variables in each set.
 
@@ -98,7 +99,8 @@ class TupOpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = { op.domain } | EDASArray.domains( inputs )
-        merged_domain: str  = request.intersectDomains(  domains.discard( None )  )
+        domains.discard( None )
+        merged_domain: str  = request.intersectDomains( domains )
         result: EDASDataset = EDASDataset.empty()
         for input in inputs: result.addArray( request.subsetArray( merged_domain, input ), atts  )
         return result.align( op.getParm("align","lowest") )

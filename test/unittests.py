@@ -25,10 +25,12 @@ class TestManager:
     def __init__(self):
         self.logger = logging.getLogger()
         self.addresses = {
-            "merra2": CreateIPServer + "/Reanalysis/NASA-GMAO/GEOS-5/MERRA2/mon/atmos/{}.ncml",
-            "merra":  CreateIPServer + "/Reanalysis/NASA-GMAO/GEOS-5/MERRA/mon/atmos/{}.ncml",
-            "ecmwf":  CreateIPServer + "/Reanalysis/ECMWF/IFS-Cy31r2/mon/atmos/{}.ncml",
-            "cfsr":   CreateIPServer + "/Reanalysis/NOAA-NCEP/CFSR/mon/atmos/{}.ncml",
+            "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
+            "merra":  CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
+            "ecmwf":  CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
+            "cfsr":   CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",
+            "20crv":  CreateIPServer + "/reanalysis/20CRv2c/mon/atmos/{}.ncml",
+            "jra":  CreateIPServer + "/reanalysis/JMA/JRA-55/mon/atmos/{}.ncml",
         }
 
     def getAddress(self, model: str, varName: str ) -> str:
@@ -62,10 +64,12 @@ class TestManager:
             if diff > 2*thresh: return False
         return True
 
-class TestEdask(unittest.TestCase):
+class EDaskTestCase(unittest.TestCase):
 
     def setUp(self):
         self.mgr = TestManager()
+
+class TestEdask(EDaskTestCase):
 
     @unittest.skip("parsing test")
     def test_parse_subset1(self):
@@ -132,5 +136,16 @@ class TestEdask(unittest.TestCase):
         self.mgr.print(results)
         self.assertTrue(self.mgr.equals(results[0], [verification_data]))
 
-if __name__ == '__main__':
-    unittest.main(verbosity=3)
+class DebugTests(EDaskTestCase):
+
+    def test_diff1(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":100, "system":"indices" },
+                                    "lon":  { "start":30, "end":120, "system":"indices" },
+                                    "time": { "start":30, "end":50, "system":"indices" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
+        operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+
+

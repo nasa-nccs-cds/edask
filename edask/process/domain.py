@@ -168,6 +168,12 @@ class Domain:
             if( len(bounds_list) ): dset = dset.sel( dict( bounds_list ) ) if system == "val" else dset.isel( dict( bounds_list ) )
         return dset
 
+    def subsetArray( self, array: xr.DataArray ) -> xr.DataArray:
+        for system in [ "val", "ind" ] :
+            bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
+            if( len(bounds_list) ): array = array.sel( dict( bounds_list ) ) if system == "val" else array.isel( dict( bounds_list ) )
+        return array
+
     def __str__(self):
         return "D({})[ {} ]".format( self.name, "; ".join( [ str(b) for b in self.axisBounds.values()] ) )
 

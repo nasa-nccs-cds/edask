@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
 from edask.process.task import TaskRequest
-from typing import List, Dict
+from typing import List, Dict, Callable
 import xarray as xr
 
 class OperationModule:
@@ -32,10 +32,9 @@ class OperationModule:
 
 class KernelModule(OperationModule):
 
-    def __init__( self, name, kernels ):
+    def __init__( self, name, kernels: Dict[str,Callable[[],Kernel]] ):
         self.logger =  logging.getLogger()
-        self._kernels: Dict[str,Kernel] = {}
-        for kernel in kernels: self._kernels[ kernel.name().lower() ] = kernel
+        self._kernels: Dict[str,Callable[[],Kernel]] = kernels
         OperationModule.__init__( self, name )
 
     def isLocal( self, obj )-> bool:
@@ -52,12 +51,12 @@ class KernelModule(OperationModule):
 
     def getKernel(self, task: WorkflowNode):
         key = task.op.lower()
-        rv = self._kernels.get( key )
-        assert rv is not None, "Unidentified Kernel: " + key
-        return rv
+        constructor = self._kernels.get( key )
+        assert constructor is not None, "Unidentified Kernel: " + key
+        return constructor()
 
-    def getCapabilities(self): return [ kernel.getCapabilities() for kernel in self._kernels.values() ]
-    def getCapabilitiesStr(self): return "~".join([ kernel.getCapabilities() for kernel in self._kernels.values() ])
+    def getCapabilities(self): return [ kernel().getCapabilities() for kernel in self._kernels.values() ]
+    def getCapabilitiesStr(self): return "~".join([ kernel().getCapabilities() for kernel in self._kernels.values() ])
 
     def describeProcess( self, op ):
         kernel = self._kernels.get( op )
@@ -78,14 +77,13 @@ class KernelManager:
         for module_name in modules:
             module_path = "edask.workflow.internal." + module_name
             module = __import__( module_path, globals(), locals(), ['*']  )
-            kernels = [ InputKernel() ]
+            kernels = { InputKernel().name.lower(): InputKernel }
             for clsname in dir(module):
                 mod_cls = getattr( module, clsname)
                 if( inspect.isclass(mod_cls) and (mod_cls.__module__ == module_path) ):
                     try:
                         if issubclass( mod_cls, Kernel ):
-                            kernel_instance = mod_cls();
-                            kernels.append( kernel_instance )
+                            kernels[ mod_cls().name.lower() ] = mod_cls
                             self.logger.debug(  " ----------->> Adding Kernel Class: " + str( clsname ) )
                         else: self.logger.debug(  " xxxxxxx-->> Skipping non-Kernel Class: " + str( clsname ) )
                     except TypeError as err:
