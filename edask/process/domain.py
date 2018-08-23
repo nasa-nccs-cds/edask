@@ -162,13 +162,7 @@ class Domain:
     def slice( cls, axis: Axis, bounds: AxisBounds ) -> Tuple[str,slice]:
          return ( bounds.name if axis == Axis.UNKNOWN else axis.name.lower(), bounds.slice() )
 
-    def subset( self, dset: xr.Dataset ) -> xr.Dataset:
-        for system in [ "val", "ind" ] :
-            bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
-            if( len(bounds_list) ): dset = dset.sel( dict( bounds_list ) ) if system == "val" else dset.isel( dict( bounds_list ) )
-        return dset
-
-    def subsetArray( self, array: xr.DataArray ) -> xr.DataArray:
+    def subset( self, array: xr.DataArray ) -> xr.DataArray:
         for system in [ "val", "ind" ] :
             bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
             if( len(bounds_list) ): array = array.sel( dict( bounds_list ) ) if system == "val" else array.isel( dict( bounds_list ) )

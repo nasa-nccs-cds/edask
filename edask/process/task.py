@@ -54,20 +54,18 @@ class TaskRequest:
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
 
-  def subset(self, domain: str, dataset: xr.Dataset) -> xr.Dataset:
-      domain: Domain = self.operationManager.getDomain( domain )
-      return domain.subset( dataset )
+  def subset(self, domId: str, dataset: xr.Dataset) -> xr.Dataset:
+      domain: Domain = self.operationManager.getDomain( domId )
+      return dataset.subset( domain )
 
-  def subsetDataset(self, domainId: str, kernelResult: EDASDataset ) -> EDASDataset:
-      if not kernelResult.requiresSubset(domainId): return kernelResult
-      domain: Domain = self.operationManager.getDomain( domainId )
-      new_dataset = domain.subset( kernelResult.dataset )
-      varList = { vid:domainId for vid in kernelResult.ids }
-      return EDASDataset( new_dataset, varList )
+  def subsetDataset(self, domId: str, dset: EDASDataset ) -> EDASDataset:
+      if not dset.requiresSubset(domId): return dset
+      domain: Domain = self.operationManager.getDomain( domId )
+      return dset.subset( domain )
 
-  def subsetArray(self, domainId: str, input: EDASArray ) -> EDASArray:
-      domain: Domain = self.operationManager.getDomain( domainId )
-      return EDASArray( domainId, domain.subsetArray( input.data ) )
+  def subsetArray(self, domId: str, input: EDASArray ) -> EDASArray:
+      domain: Domain = self.operationManager.getDomain( domId )
+      return input.subset( domain )
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

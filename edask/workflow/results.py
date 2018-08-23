@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, cdms2, time, os, itertools, random, string
+import logging, cdms2, time, os, itertools, random, string, copy
 from edask.messageParser import mParse
 from collections import OrderedDict
 from enum import Enum, auto
@@ -68,6 +68,13 @@ class EDASArray:
     def updateData(self, new_data: xr.DataArray ) -> "EDASArray":
         return EDASArray( self.domId, new_data )
 
+    def subset( self, domain: Domain ) -> "EDASArray":
+        xarray = self.data
+        for system in [ "val", "ind" ]:
+            bounds_list = [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ]
+            if( len(bounds_list) ): xarray = xarray.sel( dict( bounds_list ) ) if system == "val" else xarray.isel( dict( bounds_list ) )
+        return EDASArray( self.domId, xarray )
+
     # def update(self, op: Callable[[xr.DataArray,Any],xr.DataArray], **kwargs ) -> "EDASArray":
     #     return EDASArray( self.domId, op(self.data, **kwargs) )
 
@@ -120,60 +127,72 @@ class EDASArray:
 
 class EDASDataset:
 
-    def __init__( self,  _dataset: Optional[xr.Dataset], varList: Dict[str,str] ):
-        self.dataset: xr.Dataset = _dataset
-        self._ids = []
-        self._varList: Dict[str,str] = OrderedDict()
+    def __init__( self, _arrayMap: Dict[str,EDASArray], _attrs: Dict[str,Any]  ):
+        self.arrayMap: Dict[str,EDASArray] = _arrayMap
+        self.attrs = _attrs
         self.logger = logging.getLogger()
-        self.addVars( varList )
 
     @staticmethod
-    def new( edasArrays: List[EDASArray], attrs: Dict[str,Any] = None ):
-        dataset = xr.Dataset( { a.name:a.data for a in edasArrays }, attrs = attrs )
-        varList: Dict[str,str] = { a.name:a.domId for a in edasArrays }
-        return EDASDataset( dataset, varList )
-
-    def requiresSubset(self, target_domain: str ) -> bool:
-        domains =  set( self._varList.values() )
-        return len( domains.difference( { target_domain } ) ) > 0
-
-    @property
-    def ids(self) -> List[str]: return list( self._varList.keys() )
-
-    @property
-    def id(self) -> str: return "-".join( self._varList.keys() )
-
-    @property
-    def varMap(self) -> Dict[str,str]: return dict(self._varList)
-
-    def addVars(self, varList: Dict[str,str] ): self._varList.update( varList )
+    def init( self, arrays: List[EDASArray], attrs: Dict[str,Any]  ):
+        dataset = EDASDataset.empty()
+        return dataset.addArrays(arrays,attrs)
 
     @staticmethod
-    def empty() -> "EDASDataset": return EDASDataset(None, {})
+    def new( dataset: xr.Dataset, varMap: Dict[str,str] ):
+        arrayMap = { vid: EDASArray( domId, dataset[vid] ) for ( vid, domId ) in varMap.items() }
+        return EDASDataset( arrayMap, dataset.attrs )
+
+    def addArrays(self, arrays: List[EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
+        for array in arrays: self.arrayMap[array.name] = array
+        self.attrs.update(attrs)
+        return self
+
+    def addArray(self, array: EDASArray, attrs: Dict[str,Any]  ) -> "EDASDataset":
+        self.arrayMap[array.name] = array
+        self.attrs.update(attrs)
+        return self
+
+    @property
+    def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }
+
+    @property
+    def ids(self) -> Set[str]: return set( self.arrayMap.keys() )
+
+    @property
+    def id(self) -> str: return "-".join( self.arrayMap.keys() )
+
+    @property
+    def vars2doms(self) -> Dict[str,str]: return { name:array.domId for ( name, array ) in self.arrayMap.items() }
 
     @staticmethod
-    def domains( inputs: List["EDASDataset"], opDomains: Set[str] = None ) -> Set[str]:
+    def empty() -> "EDASDataset": return EDASDataset( {}, {} )
+
+    @staticmethod
+    def domainSet( inputs: List["EDASDataset"], opDomains: Set[str] = None ) -> Set[str]:
         rv = set()
-        for dset in inputs: rv = rv.union( dset.getDomains() )
+        for dset in inputs: rv = rv.union( dset.domains )
         return rv if opDomains is None else rv | opDomains
 
     @staticmethod
     def mergeVarMaps( inputs: List["EDASDataset"] ) -> Dict[str,str]:
         rv = {}
-        for dset in inputs: rv = rv.update( dset.varMap )
+        for dset in inputs: rv = rv.update( dset.vars2doms )
         return rv
 
-    def initDatasetList(self) -> List[xr.Dataset]: return [] if self.dataset is None else [self.dataset]
-    def getInputs(self) -> List[EDASArray]:
-        return [ EDASArray( domId, self.dataset[vid] ) for ( vid, domId ) in self._varList.items() ]
-    def getVariables(self) -> List[EDASArray]: return self.getInputs()
-    def getDomains(self) -> Set[str]: return { domId for ( vid, domId ) in self._varList.items()  }
+    @property
+    def inputs(self) -> List[EDASArray]: return list(self.arrayMap.values())
+
+    def subset( self, domain: Domain ):
+        arrayMap = { vid: array.subset( domain ) for ( vid, array ) in self.arrayMap.items() }
+        return EDASDataset( arrayMap, self.attrs )
+
+    def requiresSubset(self, target_domain: str ) -> bool:
+        return len( self.domains.difference( { target_domain } ) ) > 0
 
     def getExtremeVariable(self, ext: Extremity ) -> EDASArray:
-        inputs = self.getInputs()
-        sizes = [ x.size for x in inputs ]
+        sizes = [ x.size for x in self.inputs ]
         exVal = max( sizes ) if ext == Extremity.HIGHEST else min( sizes )
-        return inputs[ sizes.index( exVal ) ]
+        return self.inputs[ sizes.index( exVal ) ]
 
     def getAlignmentVariable(self, alignRes: str ):
         return self.getExtremeVariable( Extremity.parse(alignRes) )
@@ -181,21 +200,24 @@ class EDASDataset:
     def align( self, alignRes: str = "lowest" ) -> "EDASDataset":
       if not alignRes: return self
       target_var: EDASArray =  self.getAlignmentVariable( alignRes )
-      new_vars: List[EDASArray] = [ var.align(target_var) for var in self.getVariables() ]
+      new_vars: List[EDASArray] = [ var.align(target_var) for var in self.inputs ]
       return EDASDataset.new( new_vars )
 
-    def addResult(self, new_dataset: xr.Dataset, varList: Dict[str,str] ):
-        self.dataset = new_dataset if self.dataset is None else xr.merge( [self.dataset, new_dataset] )
-        self.addVars( varList )
+    def addDataset(self, dataset: xr.Dataset, varMap: Dict[str,str] ):
+        arrays = [ EDASArray( domId, dataset[vid] ) for ( vid, domId ) in varMap.items() ]
+        self.addArrays( arrays, dataset.attrs )
 
-    def addArray(self, array: EDASArray, attrs: Dict[str,Any] ):
-        self.logger.info( "AddArray( var = {} )".format( str(array.name) ) )
-        if self.dataset is None: self.dataset = xr.Dataset( { array.name: array.data }, attrs=attrs )
-        else: self.dataset.update( array.xrDataset(attrs) )
-        self.addVars( { array.name: array.domId } )
+    def __iadd__(self, other: "EDASDataset" ) -> "EDASDataset":
+        self.arrayMap.update( other.arrayMap )
+        self.attrs.update( other.attrs )
+        return self
 
     @staticmethod
-    def merge(kresults: List["EDASDataset"]):
-        if len( kresults ) == 1: return kresults[0]
-        merged_dataset = xr.merge( [ kr.dataset for kr in kresults ] )
-        return EDASDataset( merged_dataset, EDASDataset.mergeVarMaps(kresults) )
+    def merge(dsets: List["EDASDataset"]):
+        if len( dsets ) == 1: return dsets[0]
+        arrayMap: Dict[str,EDASArray] = {}
+        attrs: Dict[str,Any] = {}
+        for dset in dsets:
+            arrayMap.update( dset.arrayMap )
+            attrs.update( dset.attrs )
+        return EDASDataset( arrayMap, attrs )

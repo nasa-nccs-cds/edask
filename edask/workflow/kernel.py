@@ -46,11 +46,11 @@ class OpKernel(Kernel):
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
         inputDataset = self.preprocessInputs( request, op, inputs )
-        for variable in inputDataset.getVariables():
+        for variable in inputDataset.inputs:
             inputArray: EDASArray = self.processVariable( request, op, variable )
             inputArray.name = op.getResultId(variable.name)
             self.logger.info( " Process Input {} -> {}".format( variable.name, inputArray.name ) )
-            result.addArray( inputArray, inputDataset.dataset.attrs )
+            result.addArray( inputArray, inputDataset.attrs )
         return result
 
     @abstractmethod
@@ -58,7 +58,7 @@ class OpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
         alignmentStrategy = op.getParm("align")
-        domains: Set[str] = EDASDataset.domains( inputs, op.domset )
+        domains: Set[str] = EDASDataset.domainSet( inputs, op.domset )
         if (op.domain is None and alignmentStrategy is None) or self.simpleInput( domains, inputs ):
             return EDASDataset.merge( inputs )
         else:
@@ -66,8 +66,8 @@ class OpKernel(Kernel):
             result: EDASDataset = EDASDataset.empty()
             kernelInputs = [request.subsetDataset(merged_domain, input) for input in inputs]
             for kernelInput in kernelInputs:
-                for variable in kernelInput.getVariables():
-                    result.addArray( variable, kernelInput.dataset.attrs )
+                for variable in kernelInput.inputs:
+                    result.addArray( variable, kernelInput.attrs )
             return result.align( alignmentStrategy )
 
     def simpleInput( self, domains: Set[str], inputs: List[EDASDataset] ):
@@ -85,13 +85,13 @@ class EnsOpKernel(Kernel):
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
-        input_vars: List[List[EDASArray]] = [ dset.getVariables() for dset in inputs ]
+        input_vars: List[List[EDASArray]] = [ dset.inputs for dset in inputs ]
         matched_inputs: List[EDASArray] = None
         for matched_inputs in zip( *input_vars ):
-            inputVars: EDASDataset = self.preprocessInputs(request, op, matched_inputs, inputs[0].dataset.attrs )
+            inputVars: EDASDataset = self.preprocessInputs(request, op, matched_inputs, inputs[0].attrs )
             product: EDASDataset = self.processVariables( request, op, inputVars )
             product.name = op.getResultId( inputVars.id )
-            result.addResult( product.dataset, { array.name:array.domId for array in matched_inputs } )
+            result += product
         return result
 
     @abstractmethod
@@ -118,14 +118,14 @@ class InputKernel(Kernel):
             aggs = collection.sortVarsByAgg( snode.varSource.vids )
             for ( aggId, vars ) in aggs.items():
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                result.addResult( *self.processDataset( request, dset, snode )  )
+                result.addDataset( *self.processDataset( request, dset, snode )  )
         elif dataSource.type == SourceType.file:
             self.logger.info( "Reading data from address: " + dataSource.address )
             dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-            result.addResult( *self.processDataset( request, dset, snode ) )
+            result.addDataset( *self.processDataset( request, dset, snode ) )
         elif dataSource.type == SourceType.dap:
             dset = xr.open_dataset( dataSource.address, autoclose=True  )
-            result.addResult( *self.processDataset( request, dset, snode ) )
+            result.addDataset( *self.processDataset( request, dset, snode ) )
         return result
 
     def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, Dict[str,str] ):
