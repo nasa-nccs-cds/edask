@@ -103,14 +103,8 @@ class EnsAve(EnsOpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("eave", "Ensemble Average Kernel","Computes the point-by-point average of a set of variables." ) )
 
-    def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        inputVars: List[EDASArray] = inputDset.inputs
-        sums: List[xr.DataArray, xr.DataArray] = [ None, None ]
-        for array in inputVars:
-            sums[0] = accum( sums[0], array.data )
-            sums[1] = accum( sums[1], weights( array.data ) )
-        result = EDASArray( inputVars[0].domId, sums[0] / sums[1] )
-        return EDASDataset.init( [result], inputDset.attrs )
+    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
+        return inputArray.mean( dim=ensDim, keep_attrs=True)
 
 
 class SubsetKernel(Kernel):

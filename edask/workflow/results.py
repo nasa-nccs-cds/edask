@@ -184,6 +184,9 @@ class EDASDataset:
     @property
     def inputs(self) -> List[EDASArray]: return list(self.arrayMap.values())
 
+    @property
+    def xarrays(self) -> List[xr.DataArray]: return [ array.data for array in self.arrayMap.values() ]
+
     def subset( self, domain: Domain ):
         arrayMap = { vid: array.subset( domain ) for ( vid, array ) in self.arrayMap.items() }
         return EDASDataset( arrayMap, self.attrs )

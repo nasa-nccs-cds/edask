@@ -95,7 +95,7 @@ class EnsOpKernel(Kernel):
         return result
 
     @abstractmethod
-    def processVariables( self, request: TaskRequest, node: OpNode, inputVars: EDASDataset ) -> EDASDataset: pass
+    def processEnsArray( self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray ) -> xr.DataArray: pass
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = { op.domain } | EDASArray.domains( inputs )
@@ -104,6 +104,12 @@ class EnsOpKernel(Kernel):
         result: EDASDataset = EDASDataset.empty()
         for input in inputs: result.addArray( input.subset( request.domain( merged_domain ) ), atts )
         return result.align( op.getParm("align","lowest") )
+
+    def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+        ensDim = "ens"
+        sarray: xr.DataArray = xr.concat( inputDset.xarrays, dim=ensDim )
+        result = EDASArray( inputDset.inputs[0].domId, self.processEnsArray( request, node, ensDim, sarray ) )
+        return EDASDataset.init( [result], inputDset.attrs )
 
 class InputKernel(Kernel):
     def __init__( self ):
