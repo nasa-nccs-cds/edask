@@ -40,7 +40,7 @@ if __name__ == '__main__':
         logger.info( "\n Completed computation in {} seconds, workflow setup time = {}, cluster startup time = {}\n".format( str(time.time() - tsubmit), str(tsubmit - tdefine), str(tdefine - tstart) ) )
 
         for result in results:
-            for variable in result.getVariables():
+            for variable in result.inputs:
                 logger.info( "\n Result: ")
                 logger.info( variable )
 

@@ -1,5 +1,5 @@
-from edask.messageParser import mParse
-from typing import List, Dict, Sequence, Mapping, Any
+from portal.messageParser import mParse
+from typing import List, Dict, Sequence, Any
 import xarray as xr
 
 class Task:

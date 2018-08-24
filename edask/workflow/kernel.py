@@ -1,15 +1,14 @@
 from abc import ABCMeta, abstractmethod
-import logging, cdms2, time, os, itertools, random, string
-from edask.messageParser import mParse
+import logging, random, string
 from edask.process.task import TaskRequest
-from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView, Tuple, Set, Any
+from typing import List, Dict, Set, Any
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
 from .results import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType
-from edask.process.source import VariableSource, DataSource
+from edask.process.source import DataSource
 from edask.process.domain import Axis
-from edask.agg import Collection
+from edask.collections.agg import Collection
 
 class Kernel:
 

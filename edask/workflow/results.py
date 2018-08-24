@@ -1,11 +1,10 @@
-from abc import ABCMeta, abstractmethod
-import logging, cdms2, time, os, itertools, random, string, copy
-from edask.messageParser import mParse
-from collections import OrderedDict
+import logging
 from enum import Enum, auto
-from typing import List, Dict, Sequence, BinaryIO, Any, Callable, Tuple, Optional, Set
+from typing import List, Dict, Any, Set
 from edask.process.domain import Domain, Axis
 import xarray as xr
+import xarray.plot as xrplot
+import matplotlib.pyplot as plt
 
 class Extremity(Enum):
     HIGHEST = auto()
@@ -211,6 +210,20 @@ class EDASDataset:
     def addDataset(self, dataset: xr.Dataset, varMap: Dict[str,str] ):
         arrays = [ EDASArray( domId, dataset[vid] ) for ( vid, domId ) in varMap.items() ]
         self.addArrays( arrays, dataset.attrs )
+
+    def plot(self, tindex: int = 0 ):
+        for array in self.inputs:
+            input_data = array.data.isel( { "t": slice( tindex, tindex + 1 ) } ).squeeze()
+            mesh = xrplot.pcolormesh( input_data )
+            plt.show()
+
+    def dplot(self, domain: Domain ):
+        for array in self.inputs:
+            xrplot.plot( array.subset( domain ).data )
+
+    def mplot(self, facet_axis: str = "time" ):
+        for array in self.inputs:
+            xrplot.plot( array.data, col = facet_axis )
 
     def __iadd__(self, other: "EDASDataset" ) -> "EDASDataset":
         self.arrayMap.update( other.arrayMap )
