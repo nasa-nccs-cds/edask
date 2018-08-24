@@ -64,7 +64,7 @@ class OpKernel(Kernel):
         else:
             merged_domain: str  = request.intersectDomains( domains )
             result: EDASDataset = EDASDataset.empty()
-            kernelInputs = [request.subsetDataset(merged_domain, input) for input in inputs]
+            kernelInputs = [request.subset(merged_domain, input) for input in inputs]
             for kernelInput in kernelInputs:
                 for variable in kernelInput.inputs:
                     result.addArray( variable, kernelInput.attrs )
@@ -102,7 +102,7 @@ class EnsOpKernel(Kernel):
         domains.discard( None )
         merged_domain: str  = request.intersectDomains( domains )
         result: EDASDataset = EDASDataset.empty()
-        for input in inputs: result.addArray( request.subsetArray( merged_domain, input ), atts  )
+        for input in inputs: result.addArray( input.subset( request.domain( merged_domain ) ), atts )
         return result.align( op.getParm("align","lowest") )
 
 class InputKernel(Kernel):
@@ -118,19 +118,17 @@ class InputKernel(Kernel):
             aggs = collection.sortVarsByAgg( snode.varSource.vids )
             for ( aggId, vars ) in aggs.items():
                 dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                result.addDataset( *self.processDataset( request, dset, snode )  )
+                result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.file:
             self.logger.info( "Reading data from address: " + dataSource.address )
             dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-            result.addDataset( *self.processDataset( request, dset, snode ) )
+            result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
             dset = xr.open_dataset( dataSource.address, autoclose=True  )
-            result.addDataset( *self.processDataset( request, dset, snode ) )
+            result  +=  self.processDataset( request, dset, snode )
         return result
 
-    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> ( xr.Dataset, Dict[str,str] ):
+    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
-        idMap: Dict[str,str] = snode.varSource.name2id(coordMap)
-        dset.rename( idMap, True )
-        roi = snode.domain  #  .rename( idMap )
-        return ( request.subset( roi, dset ), { id:snode.domain for id in snode.varSource.ids() } )
+        edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
+        return edset.subset( request.domain( snode.domain ) )

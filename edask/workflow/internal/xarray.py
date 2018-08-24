@@ -88,8 +88,8 @@ class DiffKernel(EnsOpKernel):
         Kernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
 
     def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        inputVars: List[EDASArray] = inputDset.getInputs()
-        return EDASDataset.new( [ inputVars[0] - inputVars[1] ], inputDset.dataset.attrs )
+        inputVars: List[EDASArray] = inputDset.inputs
+        return EDASDataset.init( [ inputVars[0] - inputVars[1] ], inputDset.attrs )
 
 
 class SubsetKernel(Kernel):

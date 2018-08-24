@@ -54,18 +54,11 @@ class TaskRequest:
   def linkWorkflow(self):
       self.operationManager.createWorkflow()
 
-  def subset(self, domId: str, dataset: xr.Dataset) -> xr.Dataset:
-      domain: Domain = self.operationManager.getDomain( domId )
-      return dataset.subset( domain )
+  def domain(self, domId: str ) -> Domain:
+      return self.operationManager.getDomain(domId)
 
-  def subsetDataset(self, domId: str, dset: EDASDataset ) -> EDASDataset:
-      if not dset.requiresSubset(domId): return dset
-      domain: Domain = self.operationManager.getDomain( domId )
-      return dset.subset( domain )
-
-  def subsetArray(self, domId: str, input: EDASArray ) -> EDASArray:
-      domain: Domain = self.operationManager.getDomain( domId )
-      return input.subset( domain )
+  def subset(self, domId: str, dset: EDASDataset ) -> EDASDataset:
+      return dset.subset( self.domain( domId ) ) if dset.requiresSubset(domId) else dset
 
   def __str__(self):
       return "TaskRequest[{}]:\n\t{}".format( self.name, str(self.operationManager) )

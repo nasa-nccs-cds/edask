@@ -133,12 +133,13 @@ class EDASDataset:
         self.logger = logging.getLogger()
 
     @staticmethod
-    def init( self, arrays: List[EDASArray], attrs: Dict[str,Any]  ):
+    def init( arrays: List[EDASArray], attrs: Dict[str,Any]  ):
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
     @staticmethod
-    def new( dataset: xr.Dataset, varMap: Dict[str,str] ):
+    def new( dataset: xr.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
+        dataset.rename(idMap, True)
         arrayMap = { vid: EDASArray( domId, dataset[vid] ) for ( vid, domId ) in varMap.items() }
         return EDASDataset( arrayMap, dataset.attrs )
 
@@ -201,7 +202,7 @@ class EDASDataset:
       if not alignRes: return self
       target_var: EDASArray =  self.getAlignmentVariable( alignRes )
       new_vars: List[EDASArray] = [ var.align(target_var) for var in self.inputs ]
-      return EDASDataset.new( new_vars )
+      return EDASDataset.init( new_vars, self.attrs )
 
     def addDataset(self, dataset: xr.Dataset, varMap: Dict[str,str] ):
         arrays = [ EDASArray( domId, dataset[vid] ) for ( vid, domId ) in varMap.items() ]
