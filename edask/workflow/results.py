@@ -62,7 +62,7 @@ class EDASArray:
     def align( self, other: "EDASArray", assume_sorted=True ):
         assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.data.name, other.data.name, )
         if self.aligned( other ): return self
-        new_data = self.data.interp_like( other.data, assume_sorted )
+        new_data = self.data.interp_like( other.data, "linear", assume_sorted )
         return EDASArray( self.domId, new_data )
 
     def updateData(self, new_data: xr.DataArray ) -> "EDASArray":
@@ -111,7 +111,8 @@ class EDASArray:
 
     def __sub__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        return EDASArray( self.domId, self.data - other.data )
+        rv = self.data - other.data
+        return EDASArray( self.domId, rv )
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"

@@ -139,9 +139,9 @@ class TestEdask(EDaskTestCase):
 class DebugTests(EDaskTestCase):
 
     def test_diff1(self):
-        domains = [{ "name":"d0",   "lat":  { "start":50, "end":100, "system":"indices" },
-                                    "lon":  { "start":30, "end":120, "system":"indices" },
-                                    "time": { "start":30, "end":50, "system":"indices" } } ]
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
+                                    "lon":  { "start":30, "end":40, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
         operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
         results = self.mgr.testExec( domains, variables, operations )

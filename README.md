@@ -13,7 +13,7 @@ To install:
     > conda create -n edask -c conda-forge -c cdat python=3.6 cdms2 cdutil 
     > conda activate edask
     > conda install dask distributed -c conda-forge
-    > conda install xarray bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing
+    > conda install xarray bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing scipy
     > conda install -c anaconda zeromq pyzmq
     > conda install -c conda-forge libnetcdf nco
     
