@@ -3,12 +3,18 @@ import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
 from edask.workflow.results import EDASArray
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from edask.process.domain import Domain, Axis
 import numpy as np
 import numpy.ma as ma
 import xarray as xr
 from xarray.core import ops
+
+def accum( accumulator: xr.DataArray, array: xr.DataArray) -> xr.DataArray:
+    return array if accumulator is None else accumulator + array
+
+def weights( array: xr.DataArray ) -> xr.DataArray:
+    return xr.ones_like( array ).where( array.notnull(), 0  )
 
 class AverageKernel(OpKernel):
     def __init__( self ):
@@ -99,17 +105,12 @@ class EnsAve(EnsOpKernel):
 
     def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
-        vsum: xr.DataArray = None
-        wsum: xr.DataArray = None
+        sums: List[xr.DataArray, xr.DataArray] = [ None, None ]
         for array in inputVars:
-            vsum = array.data if vsum is None else vsum + array.data
-            wts = self.getWeights( array.data )
-            wsum = wts if wsum is None else wsum + wts
-        result = EDASArray( inputVars[0].domId, vsum / wsum )
+            sums[0] = accum( sums[0], array.data )
+            sums[1] = accum( sums[1], weights( array.data ) )
+        result = EDASArray( inputVars[0].domId, sums[0] / sums[1] )
         return EDASDataset.init( [result], inputDset.attrs )
-
-    def getWeights(self, array: xr.DataArray ) -> xr.DataArray:
-        return xr.ones_like( array ).where( array.notnull(), 0  )
 
 
 class SubsetKernel(Kernel):
