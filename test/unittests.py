@@ -136,14 +136,23 @@ class TestEdask(EDaskTestCase):
         self.mgr.print(results)
         self.assertTrue(self.mgr.equals(results[0], [verification_data]))
 
-class DebugTests(EDaskTestCase):
-
     def test_diff1(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
                                     "lon":  { "start":30, "end":40, "system":"values" },
                                     "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
         operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+class DebugTests(EDaskTestCase):
+
+    def test_eave1(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
+                                    "lon":  { "start":30, "end":40, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
+        operations = [ { "name":"xarray.eave", "input":"v0,v1" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
 

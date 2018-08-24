@@ -6,7 +6,9 @@ from edask.workflow.results import EDASArray
 from typing import List, Dict, Optional
 from edask.process.domain import Domain, Axis
 import numpy as np
+import numpy.ma as ma
 import xarray as xr
+from xarray.core import ops
 
 class AverageKernel(OpKernel):
     def __init__( self ):
@@ -90,6 +92,24 @@ class DiffKernel(EnsOpKernel):
     def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
         return EDASDataset.init( [ inputVars[0] - inputVars[1] ], inputDset.attrs )
+
+class EnsAve(EnsOpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("eave", "Ensemble Average Kernel","Computes the point-by-point average of a set of variables." ) )
+
+    def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+        inputVars: List[EDASArray] = inputDset.inputs
+        vsum: xr.DataArray = None
+        wsum: xr.DataArray = None
+        for array in inputVars:
+            vsum = array.data if vsum is None else vsum + array.data
+            wts = self.getWeights( array.data )
+            wsum = wts if wsum is None else wsum + wts
+        result = EDASArray( inputVars[0].domId, vsum / wsum )
+        return EDASDataset.init( [result], inputDset.attrs )
+
+    def getWeights(self, array: xr.DataArray ) -> xr.DataArray:
+        return xr.ones_like( array ).where( array.notnull(), 0  )
 
 
 class SubsetKernel(Kernel):
