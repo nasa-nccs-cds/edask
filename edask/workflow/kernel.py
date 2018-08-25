@@ -36,44 +36,9 @@ class Kernel:
     @abstractmethod
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset: pass
 
-# class OpKernel(Kernel):
-#     # Operates independently on each input variable.  Will pre-subset to intersected domain if 'domain' or 'align' is specified.
-#     # Will pre-align all variables if 'align' is specified.
-#
-#     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
-#         op: OpNode = wnode
-#         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-#         result: EDASDataset = EDASDataset.empty()
-#         inputDataset = self.preprocessInputs( request, op, inputs )
-#         for variable in inputDataset.inputs:
-#             inputArray: EDASArray = self.processVariable( request, op, variable )
-#             inputArray.name = op.getResultId(variable.name)
-#             self.logger.info( " Process Input {} -> {}".format( variable.name, inputArray.name ) )
-#             result.addArray( inputArray, inputDataset.attrs )
-#         return result
-#
-#     @abstractmethod
-#     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray: pass
-#
-#     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASDataset]) -> EDASDataset:
-#         alignmentStrategy = op.getParm("align")
-#         domains: Set[str] = EDASDataset.domainSet( inputs, op.domset )
-#         if (op.domain is None and alignmentStrategy is None) or self.simpleInput( domains, inputs ):
-#             return EDASDataset.merge( inputs )
-#         else:
-#             merged_domain: str  = request.intersectDomains( domains )
-#             result: EDASDataset = EDASDataset.empty()
-#             kernelInputs = [request.subset(merged_domain, input) for input in inputs]
-#             for kernelInput in kernelInputs:
-#                 for variable in kernelInput.inputs:
-#                     result.addArray( variable, kernelInput.attrs )
-#             return result.align( alignmentStrategy )
-#
-
-
 class OpKernel(Kernel):
     # Operates independently on sets of variables with same index across all input datasets
-    # Will independently pre-subset to intersected domain and pre-align all variables in each set.
+    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
