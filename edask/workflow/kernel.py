@@ -63,7 +63,7 @@ class OpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = EDASArray.domains( inputs, op.domain )
-        if self.simpleOp(op) or (len(domains) < 2):
+        if op.isSimple or (len(domains) < 2):
             return EDASDataset.init( inputs, atts )
         else:
             merged_domain: str  = request.intersectDomains( domains )
@@ -76,10 +76,6 @@ class OpKernel(Kernel):
         sarray: xr.DataArray = xr.concat( inputDset.xarrays, dim=op.ensDim )
         result = EDASArray( inputDset.inputs[0].domId, sarray )
         return EDASDataset.init( [result], inputDset.attrs )
-
-    def simpleOp(self, op: OpNode ) -> bool:
-        alignmentStrategy = op.getParm("align")
-        return op.domain is None and alignmentStrategy is None and op.ensDim is None
 
 class InputKernel(Kernel):
     def __init__( self ):

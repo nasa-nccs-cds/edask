@@ -57,7 +57,7 @@ class WorkflowNode:
         nameToks = _name.split(".")
         self.module: str = nameToks[0]
         self.op: str = nameToks[1]
-        self.axes: List[str] = self._getAxes()
+        self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
         self.inputs: List[OperationInput] = []
         self._addWorkflowInputs()
 
@@ -80,6 +80,14 @@ class WorkflowNode:
             if axis == "e" or axis == "ens": return axis
         return None
 
+    @property
+    def alignmentStrategy(self) -> Optional[str]:
+        return self.getParm("align")
+
+    @property
+    def isSimple(self) -> bool:
+        return self.alignmentStrategy is None and self.ensDim is None
+
     @abc.abstractmethod
     def getId(self): pass
 
@@ -92,8 +100,8 @@ class WorkflowNode:
     @abc.abstractmethod
     def isResult(self): pass
 
-    def _getAxes(self) -> List[str]:
-        raw_axes = self.metadata.get("axis", [] )
+    def _getAxes(self, key ) -> List[str]:
+        raw_axes = self.metadata.get( key, [] )
         if isinstance(raw_axes, str):
             raw_axes = raw_axes.replace(" ","").strip("[]")
             if( raw_axes.find(",") >= 0 ): return raw_axes.split(",")
