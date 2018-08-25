@@ -74,6 +74,12 @@ class WorkflowNode:
     @property
     def domset(self) -> Set[str]: return set() if self.domain is None else { self.domain }
 
+    @property
+    def ensDim(self) -> Optional[str]:
+        for axis in self.axes:
+            if axis == "e" or axis == "ens": return axis
+        return None
+
     @abc.abstractmethod
     def getId(self): pass
 
@@ -87,7 +93,7 @@ class WorkflowNode:
     def isResult(self): pass
 
     def _getAxes(self) -> List[str]:
-        raw_axes = self.metadata.get("axes", [] )
+        raw_axes = self.metadata.get("axis", [] )
         if isinstance(raw_axes, str):
             raw_axes = raw_axes.replace(" ","").strip("[]")
             if( raw_axes.find(",") >= 0 ): return raw_axes.split(",")

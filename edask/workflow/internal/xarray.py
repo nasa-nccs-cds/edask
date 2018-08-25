@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, EnsOpKernel
+from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xr
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
@@ -91,62 +91,62 @@ class SumKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         return variable.sum( node.axes )
 
-class DiffKernel(EnsOpKernel):
+class DiffKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
 
-    def processVariables( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
         return EDASDataset.init( [ inputVars[0] - inputVars[1] ], inputDset.attrs )
 
-class EnsAve(EnsOpKernel):
-    def __init__( self ):
-        Kernel.__init__( self, KernelSpec("eave", "Ensemble Average Kernel","Computes the point-by-point average of a set of variables." ) )
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.mean( dim=ensDim, keep_attrs=True)
-
-class EnsStd(EnsOpKernel):
-    def __init__( self ):
-        Kernel.__init__( self, KernelSpec("estd", "Ensemble Standard Deviation Kernel","Computes the point-by-point standard deviation over a set of variables." ) )
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.std( dim=ensDim, keep_attrs=True)
-
-class EnsMax(EnsOpKernel):
-    def __init__(self):
-        Kernel.__init__(self, KernelSpec("emax", "Ensemble Maximum Kernel",  "Computes the point-by-point maximum over a set of variables."))
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.max(dim=ensDim, keep_attrs=True)
-
-class EnsMin(EnsOpKernel):
-    def __init__(self):
-        Kernel.__init__(self, KernelSpec("emin", "Ensemble Minimum Kernel",  "Computes the point-by-point minimum over a set of variables."))
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.min(dim=ensDim, keep_attrs=True)
-
-class EnsVar(EnsOpKernel):
-    def __init__(self):
-        Kernel.__init__(self, KernelSpec("evar", "Ensemble Variance Kernel",  "Computes the point-by-point variance over a set of variables."))
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.var(dim=ensDim, keep_attrs=True)
-
-class EnsSum(EnsOpKernel):
-    def __init__(self):
-        Kernel.__init__(self, KernelSpec("esum", "Ensemble Sum Kernel",  "Computes the point-by-point sum over a set of variables."))
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.sum(dim=ensDim, keep_attrs=True)
-
-class EnsMed(EnsOpKernel):
-    def __init__(self):
-        Kernel.__init__(self, KernelSpec("emed", "Ensemble Median Kernel",  "Computes the point-by-point median over a set of variables."))
-
-    def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
-        return inputArray.med(dim=ensDim, keep_attrs=True)
+# class EnsAve(EnsOpKernel):
+#     def __init__( self ):
+#         Kernel.__init__( self, KernelSpec("eave", "Ensemble Average Kernel","Computes the point-by-point average of a set of variables." ) )
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.mean( dim=ensDim, keep_attrs=True)
+#
+# class EnsStd(EnsOpKernel):
+#     def __init__( self ):
+#         Kernel.__init__( self, KernelSpec("estd", "Ensemble Standard Deviation Kernel","Computes the point-by-point standard deviation over a set of variables." ) )
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.std( dim=ensDim, keep_attrs=True)
+#
+# class EnsMax(EnsOpKernel):
+#     def __init__(self):
+#         Kernel.__init__(self, KernelSpec("emax", "Ensemble Maximum Kernel",  "Computes the point-by-point maximum over a set of variables."))
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.max(dim=ensDim, keep_attrs=True)
+#
+# class EnsMin(EnsOpKernel):
+#     def __init__(self):
+#         Kernel.__init__(self, KernelSpec("emin", "Ensemble Minimum Kernel",  "Computes the point-by-point minimum over a set of variables."))
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str, inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.min(dim=ensDim, keep_attrs=True)
+#
+# class EnsVar(EnsOpKernel):
+#     def __init__(self):
+#         Kernel.__init__(self, KernelSpec("evar", "Ensemble Variance Kernel",  "Computes the point-by-point variance over a set of variables."))
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.var(dim=ensDim, keep_attrs=True)
+#
+# class EnsSum(EnsOpKernel):
+#     def __init__(self):
+#         Kernel.__init__(self, KernelSpec("esum", "Ensemble Sum Kernel",  "Computes the point-by-point sum over a set of variables."))
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.sum(dim=ensDim, keep_attrs=True)
+#
+# class EnsMed(EnsOpKernel):
+#     def __init__(self):
+#         Kernel.__init__(self, KernelSpec("emed", "Ensemble Median Kernel",  "Computes the point-by-point median over a set of variables."))
+#
+#     def processEnsArray(self, request: TaskRequest, node: OpNode, ensDim: str,  inputArray: xr.DataArray) -> xr.DataArray:
+#         return inputArray.med(dim=ensDim, keep_attrs=True)
 
 class SubsetKernel(Kernel):
     def __init__( self ):
