@@ -18,6 +18,7 @@ class Kernel:
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
         self._minInputs = 1
+        self._maxInputs = 100000
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     @property
@@ -45,6 +46,7 @@ class OpKernel(Kernel):
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
+        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         input_vars: List[List[EDASArray]] = [ dset.inputs for dset in inputs ]
         matched_inputs: List[EDASArray] = None
         for matched_inputs in zip( *input_vars ):
