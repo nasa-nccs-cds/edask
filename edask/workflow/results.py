@@ -1,6 +1,6 @@
 import logging
 from enum import Enum, auto
-from typing import List, Dict, Any, Set, Optional
+from typing import List, Dict, Any, Set, Optional, Tuple
 from edask.process.domain import Domain, Axis
 import xarray as xr
 import xarray.plot as xrplot
@@ -82,6 +82,10 @@ class EDASArray:
         rv = { var.domId for var in inputs }
         if opDomain is not None: rv.add( opDomain )
         return rv
+
+    @staticmethod
+    def shapes( inputs: List["EDASArray"] ) -> Set[Tuple[int]]:
+        return { tuple(var.data.shape) for var in inputs }
 
     def axis(self, axis: Axis ):
         return self.data.coords.get( axis.name.lower() )

@@ -84,9 +84,8 @@ class WorkflowNode:
     def alignmentStrategy(self) -> Optional[str]:
         return self.getParm("align")
 
-    @property
-    def isSimple(self) -> bool:
-        return self.alignmentStrategy is None and self.ensDim is None
+    def isSimple( self, minInputs: int ) -> bool:
+        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)
 
     @abc.abstractmethod
     def getId(self): pass

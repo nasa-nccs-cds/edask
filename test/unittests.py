@@ -100,5 +100,8 @@ class TestEdask(EDaskTestCase):
 
 class DebugTests(EDaskTestCase):
 
-    def test_ave1(self):
-        pass
+    def test_diff2(self):
+        domains = [{ "name":"d0",   "time": { "start":'1980-01-01T00:00:00', "end":'1980-03-30T23:00:00', "system":"values" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
+        operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
+        results = self.mgr.testExec( domains, variables, operations )

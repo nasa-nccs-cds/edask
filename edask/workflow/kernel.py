@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import logging, random, string
 from edask.process.task import TaskRequest
-from typing import List, Dict, Set, Any, Optional
+from typing import List, Dict, Set, Any, Optional, Tuple
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 import xarray as xr
 from .results import KernelSpec, EDASDataset, EDASArray
@@ -17,6 +17,7 @@ class Kernel:
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
+        self._minInputs = 1
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     @property
@@ -63,7 +64,8 @@ class OpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = EDASArray.domains( inputs, op.domain )
-        if op.isSimple or (len(domains) < 2):
+        shapes: Set[Tuple[int]] = EDASArray.shapes( inputs )
+        if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
             return EDASDataset.init( inputs, atts )
         else:
             merged_domain: str  = request.intersectDomains( domains )
