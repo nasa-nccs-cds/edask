@@ -3,6 +3,7 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging
 import numpy.ma as ma
+from pandas.core.indexes.datetimes import DatetimeIndex
 from edask.workflow.internal.xarray import *
 from edask.process.test import TestManager
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
@@ -120,6 +121,6 @@ class DebugTests(EDaskTestCase):
                                     "lon":  { "start":100, "end":110, "system":"values" },
                                     "time": { "start":'1980-01-01T00:00:00', "end":'1982-01-30T23:00:00', "system":"values"  } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.Q-FEB" } ]
+        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)

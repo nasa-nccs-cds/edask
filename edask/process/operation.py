@@ -92,8 +92,11 @@ class WorkflowNode:
     def resampling(self) -> Optional[str]:
         rv: Optional[str] = self.getParm("resample")
         if rv is None: return None
-        if rv.lower().startswith( "season" ): rv = 'Q-FEB'
-        return rv
+        toks = rv.split(".")
+        assert len(toks) == 2, "Malformed resampling parameter (should be 'axis.freq', e.g. 't.season'): " + rv
+        axis, freq = toks[0].lower(), toks[1].lower()
+        if freq.startswith( "season" ): freq = 'Q-FEB'
+        return axis + "." + freq
 
     def isSimple( self, minInputs: int ) -> bool:
         return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)
