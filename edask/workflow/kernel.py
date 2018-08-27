@@ -68,17 +68,18 @@ class OpKernel(Kernel):
         domains: Set[str] = EDASArray.domains( inputs, op.domain )
         shapes: Set[Tuple[int]] = EDASArray.shapes( inputs )
         if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
-            return EDASDataset.init( inputs, atts )
+            result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
             merged_domain: str  = request.intersectDomains( domains )
             result: EDASDataset = EDASDataset.empty()
             for input in inputs: result.addArray( input.subset( request.domain( merged_domain ) ), atts )
-            return result.align( op.getParm("align","lowest") )
+            result.align( op.getParm("align","lowest") )
+        return result.groupby( op.grouping )
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
         sarray: xr.DataArray = xr.concat( inputDset.xarrays, dim=op.ensDim )
-        result = EDASArray( inputDset.inputs[0].domId, sarray )
+        result = EDASArray( inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
         return EDASDataset.init( [result], inputDset.attrs )
 
 class InputKernel(Kernel):

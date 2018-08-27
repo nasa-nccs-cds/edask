@@ -84,6 +84,10 @@ class WorkflowNode:
     def alignmentStrategy(self) -> Optional[str]:
         return self.getParm("align")
 
+    @property
+    def grouping(self) -> Optional[str]:
+        return self.getParm("groupby")
+
     def isSimple( self, minInputs: int ) -> bool:
         return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)
 
