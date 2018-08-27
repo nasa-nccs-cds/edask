@@ -86,7 +86,12 @@ class WorkflowNode:
 
     @property
     def grouping(self) -> Optional[str]:
-        return self.getParm("groupby")
+        rv: Optional[str] = self.getParm("groupby")
+        if rv is None: return None
+        toks = rv.split(".")
+        assert len(toks) == 2, "Malformed grouping parameter (should be 'axis.freq', e.g. 't.season'): " + rv
+        axis, freq = toks[0].lower(), toks[1].lower()
+        return axis + "." + freq
 
     @property
     def resampling(self) -> Optional[str]:
