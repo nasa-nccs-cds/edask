@@ -1,7 +1,5 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
-from edask.process.task import TaskRequest
-from edask.workflow.module import edasOpManager
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }

@@ -1,22 +1,13 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List
 import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
-from cdms2.variable import DatasetVariable
-from random import SystemRandom
+from edask.workflow.module import edasOpManager
+from edask.process.task import Job
+from dask.distributed import Client, Future
 import random, string, os, queue, datetime, atexit
 from enum import Enum
-from edask.portal.parsers import WpsCwtParser
-from edask.process.task import TaskRequest
-
-
-class Job:
-  def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    self.requestId = requestId
-    self.identifier = identifier
-    self.datainputs = datainputs
-    self.runargs = runargs
-    self.priority = priority
+import xarray as xa
 
 class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
@@ -44,17 +35,36 @@ class GenericProcessManager:
 
 
 class ProcessManager(GenericProcessManager):
-  parser = WpsCwtParser()
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
-    self.config = serverConfiguration
+      self.config = serverConfiguration
+      self.logger =  logging.getLogger()
 
   def term(self): pass
 
   def executeProcess( self, service: str, job: Job ) -> str:
-      dataInputsObj = WpsCwtParser.parseDatainputs( job.datainputs )
-      request: TaskRequest = TaskRequest.new( job.requestId, job.identifier, dataInputsObj )
+
+      try:
+            client = Client()
+            self.logger.info("Defining workflow")
+            result_future = client.submit( lambda x: edasOpManager.buildTask( x ), job )
+            self.logger.info("Submitted computation")
+            result_future.add_done_callback( self.processResult )
+
+      except Exception:
+            traceback.print_exc()
+
+      finally:
+            self.logger.info( "SHUTDOWN" )
+
       return ""
+
+  def processResult(self , resultFuture: Future ):
+      status = resultFuture.status
+      if status == "finished":
+          result = resultFuture.result()
+          print( result )
+      pass
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
       #

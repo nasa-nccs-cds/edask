@@ -4,7 +4,8 @@ from edask.process.domain import DomainManager, Domain
 import xarray as xa
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.workflow.results import KernelSpec, EDASDataset, EDASArray
+from edask.workflow.results import EDASDataset
+from edask.portal.parsers import WpsCwtParser
 
 class UID:
     ndigits = 6
@@ -22,17 +23,37 @@ class UID:
 
     def __str__(self): return self.uid
 
+class Job:
+  def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
+    self.requestId = requestId
+    self.identifier = identifier
+    self.datainputs = datainputs
+    self.runargs = runargs
+    self.priority = priority
+
 class TaskRequest:
     
   @classmethod
-  def new( cls, rId: str, process_name: str, datainputs: Dict[str, List[Dict[str, Any]]]):
+  def new( cls, job: Job ):
     logger = logging.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(process_name, str( datainputs ) ))
-    uid = UID(rId)
-    domainManager = DomainManager.new( datainputs.get("domain") )
-    variableManager = VariableManager.new( datainputs.get("variable") )
-    operationManager = OperationManager.new( datainputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest( uid, process_name, operationManager )
+    dataInputs = WpsCwtParser.parseDatainputs( job.datainputs )
+    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( job.identifier, str( dataInputs ) ))
+    uid = UID( job.requestId )
+    domainManager = DomainManager.new( dataInputs.get("domain") )
+    variableManager = VariableManager.new( dataInputs.get("variable") )
+    operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
+    rv = TaskRequest( uid, job.identifier, operationManager )
+    return rv
+
+  @classmethod
+  def init( cls, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
+    logger = logging.getLogger()
+    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( identifier, str( dataInputs ) ))
+    uid = UID( requestId )
+    domainManager = DomainManager.new( dataInputs.get("domain") )
+    variableManager = VariableManager.new( dataInputs.get("variable") )
+    operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
+    rv = TaskRequest( uid, identifier, operationManager )
     return rv
 
   def __init__( self, id: UID, name: str, _operationManager: OperationManager ):

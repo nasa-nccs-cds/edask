@@ -3,10 +3,12 @@ from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel, InputKernel, EDASDataset
 from os import listdir
 from os.path import isfile, join, os
-from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
-from edask.process.task import TaskRequest
+from edask.process.operation import WorkflowNode,  WorkflowInput
+from edask.process.task import TaskRequest, Job
 from typing import List, Dict, Callable
 import xarray as xa
+
+
 
 class OperationModule:
     __metaclass__ = ABCMeta
@@ -122,6 +124,11 @@ class KernelManager:
         resultOps = request.getResultOperations()
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         return [ self.buildSubWorkflow( request, op ) for op in resultOps ]
+
+    def buildTask(self, job: Job ):
+        request: TaskRequest = TaskRequest.new( job )
+        return self.buildRequest( request )
+
 
 edasOpManager = KernelManager()
 

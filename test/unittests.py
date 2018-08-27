@@ -114,8 +114,6 @@ class TestEdask(EDaskTestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
 
-class DebugTests(EDaskTestCase):
-
     def test_ave3(self):
         domains = [{ "name":"d0",   "lat":  { "start":0, "end":10,  "system":"values" },
                                     "lon":  { "start":100, "end":110, "system":"values" },
@@ -124,3 +122,6 @@ class DebugTests(EDaskTestCase):
         operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
+
+class DebugTests(EDaskTestCase):
+        pass
