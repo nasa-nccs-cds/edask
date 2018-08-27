@@ -90,7 +90,10 @@ class WorkflowNode:
 
     @property
     def resampling(self) -> Optional[str]:
-        return self.getParm("resample")
+        rv: Optional[str] = self.getParm("resample")
+        if rv is None: return None
+        if rv.lower().startswith( "season" ): rv = 'Q-FEB'
+        return rv
 
     def isSimple( self, minInputs: int ) -> bool:
         return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)

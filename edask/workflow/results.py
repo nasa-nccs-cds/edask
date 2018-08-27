@@ -38,11 +38,16 @@ class KernelSpec:
 
     def __str__(self): return ";".join( [ self._name, self.title, self.description, str(self._options) ] )
 
+class Transformation:
+    def __init__(self, type: str, **kwargs: str ):
+        self.type = type
+        self.parms = kwargs
+
 class EDASArray:
-    def __init__( self, _domId: str, _data: xa.DataArray, _groupings: List[str] ):
+    def __init__(self, _domId: str, _data: xa.DataArray, _transforms: List[Transformation]):
         self.domId = _domId
         self.data = _data
-        self.groupings = _groupings
+        self.transforms = _transforms
 
     @property
     def size(self) -> int: return self.data.size
@@ -63,7 +68,13 @@ class EDASArray:
         return ( self.domId == other.domId ) and ( self.data.shape == other.data.shape ) and ( self.data.dims == other.data.dims )
 
     def groupby( self, grouping: str ):
-        return EDASArray( self.domId, self.data.groupby(grouping), self.groupings + [grouping] )
+        return EDASArray(self.domId, self.data.groupby(grouping), self.transforms + [ Transformation( "groupby", group=grouping ) ])
+
+    def resample( self, resampling:str ):
+        if resampling is None: return self
+        rs_items = resampling.split(".")
+        kwargs = { rs_items[0]: rs_items[1] }
+        return EDASArray(self.domId, self.data.resample( **kwargs ), self.transforms + [ Transformation( "resample", **kwargs )  ])
 
     def align( self, other: "EDASArray", assume_sorted=True ):
         assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.data.name, other.data.name, )
@@ -72,7 +83,7 @@ class EDASArray:
         return self.updateData( new_data )
 
     def updateData(self, new_data: xa.DataArray ) -> "EDASArray":
-        return EDASArray( self.domId, new_data, self.groupings )
+        return EDASArray(self.domId, new_data, self.transforms)
 
     def subset( self, domain: Domain ) -> "EDASArray":
         xarray = self.data
@@ -207,7 +218,7 @@ class EDASDataset:
     def xarrays(self) -> List[xa.DataArray]: return [ array.data for array in self.arrayMap.values() ]
 
     @property
-    def groupings(self) -> Set[str]: return { (grouping for grouping in array.groupings) for array in self.arrayMap.values() }
+    def groupings(self) -> Set[str]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
 
     def subset( self, domain: Domain ):
         arrayMap = { vid: array.subset( domain ) for ( vid, array ) in self.arrayMap.items() }
@@ -218,7 +229,7 @@ class EDASDataset:
         arrayMap = { vid: array.groupby( grouping ) for ( vid, array ) in self.arrayMap.items() }
         return EDASDataset( arrayMap, self.attrs )
 
-    def resample( self, resampling: str ):
+    def resample( self, resampling: str ) -> "EDASDataset":
         if resampling is None: return self
         arrayMap = { vid: array.resample( resampling ) for ( vid, array ) in self.arrayMap.items() }
         return EDASDataset( arrayMap, self.attrs )
