@@ -1,6 +1,6 @@
 from portal.messageParser import mParse
 from typing import List, Dict, Sequence, Any
-import xarray as xr
+import xarray as xa
 
 class Task:
     _axes = [ None, [ "t" ], [ "y", "x" ], [ "t", "y", "x" ], [ "t", "z", "y", "x" ] ]
@@ -59,14 +59,14 @@ class Task:
         return cls._axes[ nAxes ][ index ]
 
     @classmethod
-    def getCoordMap( cls, variable: xr.DataArray ) -> Dict[str,str]:
+    def getCoordMap( cls, variable: xa.Dataset ) -> Dict[str,str]:
         try:
             return { coord.attrs["axis"].lower(): name  for ( name, coord ) in variable.coords.items() }
         except:
             return { cls._getCoordName( index, len(variable.dims) ): variable.dims[index] for index in range( len(variable.dims) ) }
 
     @classmethod
-    def getAxisMap( cls, variable: xr.DataArray ) -> Dict[str,str]:
+    def getAxisMap( cls, variable: xa.Dataset ) -> Dict[str,str]:
         try:
             return { name: coord.attrs["axis"].lower()  for ( name, coord ) in variable.coords.items() }
         except:
@@ -75,14 +75,14 @@ class Task:
     def hasAxis( self, axis: str ) -> bool:
         return self.axes.count( axis ) > 0
 
-    def mapCoordinates(self, variable: xr.DataArray ) -> xr.DataArray:
+    def mapCoordinates(self, variable: xa.Dataset ) -> xa.Dataset:
         axis_map = self.getAxisMap( variable )
         return variable.rename( axis_map )
 
-    def getMappedVariables(self, dataset: xr.Dataset ) -> List[xr.DataArray]:
+    def getMappedVariables(self, dataset: xa.Dataset ) -> List[xa.Dataset]:
         return [ self.mapCoordinates( dataset[varName] ) for varName in self.varNames() ]
 
-    def getResults(self, dataset: xr.Dataset, load = True ) -> List[xr.DataArray]:
+    def getResults(self, dataset: xa.Dataset, load = True ) -> List[xa.Dataset]:
         resultNames = dataset.attrs[ "results-" + self.rId ]
         results = [ dataset[varName] for varName in resultNames ]
         if load: map( lambda x: x.load(), results )

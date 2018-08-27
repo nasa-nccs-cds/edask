@@ -1,5 +1,5 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
-import xarray as xr
+import xarray as xa
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
 from edask.workflow.results import EDASArray
@@ -7,14 +7,14 @@ from typing import List, Dict, Optional, Tuple
 from edask.process.domain import Domain, Axis
 import numpy as np
 import numpy.ma as ma
-import xarray as xr
+import xarray as xa
 from xarray.core import ops
 
-def accum( accumulator: xr.DataArray, array: xr.DataArray) -> xr.DataArray:
+def accum( accumulator: xa.Dataset, array: xa.Dataset) -> xa.Dataset:
     return array if accumulator is None else accumulator + array
 
-def weights( array: xr.DataArray ) -> xr.DataArray:
-    return xr.ones_like( array ).where( array.notnull(), 0  )
+def weights( array: xa.Dataset ) -> xa.Dataset:
+    return xa.ones_like( array ).where( array.notnull(), 0  )
 
 class AverageKernel(OpKernel):
     def __init__( self ):
@@ -34,7 +34,7 @@ class AverageKernel(OpKernel):
             new_data =  sum / norm.sum("y")
             return inputVar.updateData( new_data )
 
-    def getWeights(self, op: OpNode, variable: EDASArray  ) -> Optional[xr.DataArray]:
+    def getWeights(self, op: OpNode, variable: EDASArray  ) -> Optional[xa.Dataset]:
         if op.hasAxis( Axis.Y ):
             ycoordaxis =  variable.axis( Axis.Y )
             assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.axes() )

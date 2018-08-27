@@ -3,7 +3,7 @@ import logging, random, string
 from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional, Tuple
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
-import xarray as xr
+import xarray as xa
 from .results import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType
 from edask.process.source import DataSource
@@ -74,11 +74,11 @@ class OpKernel(Kernel):
             result: EDASDataset = EDASDataset.empty()
             for input in inputs: result.addArray( input.subset( request.domain( merged_domain ) ), atts )
             result.align( op.getParm("align","lowest") )
-        return result.groupby( op.grouping )
+        return result.groupby( op.grouping ).resample( op.resampling )
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
-        sarray: xr.DataArray = xr.concat( inputDset.xarrays, dim=op.ensDim )
+        sarray: xa.Dataset = xa.concat( inputDset.xarrays, dim=op.ensDim )
         result = EDASArray( inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
         return EDASDataset.init( [result], inputDset.attrs )
 
@@ -94,18 +94,18 @@ class InputKernel(Kernel):
             collection = Collection.new( dataSource.address )
             aggs = collection.sortVarsByAgg( snode.varSource.vids )
             for ( aggId, vars ) in aggs.items():
-                dset = xr.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+                dset = xa.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
                 result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.file:
             self.logger.info( "Reading data from address: " + dataSource.address )
-            dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
+            dset = xa.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
-            dset = xr.open_dataset( dataSource.address, autoclose=True  )
+            dset = xa.open_dataset( dataSource.address, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
         return result
 
-    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode ) -> EDASDataset:
+    def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
         edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
         return edset.subset( request.domain( snode.domain ) )

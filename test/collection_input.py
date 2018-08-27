@@ -1,4 +1,4 @@
-import xarray as xr
+import xarray as xa
 import time, traceback
 from dask.distributed import Client
 from edask.collections.agg import Collection
@@ -15,7 +15,7 @@ try:
     print ( "READ " + collection )
 
     collection = Collection.new( collection )
-    ds = xr.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
+    ds = xa.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
 
     print ( "COMPUTE MEAN, Result:" )
 

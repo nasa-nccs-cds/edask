@@ -2,7 +2,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from enum import Enum, auto
 from .source import VariableManager, VariableSource, DataSource
 from .domain import DomainManager, Domain, Axis
-import xarray as xr
+import xarray as xa
 import edask, abc
 
 class OperationInput:
@@ -87,6 +87,10 @@ class WorkflowNode:
     @property
     def grouping(self) -> Optional[str]:
         return self.getParm("groupby")
+
+    @property
+    def resampling(self) -> Optional[str]:
+        return self.getParm("resample")
 
     def isSimple( self, minInputs: int ) -> bool:
         return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)

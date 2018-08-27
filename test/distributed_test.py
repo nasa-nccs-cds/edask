@@ -1,7 +1,7 @@
 import dask
 from dask.distributed import Client
 from typing import List, Dict, Sequence, Mapping, Any
-import xarray as xr
+import xarray as xa
 import time, traceback, logging
 import numpy as np
 from edask.workflow.internal.xarray import *
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         tdefine = time.time()
         logger.info("Defining workflow")
 
-        def get_results( ) -> List[xr.DataArray]:
+        def get_results( ) -> List[xa.Dataset]:
             dataInputs = WpsCwtParser.parseDatainputs( testStr )
             request: TaskRequest = TaskRequest.new( "requestId", "jobId", dataInputs )
             return edasOpManager.buildRequest( request )

@@ -1,7 +1,7 @@
 from typing import Dict, Any, Union, Sequence, List, Set
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager, Domain
-import xarray as xr
+import xarray as xa
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
 from edask.workflow.results import KernelSpec, EDASDataset, EDASArray

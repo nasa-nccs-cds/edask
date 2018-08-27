@@ -6,7 +6,7 @@ from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode, SourceInput, WorkflowInput
 from edask.process.task import TaskRequest
 from typing import List, Dict, Callable
-import xarray as xr
+import xarray as xa
 
 class OperationModule:
     __metaclass__ = ABCMeta
