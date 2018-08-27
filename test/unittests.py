@@ -105,3 +105,4 @@ class DebugTests(EDaskTestCase):
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
         operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
         results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)

@@ -116,20 +116,27 @@ class EDASArray:
 
     def __sub__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        rv = self.data - other.data
-        return EDASArray( self.domId, rv )
+        result: xr.DataArray = self.data - other.data
+        result.name = self.data.name + "-" + other.data.name
+        return EDASArray( self.domId, result )
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        return EDASArray( self.domId, self.data + other.data )
+        result: xr.DataArray = self.data + other.data
+        result.name = self.data.name + "+" + other.data.name
+        return EDASArray( self.domId, result )
 
     def __mul__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        return EDASArray( self.domId, self.data * other.data )
+        result: xr.DataArray = self.data * other.data
+        result.name = self.data.name + "*" + other.data.name
+        return EDASArray( self.domId, result )
 
     def __truediv__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        return EDASArray( self.domId, self.data / other.data )
+        result: xr.DataArray = self.data / other.data
+        result.name = self.data.name + "/" + other.data.name
+        return EDASArray( self.domId, result )
 
 class EDASDataset:
 

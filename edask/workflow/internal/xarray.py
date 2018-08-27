@@ -98,7 +98,8 @@ class DiffKernel(OpKernel):
 
     def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
-        return EDASDataset.init( [ inputVars[0] - inputVars[1] ], inputDset.attrs )
+        results = [ inputVars[0] - inputVars[1] ]
+        return EDASDataset.init( results, inputDset.attrs )
 
 class SubsetKernel(Kernel):
     def __init__( self ):
