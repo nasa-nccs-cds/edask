@@ -3,7 +3,8 @@ from typing import Dict, Any, Union
 import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml
 from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
-from cdms2.variable import DatasetVariable
+from dask.distributed import Future
+from edask.workflow.data import EDASDataset
 from random import SystemRandom
 import random, string, os, queue, datetime, atexit
 from edask.portal.base import EDASPortal, Message, Response
@@ -11,6 +12,23 @@ from typing import List, Dict, Sequence
 from edask.workflow.module import edasOpManager
 from edask.process.manager import ProcessManager, Job
 from enum import Enum
+
+class ExecResultHandler:
+
+    def __init__(self, portal: EDASPortal, clientId: str, jobId: str, **kwargs ):
+        self.clientId = clientId
+        self.jobId = jobId
+        self.cacheDir = kwargs.get( "cache", "/tmp")
+        self.portal = portal
+        self.filePath = self.cacheDir + "/" + portal.randomStr(6) + ".nc"
+
+    def executeCallback(self , resultFuture: Future ):
+      status = resultFuture.status
+      if status == "finished":
+          result: EDASDataset = resultFuture.result()
+          filePath = result.save( self.filePath )
+          self.portal.sendFile( self.clientId, self.jobId, result.id, filePath, True )
+      self.portal.removeHandler( self.clientId, self.jobId )
 
 class EDASapp(EDASPortal):
 
@@ -99,11 +117,15 @@ class EDASapp(EDASPortal):
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
-          (rid, responseElem) = self.processManager.executeProcess( jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ) )
-          return Message(clientId, jobId, responseElem )
+          resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId ) )
+          self.processManager.executeProcess( jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ), resultHandler.executeCallback )
+          return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
+            traceback.print_exc()
             return Message( clientId, jobId, str(err) )
+
+
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):
     #     err = WPSExceptionReport(exc)

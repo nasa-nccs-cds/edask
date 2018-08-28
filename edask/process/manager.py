@@ -1,8 +1,9 @@
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, Callable
 import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
 from edask.workflow.module import edasOpManager
+from edask.workflow.results import EDASDataset, EDASArray
 from edask.process.task import Job
 from dask.distributed import Client, Future
 import random, string, os, queue, datetime, atexit
@@ -13,7 +14,7 @@ class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def executeProcess( self,  service: str, job: Job )-> str: pass
+  def executeProcess( self, service: str, job: Job, executeCallback: Callable )-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -42,29 +43,18 @@ class ProcessManager(GenericProcessManager):
 
   def term(self): pass
 
-  def executeProcess( self, service: str, job: Job ) -> str:
+  def executeProcess( self, service: str, job: Job, executeCallback: Callable ):
 
       try:
             client = Client()
             self.logger.info("Defining workflow")
             result_future = client.submit( lambda x: edasOpManager.buildTask( x ), job )
             self.logger.info("Submitted computation")
-            result_future.add_done_callback( self.processResult )
+            result_future.add_done_callback( executeCallback )
 
-      except Exception:
-            traceback.print_exc()
-
-      finally:
-            self.logger.info( "SHUTDOWN" )
-
-      return ""
-
-  def processResult(self , resultFuture: Future ):
-      status = resultFuture.status
-      if status == "finished":
-          result = resultFuture.result()
-          print( result )
-      pass
+      except Exception as ex:
+          self.logger.error( "Execution error: " + str(ex))
+          traceback.print_exc()
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
       #

@@ -2,7 +2,7 @@ from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.process.task import TaskRequest
-from edask.workflow.results import EDASArray
+from edask.workflow.data import EDASArray
 from typing import List, Dict, Optional, Tuple
 from edask.process.domain import Domain, Axis
 import numpy as np

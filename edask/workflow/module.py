@@ -123,7 +123,8 @@ class KernelManager:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        return [ self.buildSubWorkflow( request, op ) for op in resultOps ]
+        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
+        return result
 
     def buildTask(self, job: Job ):
         request: TaskRequest = TaskRequest.new( job )

@@ -53,13 +53,13 @@ class DataPacket(Response):
         return len( self._data ) > 0
 
     def getTransferHeader(self) -> bytes:
-        return bytes( self.clientId + ":" + self._body )
+        return bytearray( self.clientId + ":" + self._body, 'utf-8' )
 
     def getHeaderString(self) -> str:
         return self._body
 
     def getTransferData(self) -> bytes:
-        return bytes(self.clientId) + self._data
+        return bytearray( self.clientId, 'utf-8' ) + self._data
 
     def getRawData(self) -> bytes:
         return self._data
@@ -109,13 +109,13 @@ class Responder(Thread):
     def doSendMessage(self, socket: zmq.Socket, msg: Message):
         request_args = [ msg.id(), "response", msg.message() ]
         packaged_msg = "!".join( request_args )
-        socket.send( bytes(packaged_msg) )
+        socket.send( bytearray( packaged_msg, 'utf-8' ) )
         return packaged_msg
 
     def doSendErrorReport( self, socket: zmq.Socket, msg: ErrorReport  ):
         request_args = [ msg.id(), "error", msg.message() ]
         packaged_msg = "!".join( request_args )
-        socket.send( bytes(packaged_msg) )
+        socket.send( bytearray( packaged_msg, 'utf-8' )  )
         return packaged_msg
 
     def doSendDataPacket( self, socket: zmq.Socket, dataPacket: DataPacket ):
@@ -192,6 +192,7 @@ class EDASPortal:
             self.responder.setDaemon(True)
             self.responder.start()
             self.active = True
+            self.handlers = {}
             self.initSocket( client_address, request_port )
 
         except Exception as err:
@@ -204,8 +205,8 @@ class EDASPortal:
         except Exception as err:
             self.logger.error( "Error initializing request socket on port {}: {}".format( request_port, err ) )
 
-
-    def randomStr(self, length )-> str:
+    @staticmethod
+    def randomStr( length )-> str:
         tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
         return ''.join( random.SystemRandom().choice( tokens ) for _ in range( length ) )
 
@@ -213,10 +214,15 @@ class EDASPortal:
         self.logger.info("-----> SendErrorReport[" + clientId +":" + responseId + "]" )
         self.responder.sendResponse( ErrorReport(clientId,responseId,msg) )
 
+    def addHandler(self, clientId, jobId, handler ):
+        self.handlers[ clientId + "-" + jobId ] = handler
+        return handler
+
+    def removeHandler(self, clientId, jobId ):
+        del self.handlers[ clientId + "-" + jobId ]
 
     def setExeStatus( self, clientId: str, rid: str, status: str ):
         self.responder.setExeStatus(clientId,rid,status)
-
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
         self.logger.debug( "@@ Portal: Sending response data to client for rid {}, nbytes={}".format( rid, data.length ) )
@@ -230,7 +236,7 @@ class EDASPortal:
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
         self.logger.debug( "Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
-        with open(filePath) as file:
+        with open(filePath, mode='rb') as file:
             file_header_fields = [ "array", jobId, name, file.name ]
             if not sendData: file_header_fields.append(filePath)
             file_header = "|".join( file_header_fields )
@@ -243,6 +249,7 @@ class EDASPortal:
                 self.logger.debug("Done sending file data packet: " + header)
             except Exception as ex:
                 self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
+                traceback.print_exc()
             return file.name
 
 

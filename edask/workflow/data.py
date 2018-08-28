@@ -2,6 +2,7 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple
 from edask.process.domain import Domain, Axis
+import string, random, os
 import xarray as xa
 import xarray.plot as xrplot
 import matplotlib.pyplot as plt
@@ -63,6 +64,8 @@ class EDASArray:
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.data.name: self.data }, attrs=attrs )
+
+    def compute(self): self.data.compute()
 
     def aligned( self, other: "EDASArray" ):
         return ( self.domId == other.domId ) and ( self.data.shape == other.data.shape ) and ( self.data.dims == other.data.dims )
@@ -181,6 +184,12 @@ class EDASDataset:
         self.attrs.update(attrs)
         return self
 
+    def save( self, filePath  ):
+        for array in self.arrayMap.values():
+            fmode = "a" if os.path.isfile(filePath) else "w"
+            array.data.to_netcdf( path=filePath, mode=fmode )
+        return filePath
+
     @property
     def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }
 
@@ -219,6 +228,10 @@ class EDASDataset:
 
     @property
     def groupings(self) -> Set[str]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
+
+    def compute(self):
+        for ( vid, array ) in self.arrayMap.items(): array.compute()
+        return self
 
     def subset( self, domain: Domain ):
         arrayMap = { vid: array.subset( domain ) for ( vid, array ) in self.arrayMap.items() }

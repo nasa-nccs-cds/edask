@@ -4,7 +4,7 @@ from edask.process.domain import DomainManager, Domain
 import xarray as xa
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.workflow.results import EDASDataset
+from edask.workflow.data import EDASDataset
 from edask.portal.parsers import WpsCwtParser
 
 class UID:

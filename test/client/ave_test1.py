@@ -1,25 +1,26 @@
 from edask.portal.client import EDASPortalClient
+from edask.process.test import TestManager
 
 edas_server: str="127.0.0.1"
 request_port: int=4556
 response_port: int=4557
+testMgr = TestManager()
 
 portal = EDASPortalClient(  edas_server, request_port, response_port )
 response_manager = portal.createResponseManager()
-domain = {"name":"d0"}
 
-def testOnePointCDSparkAvg():
+def testAvg():
     datainputs = """[
         domain=[{
             "name":"d0",
             "lat":{
-                "start":40.25,
-                "end":40.25,
+                "start":40,
+                "end":60,
                 "system":"values"
             },
             "lon":{
-                "start":89.75,
-                "end":89.75,
+                "start":80,
+                "end":90,
                 "system":"values"
             },
             "time":{
@@ -27,29 +28,28 @@ def testOnePointCDSparkAvg():
                 "end":20,
                 "system":"indices"
             },
-            "level":{
-                "start":0,
-                "end":5,
-                "system":"indices"
-            }
         }],
         variable=[{
-            "uri":"file:///dass/nobackup/tpmaxwel/.edas/cache/collections/NCML/CIP_MERRA2_6hr_hur.ncml",
-            "name":"hur",
+            "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/reanalysis/MERRA2/mon/atmos/tas.ncml",
+            "name":"tas:v0",
             "domain":"d0"
         }],
         operation=[{
-            "name":"CDSpark.average",
-            "input":"hur",
+            "name":"xarray.ave",
+            "input":"v0",
             "domain":"d0",
             "axes":"xy"
         }]
     ]"""
+
     print('Query:\n' + datainputs)
 
-    rId1 = portal.sendMessage("execute", ["WPS", datainputs, '{ "response":"object" }'])
-    response_manager.run()
+    rId1 = portal.sendMessage("execute", ["WPS", datainputs.replace(" ", "").replace("\n", ""), '{ "response":"object" }'])
+    portal.waitUntilDone()
 
-testOnePointCDSparkAvg()
 
-portal.shutdown()
+
+if __name__ == '__main__':
+
+    testAvg()
+

@@ -1,7 +1,7 @@
 import zmq, traceback, time, logging, xml, cdms2
 from threading import Thread
 from cdms2.variable import DatasetVariable
-from typing import Sequence, List, Dict, Mapping
+from typing import Sequence, List, Dict, Mapping, Optional
 from edask.process.task import UID
 import random, string, os
 from enum import Enum
@@ -72,7 +72,7 @@ class ResponseManager(Thread):
             response_socket: zmq.Socket = self.context.socket( zmq.SUB )
             response_port = ConnectionMode.connectSocket( response_socket, self.host, self.port )
             response_socket.subscribe( self.clientId )
-            self.log("Connected response socket on port: {0}".format( response_port ) )
+            self.log("Connected response socket on port {} with subscription (client) id: '{}'".format( response_port, self.clientId ) )
             while( self.active ):
                 self.processNextResponse( response_socket )
 
@@ -81,10 +81,11 @@ class ResponseManager(Thread):
             if response_socket: response_socket.close()
 
     def term(self):
+        self.log("Terminate RM thread")
         if self.active:
-            self.active = False;
+            self.active = False
 
-    def popResponse(self) -> str:
+    def popResponse(self) -> Optional[str]:
         if( len( self.cached_results ) == 0 ):
             return None
         else:
@@ -108,6 +109,7 @@ class ResponseManager(Thread):
 
     def processNextResponse(self, socket: zmq.Socket ):
         try:
+            self.log("Awaiting responses" )
             response = socket.recv()
             toks = response.split('!')
             rId = self.getItem( toks, 0 )
@@ -255,20 +257,17 @@ class EDASPortalClient:
 
     def shutdown(self):
         if self.active:
+            print(  " ############################## Disconnect Portal Client from Server & shutdown Client ##############################"  )
             self.active = False
-            self.log(  " ############################## Disconnect Portal Client from Server & shutdown Client ##############################"  )
             try: self.request_socket.close()
             except Exception: pass
             if( self.application_thread ):
                 response = self.sendMessage("shutdown")
-                self.log( "Shutdown Response: " + response )
                 self.application_thread.term()
                 self.application_thread = None
             if not (self.response_manager is None):
-                self.log(  " Terminate Response Manager " )
                 self.response_manager.term()
                 self.response_manager = None
-                self.log(  " Completed shutdown " )
 
     def sendMessage( self, type: str, mDataList: Sequence[str] = [""] ):
         msgStrs = [ str(mData).replace("'",'"') for mData in mDataList ]
@@ -281,6 +280,9 @@ class EDASPortalClient:
             self.logger.error( "Error sending message {0} on request socket: {1}".format( message, str(err) ) )
             response = str(err)
         return response
+
+    def waitUntilDone(self):
+        self.response_manager.join()
 
 class AppThread(Thread):
     def __init__(self, host, request_port, response_port):

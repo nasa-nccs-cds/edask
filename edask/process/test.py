@@ -38,8 +38,7 @@ class TestManager:
   def getAddress(self, model: str, varName: str) -> str:
     return self.addresses[model.lower()].format(varName)
 
-  def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]],
-                    operations: List[Dict[str, str]]) -> List[EDASDataset]:
+  def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> List[EDASDataset]:
     testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
     job = Job( "requestId", "jobId", testRequest )
     return edasOpManager.buildTask(job)
