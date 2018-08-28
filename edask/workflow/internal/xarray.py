@@ -76,6 +76,21 @@ class StdKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         return variable.std( node.axes )
 
+class NormKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("norm", "Normalization Kernel","Normalizes input arrays by centering (computing anomaly) and then dividing by the standard deviation along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        centered_result =  variable - variable.mean( node.axes )
+        return centered_result / centered_result.std( node.axes )
+
+class AnomalyKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("anomaly", "Anomaly Kernel", "Centers the input arrays by subtracting off the mean along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        return  variable - variable.mean( node.axes )
+
 class VarKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("var", "Variance Kernel","Computes the variance of the array elements along the given axes." ) )

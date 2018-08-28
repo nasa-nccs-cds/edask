@@ -7,7 +7,6 @@ response_port: int=4557
 testMgr = TestManager()
 
 portal = EDASPortalClient(  edas_server, request_port, response_port )
-response_manager = portal.createResponseManager()
 
 def testAvg():
     datainputs = """[
