@@ -5,7 +5,7 @@ from threading import Thread
 from edask.workflow.module import edasOpManager
 from edask.workflow.results import EDASDataset, EDASArray
 from edask.process.task import Job
-from dask.distributed import Client, Future
+from dask.distributed import Client, Future, LocalCluster
 import random, string, os, queue, datetime, atexit
 from enum import Enum
 import xarray as xa
@@ -40,17 +40,20 @@ class ProcessManager(GenericProcessManager):
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
       self.logger =  logging.getLogger()
+      self.cluster = LocalCluster()
 
-  def term(self): pass
+  def term(self):
+      self.cluster.close()
 
   def executeProcess( self, service: str, job: Job, executeCallback: Callable ):
 
       try:
-            client = Client()
+            client = Client(self.cluster)
             self.logger.info("Defining workflow")
             result_future = client.submit( lambda x: edasOpManager.buildTask( x ), job )
-            self.logger.info("Submitted computation")
             result_future.add_done_callback( executeCallback )
+            self.logger.info("Submitted computation")
+            client.close()
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
