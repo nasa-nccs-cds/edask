@@ -143,7 +143,7 @@ class Responder(Thread):
         pause_time = 100;
         heartbeat_interval = 20 * 1000;
         last_heartbeat_time = time.time()
-        socket: zmq.Socket   = self.context.socket(zmq.PUB)
+        socket: zmq.Socket   = self.context.socket(zmq.PUSH)
         try:
             socket.bind( "tcp://{}:{}".format( self.client_address, self.response_port ) )
             self.logger.info( " --> Bound response socket to client at {} on port: {}".format( self.client_address, self.response_port ) )

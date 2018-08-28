@@ -7,6 +7,9 @@ import random, string, os
 from enum import Enum
 MB = 1024 * 1024
 
+def s2b( s: str ):
+    return bytearray( s, 'utf-8'  )
+
 class ConnectionMode():
     BIND = 1
     CONNECT = 2
@@ -69,9 +72,9 @@ class ResponseManager(Thread):
         response_socket = None
         try:
             self.log("Run RM thread")
-            response_socket: zmq.Socket = self.context.socket( zmq.SUB )
+            response_socket: zmq.Socket = self.context.socket( zmq.PULL )
             response_port = ConnectionMode.connectSocket( response_socket, self.host, self.port )
-            response_socket.subscribe( self.clientId )
+#            response_socket.subscribe( self.clientId )
             self.log("Connected response socket on port {} with subscription (client) id: '{}'".format( response_port, self.clientId ) )
             while( self.active ):
                 self.processNextResponse( response_socket )
@@ -111,7 +114,7 @@ class ResponseManager(Thread):
         try:
             self.log("Awaiting responses" )
             response = socket.recv()
-            toks = response.split('!')
+            toks = response.split( s2b('!') )
             rId = self.getItem( toks, 0 )
             type = self.getItem( toks, 1 )
             msg = self.getItem(toks, 2)
@@ -246,7 +249,9 @@ class EDASPortalClient:
         self.logger.info( "[P] " + msg )
         print  (msg)
 
-    def __del__(self): self.shutdown()
+    def __del__(self):
+        print(  " Portal client being deleted " )
+        self.shutdown()
 
     # def start_EDAS(self):  # Stage the EDAS app using the "{EDAS_HOME}>> sbt stage" command.
     #     self.application_thread = AppThread( self.app_host, self.request_port, self.response_port )
