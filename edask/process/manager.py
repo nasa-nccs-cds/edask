@@ -41,19 +41,18 @@ class ProcessManager(GenericProcessManager):
       self.config = serverConfiguration
       self.logger =  logging.getLogger()
       self.cluster = LocalCluster()
+      self.client = Client(self.cluster)
 
   def term(self):
+      self.client.close()
       self.cluster.close()
 
   def executeProcess( self, service: str, job: Job, executeCallback: Callable ):
-
       try:
-            client = Client(self.cluster)
-            self.logger.info("Defining workflow")
-            result_future = client.submit( lambda x: edasOpManager.buildTask( x ), job )
-            result_future.add_done_callback( executeCallback )
-            self.logger.info("Submitted computation")
-            client.close()
+        self.logger.info("Defining workflow")
+        result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
+        result_future.add_done_callback( executeCallback )
+        self.logger.info("Submitted computation")
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
