@@ -10,6 +10,9 @@ MB = 1024 * 1024
 def s2b( s: str ):
     return bytearray( s, 'utf-8'  )
 
+def b2s( b: bytearray ):
+    return b.decode( 'utf-8'  )
+
 class ConnectionMode():
     BIND = 1
     CONNECT = 2
@@ -114,10 +117,10 @@ class ResponseManager(Thread):
         try:
             self.log("Awaiting responses" )
             response = socket.recv()
-            toks = response.split( s2b('!') )
-            rId = self.getItem( toks, 0 )
-            type = self.getItem( toks, 1 )
-            msg = self.getItem(toks, 2)
+            toks: List[bytearray] = response.split( s2b('!') )
+            rId = b2s( toks[0] )
+            type = b2s( toks[1] )
+            msg = b2s( toks[2] )
             self.log("Received response, rid: " + rId + ", type: " + type )
             if type == "array":
                 self.log( "\n\n #### Received array " + rId + ": " + msg )
