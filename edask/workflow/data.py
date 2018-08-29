@@ -185,9 +185,7 @@ class EDASDataset:
         return self
 
     def save( self, filePath  ):
-        for array in self.arrayMap.values():
-            fmode = "a" if os.path.isfile(filePath) else "w"
-            array.data.to_netcdf( path=filePath, mode=fmode )
+        self.xr.to_netcdf( path=filePath )
         return filePath
 
     @property

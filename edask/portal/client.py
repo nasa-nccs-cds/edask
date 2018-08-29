@@ -55,7 +55,7 @@ class ResponseManager(Thread):
         self.filePaths = {}
         self.setDaemon(True)
         self.cacheDir = os.environ.get( 'EDAS_CACHE_DIR','/tmp/' )
-        self.log("Created RM")
+        self.log("Created RM, cache dir = " + self.cacheDir )
 
     def cacheResult(self, id: str, result: str ):
         self.logger.info( "Caching result array: " + id )
@@ -152,21 +152,20 @@ class ResponseManager(Thread):
     def getFileCacheDir( self, role: str ) -> str:
         filePath = os.path.join( self.cacheDir, "transfer", role )
         if not os.path.exists(filePath): os.makedirs(filePath)
+        self.log(" ***->> getFileCacheDir = {0}".format(filePath) )
         return filePath
 
     def saveFile(self, header: str, socket: zmq.Socket ):
         header_toks = header.split('|')
         id = header_toks[1]
         role = header_toks[2]
-        fileName = header_toks[3]
-        if( len(header_toks) > 4 ):
-            filePath = header_toks[4]
-        else:
-            data = socket.recv()
-            filePath = os.path.join( self.getFileCacheDir(role), fileName )
-            with open( filePath, mode='wb') as file:
-                file.write( bytearray(data) )
-                self.log(" ***->> Saving File, path = {0}".format(filePath) )
+        fileName = os.path.basename(header_toks[3])
+        data = socket.recv()
+        filePath = os.path.join( self.getFileCacheDir(role), fileName )
+        self.log(" %%%% filePath = {0}".format(filePath) )
+        with open( filePath, mode='wb') as file:
+            file.write( data )
+            self.log(" ***->> Saving File, path = {0}".format(filePath) )
         return filePath
 
 

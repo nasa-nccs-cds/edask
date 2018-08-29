@@ -143,7 +143,6 @@ class Responder:
         except Exception as err:
             self.logger.error( "Error initializing response socket on port {}: {}".format( self.response_port, err ) )
 
-
     def close_connection( self ):
         try:
             for response in self.executing_jobs.values():
