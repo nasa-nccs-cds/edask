@@ -7,6 +7,8 @@ import xarray as xa
 from xarray.core.groupby import DataArrayGroupBy
 import xarray.plot as xrplot
 import matplotlib.pyplot as plt
+import numpy.ma as ma
+import numpy as np
 
 class Extremity(Enum):
     HIGHEST = auto()
@@ -67,6 +69,10 @@ class EDASArray:
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.data.name: self.data }, attrs=attrs )
 
+    def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
+        if len( dims ) <= dimIndex: return default
+        return self.data.get_axis_num( dims[dimIndex] )
+
     def compute(self): self.data.compute()
 
     def aligned( self, other: "EDASArray" ):
@@ -85,17 +91,21 @@ class EDASArray:
         assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.data.name, other.data.name, )
         if self.aligned( other ): return self
         new_data = self.data.interp_like( other.data, "linear", assume_sorted )
-        return self.updateData( new_data )
+        return self.updateXa(new_data)
 
-    def updateData(self, new_data: xa.DataArray ) -> "EDASArray":
+    def updateXa(self, new_data: xa.DataArray) -> "EDASArray":
         return EDASArray(self._name, self.domId, new_data, self.transforms)
+
+    def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
+        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.data.coords), dims = kwargs.get( "dims", self.data.dims ) )
+        return EDASArray(self._name, self.domId, xrdata, self.transforms)
 
     def subset( self, domain: Domain ) -> "EDASArray":
         xarray = self.data
         for system in [ "val", "ind" ]:
             bounds_list = [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ]
             if( len(bounds_list) ): xarray = xarray.sel( dict( bounds_list ) ) if system == "val" else xarray.isel( dict( bounds_list ) )
-        return self.updateData( xarray )
+        return self.updateXa(xarray)
 
     @staticmethod
     def domains( inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:
@@ -114,49 +124,49 @@ class EDASArray:
         return self.data.coords.keys()
 
     def max( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.max( dim=axes, keep_attrs=True ) )
+        return self.updateXa(self.data.max(dim=axes, keep_attrs=True))
 
     def min( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.min( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.min(dim=axes, keep_attrs=True))
 
     def mean( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.mean( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.mean(dim=axes, keep_attrs=True))
 
     def median( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.median( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.median(dim=axes, keep_attrs=True))
 
     def var( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.var( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.var(dim=axes, keep_attrs=True))
 
     def std( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.std( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.std(dim=axes, keep_attrs=True))
 
     def sum( self, axes: List[str] ) -> "EDASArray":
-        return self.updateData( self.data.sum( dim=axes, keep_attrs=True) )
+        return self.updateXa(self.data.sum(dim=axes, keep_attrs=True))
 
     def __sub__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data - other.data
         result.name = self.data.name + "-" + other.data.name
-        return self.updateData( result )
+        return self.updateXa(result)
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data + other.data
         result.name = self.data.name + "+" + other.data.name
-        return self.updateData( result )
+        return self.updateXa(result)
 
     def __mul__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data * other.data
         result.name = self.data.name + "*" + other.data.name
-        return self.updateData( result )
+        return self.updateXa(result)
 
     def __truediv__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data / other.data
         result.name = self.data.name + "/" + other.data.name
-        return self.updateData( result )
+        return self.updateXa(result)
 
 class EDASDataset:
 

@@ -5,9 +5,12 @@ from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
 from typing import List, Dict, Optional, Tuple
 from edask.process.domain import Domain, Axis
+from edask.eofs.solver import Eof
+from scipy import ndimage
 import numpy as np
 import numpy.ma as ma
-import xarray as xa
+import cdms2 as cdms
+from cdutil.times import ANNUALCYCLE
 from xarray.core import ops
 
 def accum( accumulator: xa.Dataset, array: xa.Dataset) -> xa.Dataset:
@@ -32,7 +35,7 @@ class AverageKernel(OpKernel):
             axes.remove("y")
             norm = weights * data.count( axes ) if len( axes ) else weights
             new_data =  sum / norm.sum("y")
-            return inputVar.updateData( new_data )
+            return inputVar.updateXa(new_data)
 
     def getWeights(self, op: OpNode, variable: EDASArray  ) -> Optional[xa.Dataset]:
         if op.hasAxis( Axis.Y ):
@@ -83,6 +86,48 @@ class NormKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         centered_result =  variable - variable.mean( node.axes )
         return centered_result / centered_result.std( node.axes )
+
+class DetrendKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
+        window_size = node.getParm("wsize", variable.data.shape[axisIndex]//5 )
+        interp_input = variable.data.interpolate_na( dim=variable.data.dims[axisIndex], method='linear' )
+        trend = ndimage.convolve1d( interp_input, np.ones((window_size,))/float(window_size), axisIndex, None, "reflect" )
+        detrend: EDASArray = variable - variable.updateNp( trend )
+        return detrend
+
+class EofKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        removeCycle = bool( node.getParm( "decycle", "false" ) )
+        detrend = bool( node.getParm( "detrend", "false" ) )
+        window_size = node.getParm("wsize", variable.data.shape[0]//5 )
+        nModes = node.getParm("modes", 16 )
+        cdms_var: cdms.tvariable.TransientVariable = variable.data.interpolate_na( dim="time", method='linear' ).to_cdms2()
+        decycled_data = self.remove_cycle( cdms_var ) if removeCycle else cdms_var
+        detrended_data = self.remove_trend(decycled_data,window_size) if detrend else decycled_data
+        solver = Eof( detrended_data )
+        eofs = solver.eofs( neofs=nModes )
+        pcs = solver.pcs( npcs=nModes ).transpose()
+        projected_pcs = solver.projectField(detrended_data,neofs=32).transpose()
+        fracs = solver.varianceFraction( neigs=nModes )
+        pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
+
+    def remove_cycle(self, variable: cdms.tvariable.TransientVariable ) -> cdms.tvariable.TransientVariable:
+        decycle = ANNUALCYCLE.departures( variable )
+        return decycle
+
+    def remove_trend(self, cdms_var: cdms.tvariable.TransientVariable, window_size ) -> cdms.tvariable.TransientVariable:
+        from scipy import ndimage
+        trend = ndimage.convolve1d( cdms_var.data, np.ones((window_size,))/float(window_size), 0, None, "reflect" )
+        detrend = cdms_var - trend
+        return detrend
+
 
 class AnomalyKernel(OpKernel):
     def __init__( self ):

@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import numpy.ma as ma
 
-from eofs.tools.standard import correlation_map, covariance_map
+from eofs.tools.xarray import correlation_map, covariance_map
 
 
 class Eof(object):

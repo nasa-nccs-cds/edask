@@ -1,6 +1,5 @@
-from .cdms import Eof
+from .xarray import Eof
 import time, logging, cdms2 as cdms
-from .plotter import ResultsPlotter
 from .pcProject import *
 from cdutil.times import ANNUALCYCLE
 import numpy as np
@@ -11,9 +10,8 @@ class EOFSolver:
         self.logger =  logging.getLogger()
         self.experiment = experiment
         self.project = Project( outDir, _project )
-        self.plotter = ResultsPlotter( self.project.directory )
 
-    def compute(self, data_variable: cdms.tvariable.TransientVariable, nModes, **kwargs ):
+    def compute( self, data_variable: cdms.tvariable.TransientVariable, nModes, **kwargs ):
         removeCycle = kwargs.get( "decycle", True )
         detrend = kwargs.get( "detrend", False )
         self.variable: cdms.tvariable.TransientVariable = data_variable
@@ -78,13 +76,3 @@ class EOFSolver:
             outfile.write(v)
         outfile.close()
         print( "Saved EOFs to file " + outfilePath )
-
-    def plotEOFs( self, nCols, plotPkg ):
-        self.plotter.plotEOFs( self.project, self.experiment, nCols, plotPkg )
-
-    def plotPCs( self, nCols ):
-        self.plotter.plotPCs ( self.project, self.experiment, nCols  )
-
-    def plotPCComparison(self, nModes ):
-        vars = [ self.projected_pcs, self.pcs ]
-        self.plotter.plotter.mpl_comparison_timeplot_variables( self.variable, vars, nModes)
