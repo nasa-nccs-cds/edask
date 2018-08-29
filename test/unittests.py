@@ -123,5 +123,18 @@ class TestEdask(EDaskTestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
 
+    def test_decycle(self):
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                    "lon":  { "start":100, "end":130, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'2000-01-30T23:00:00', "system":"values"  } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.decycle", "input":"v0" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
 class DebugTests(EDaskTestCase):
-        pass
+
+    pass
+
+
+

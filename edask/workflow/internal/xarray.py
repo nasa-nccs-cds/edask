@@ -87,6 +87,15 @@ class NormKernel(OpKernel):
         centered_result =  variable - variable.mean( node.axes )
         return centered_result / centered_result.std( node.axes )
 
+class DecycleKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
+        climatology = variable.data.groupby('t.month').mean('t')
+        anomalies = variable.data.groupby('t.month') - climatology
+        return variable.updateXa( anomalies )
+
 class DetrendKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
