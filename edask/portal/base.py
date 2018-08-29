@@ -116,7 +116,7 @@ class Responder:
 
     def doSendDataPacket( self, dataPacket: DataPacket ):
         self.socket.send( dataPacket.getTransferHeader() )
-        if( dataPacket.hasData() ): self.socket.send( dataPacket.getTransferData() )
+        if( dataPacket.hasData() ): self.socket.send( dataPacket.getRawData() )
         self.logger.info( " Sent data packet " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() )
 
     def setExeStatus( self, cId: str, rid: str, status: str ):
