@@ -83,8 +83,8 @@ class OpKernel(Kernel):
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
-        sarray: xa.Dataset = xa.concat( inputDset.xarrays, dim=op.ensDim )
-        result = EDASArray( inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
+        sarray: xa.DataArray = xa.concat( inputDset.xarrays, dim=op.ensDim )
+        result = EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
         return EDASDataset.init( [result], inputDset.attrs )
 
 class InputKernel(Kernel):

@@ -119,14 +119,14 @@ class KernelManager:
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
         return kernel.getResultDataset( request, op, inputDatasets )
 
-    def buildRequest(self, request: TaskRequest ) -> List[EDASDataset]:
+    def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
         resultOps = request.getResultOperations()
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
         return result
 
-    def buildTask(self, job: Job ):
+    def buildTask(self, job: Job ) -> EDASDataset:
         request: TaskRequest = TaskRequest.new( job )
         return self.buildRequest( request )
 

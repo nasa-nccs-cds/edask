@@ -40,15 +40,11 @@ class Project:
         varnames.sort()
         return [ dataset(varName) for varName in varnames ]
 
-
-class BatchServer:
-
-    def __init__(self, _project, _batchSize = sys.maxint ):
-       self.batchSizeRequest = _batchSize
-       self.project = _project
-       self.batchIndex = 0
-
-
+class InputVarRec:
+    def __init__(self, _varname, _level = None ):
+        self.varName = _varname
+        self.level = _level
+        self.id = self.varName + "-" + str(self.level) if self.level else self.varName
 
 
 

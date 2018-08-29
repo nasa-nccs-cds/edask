@@ -14,7 +14,7 @@ class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def executeProcess( self, service: str, job: Job, executeCallback: Callable )-> str: pass
+  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable )-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -47,15 +47,16 @@ class ProcessManager(GenericProcessManager):
       self.client.close()
       self.cluster.close()
 
-  def executeProcess( self, service: str, job: Job, executeCallback: Callable ):
+  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable ):
       try:
         self.logger.info("Defining workflow")
         result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
-        result_future.add_done_callback( executeCallback )
+        result_future.add_done_callback( successCallback )
         self.logger.info("Submitted computation")
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
+          failureCallback( str(ex) )
           traceback.print_exc()
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )

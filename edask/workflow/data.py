@@ -1,9 +1,10 @@
 import logging
 from enum import Enum, auto
-from typing import List, Dict, Any, Set, Optional, Tuple
+from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
 import string, random, os
 import xarray as xa
+from xarray.core.groupby import DataArrayGroupBy
 import xarray.plot as xrplot
 import matplotlib.pyplot as plt
 
@@ -45,9 +46,10 @@ class Transformation:
         self.parms = kwargs
 
 class EDASArray:
-    def __init__(self, _domId: str, _data: xa.DataArray, _transforms: List[Transformation]):
+    def __init__(self, name: str, _domId: str, _data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation]):
         self.domId = _domId
         self.data = _data
+        self._name = name
         self.transforms = _transforms
 
     @property
@@ -57,10 +59,10 @@ class EDASArray:
     def xr(self) -> xa.DataArray: return self.data
 
     @property
-    def name(self) -> str: return self.data.name
+    def name(self) -> str: return self._name
 
     @name.setter
-    def name(self, value): self.data.name = value
+    def name(self, value): self._name = value
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.data.name: self.data }, attrs=attrs )
@@ -71,13 +73,13 @@ class EDASArray:
         return ( self.domId == other.domId ) and ( self.data.shape == other.data.shape ) and ( self.data.dims == other.data.dims )
 
     def groupby( self, grouping: str ):
-        return EDASArray(self.domId, self.data.groupby(grouping), self.transforms + [ Transformation( "groupby", group=grouping ) ])
+        return EDASArray(self._name, self.domId, self.data.groupby(grouping), self.transforms + [ Transformation( "groupby", group=grouping ) ])
 
     def resample( self, resampling:str ):
         if resampling is None: return self
         rs_items = resampling.split(".")
         kwargs = { rs_items[0]: rs_items[1] }
-        return EDASArray(self.domId, self.data.resample( **kwargs ), self.transforms + [ Transformation( "resample", **kwargs )  ])
+        return EDASArray(self._name, self.domId, self.data.resample( **kwargs ), self.transforms + [ Transformation( "resample", **kwargs )  ])
 
     def align( self, other: "EDASArray", assume_sorted=True ):
         assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.data.name, other.data.name, )
@@ -86,7 +88,7 @@ class EDASArray:
         return self.updateData( new_data )
 
     def updateData(self, new_data: xa.DataArray ) -> "EDASArray":
-        return EDASArray(self.domId, new_data, self.transforms)
+        return EDASArray(self._name, self.domId, new_data, self.transforms)
 
     def subset( self, domain: Domain ) -> "EDASArray":
         xarray = self.data
@@ -164,14 +166,14 @@ class EDASDataset:
         self.logger = logging.getLogger()
 
     @staticmethod
-    def init( arrays: List[EDASArray], attrs: Dict[str,Any]  ):
+    def init( arrays: List[EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
     @staticmethod
     def new( dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
         dataset.rename(idMap, True)
-        arrayMap = { vid: EDASArray( domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
+        arrayMap = { vid: EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
         return EDASDataset( arrayMap, dataset.attrs )
 
     def addArrays(self, arrays: List[EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
@@ -225,7 +227,7 @@ class EDASDataset:
     def xarrays(self) -> List[xa.DataArray]: return [ array.data for array in self.arrayMap.values() ]
 
     @property
-    def groupings(self) -> Set[str]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
+    def groupings(self) -> Set[Transformation]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
 
     def compute(self):
         for ( vid, array ) in self.arrayMap.items(): array.compute()
@@ -263,7 +265,7 @@ class EDASDataset:
       return EDASDataset.init( new_vars, self.attrs )
 
     def addDataset(self, dataset: xa.Dataset, varMap: Dict[str,str] ):
-        arrays = [ EDASArray( domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() ]
+        arrays = [ EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() ]
         self.addArrays( arrays, dataset.attrs )
 
     def plot(self, tindex: int = 0 ):

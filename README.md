@@ -10,7 +10,7 @@
 
 To install:
 ```
-    > conda create -n edask -c conda-forge -c cdat python=3.6 cdms2 cdutil 
+    > conda create -n edask -c conda-forge -c cdat python=3.6 cdms2 cdutil cdtime vcs
     > conda activate edask
     > conda install dask distributed -c conda-forge
     > conda install xarray matplotlib scipy bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing 
