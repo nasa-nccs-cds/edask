@@ -1,6 +1,6 @@
 import zmq, traceback, time, logging, xml, cdms2, socket
 from threading import Thread
-from typing import List, Dict, Sequence
+from typing import List, Dict, Sequence, Set
 from cdms2.variable import DatasetVariable
 from random import SystemRandom
 import random, string, os, queue, datetime
@@ -24,22 +24,19 @@ class Response:
 
     def message(self) -> str: return self._body;
 
+    def __str__(self) -> str: return self.__class__.__name__ + "[" + self.id() + "]: " + str(self._body)
+
 class Message ( Response ):
 
     def __init__(self,  _clientId: str,  _responseId: str,  _message: str ):
         super(Message, self).__init__( "message", _clientId, _responseId )
         self._body = _message
 
-    def toString(self) -> str: return "Message[" + self.id() + "]: " + self._body
-
-
 class ErrorReport(Response):
 
     def __init__( self,  clientId: str,  _responseId: str,  _message: str ):
         super(ErrorReport, self).__init__( "error", clientId, _responseId )
         self._body = _message
-
-    def toString(self) -> str: return "ErrorReport[" + self.id() + "]: " + self._body
 
 
 class DataPacket(Response):
@@ -68,59 +65,58 @@ class DataPacket(Response):
         "DataPacket[" + self._body + "]"
 
 
-class Responder(Thread):
+class Responder:
 
     def __init__( self,  _context: zmq.Context,  _client_address: str,  _response_port: int ):
         super(Responder, self).__init__()
         self.logger =  logging.getLogger()
         self.context: zmq.Context =  _context
-        self.active: bool = True
         self.response_port = _response_port
-        self.response_queue = queue.Queue()
-        self.executing_jobs: dict[str,Response] = {}
-        self.status_reports: dict[str,str] = {}
-        self.clients: set[str] = set()
+        self.executing_jobs: Dict[str,Response] = {}
+        self.status_reports: Dict[str,str] = {}
+        self.clients: Set[str] = set()
         self.client_address = _client_address
+        self.initSocket()
 
     def registerClient( self, client: str ):
         self.clients.add(client)
 
-    def sendResponse( self, msg: Response  ):
+    def sendResponse( self, msg: Response ):
         self.logger.info( "Post Message to response queue: " + str(msg) )
-        self.response_queue.put( msg )
+        self.doSendResponse(msg)
 
     def sendDataPacket( self, data: DataPacket ):
         self.logger.info( "Post DataPacket to response queue: " + str(data) )
-        self.response_queue.put( data )
+        self.doSendResponse( data )
 
-    def doSendResponse( self, socket: zmq.Socket,  r: Response ):
+    def doSendResponse( self,  r: Response ):
         if( r.rtype == "message" ):
-            packaged_msg = self.doSendMessage( socket, r )
+            packaged_msg: str = self.doSendMessage( r )
             dateTime =  datetime.datetime.now()
-            self.logger.info( " Sent response: " + r.id() + " (" + dateTime.strftime("MM/dd HH:mm:ss") + "), content sample: " + packaged_msg.substring( 0, min( 300, packaged_msg.length() ) ) );
+            self.logger.info( " Sent response: " + r.id() + " (" + dateTime.strftime("MM/dd HH:mm:ss") + "), content sample: " + packaged_msg.substring( 0, min( 300, len(packaged_msg) ) ) );
         elif( r.rtype == "data" ):
-            self.doSendDataPacket( socket, r )
+            self.doSendDataPacket( r )
         elif( r.rtype == "error" ):
-                self.doSendErrorReport( socket, r )
+                self.doSendErrorReport( r )
         else:
             self.logger.error( "Error, unrecognized response type: " + r.rtype )
-            self.doSendErrorReport( socket, ErrorReport( r.clientId, r.responseId, "Error, unrecognized response type: " + r.rtype ) )
+            self.doSendErrorReport( ErrorReport( r.clientId, r.responseId, "Error, unrecognized response type: " + r.rtype ) )
 
-    def doSendMessage(self, socket: zmq.Socket, msg: Message):
+    def doSendMessage(self, msg: Response) -> str:
         request_args = [ msg.id(), "response", msg.message() ]
         packaged_msg = "!".join( request_args )
-        socket.send( bytearray( packaged_msg, 'utf-8' ) )
+        self.socket.send( bytearray( packaged_msg, 'utf-8' ) )
         return packaged_msg
 
-    def doSendErrorReport( self, socket: zmq.Socket, msg: ErrorReport  ):
+    def doSendErrorReport( self, msg: Response  ):
         request_args = [ msg.id(), "error", msg.message() ]
         packaged_msg = "!".join( request_args )
-        socket.send( bytearray( packaged_msg, 'utf-8' )  )
+        self.socket.send( bytearray( packaged_msg, 'utf-8' )  )
         return packaged_msg
 
-    def doSendDataPacket( self, socket: zmq.Socket, dataPacket: DataPacket ):
-        socket.send( dataPacket.getTransferHeader() )
-        if( dataPacket.hasData() ): socket.send( dataPacket.getTransferData() )
+    def doSendDataPacket( self, dataPacket: DataPacket ):
+        self.socket.send( dataPacket.getTransferHeader() )
+        if( dataPacket.hasData() ): self.socket.send( dataPacket.getTransferData() )
         self.logger.info( " Sent data packet " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() )
 
     def setExeStatus( self, cId: str, rid: str, status: str ):
@@ -132,66 +128,40 @@ class Responder(Thread):
                 del self.executing_jobs[rid]
         except Exception: pass
 
-    def heartbeat( self, socket: zmq.Socket ):
+    def heartbeat( self ):
         for client in self.clients:
             try:
                 hb_msg = Message( str(client), "status", "heartbeat" )
-                self.doSendMessage( socket, hb_msg )
+                self.doSendMessage( hb_msg )
             except Exception: pass
 
-    def run( self ):
-        pause_time = 100;
-        heartbeat_interval = 20 * 1000;
-        last_heartbeat_time = time.time()
-        socket: zmq.Socket   = self.context.socket(zmq.PUSH)
+    def initSocket(self):
+        self.socket: zmq.Socket   = self.context.socket(zmq.PUSH)
         try:
-            socket.bind( "tcp://{}:{}".format( self.client_address, self.response_port ) )
+            self.socket.bind( "tcp://{}:{}".format( self.client_address, self.response_port ) )
             self.logger.info( " --> Bound response socket to client at {} on port: {}".format( self.client_address, self.response_port ) )
         except Exception as err:
             self.logger.error( "Error initializing response socket on port {}: {}".format( self.response_port, err ) )
-        try:
-            while self.active:
-                try:
-                    response: Response = self.response_queue.get(False)
-                    self.doSendResponse(socket,response)
-                except queue.Empty:
-                    time.sleep(pause_time)
-                    current_time = time.time()
-                    if ( current_time - last_heartbeat_time) >= heartbeat_interval:
-                        self.heartbeat( socket )
-                        last_heartbeat_time = current_time
 
-        except KeyboardInterrupt: pass
 
-        self.close_connection( socket )
-
-    def term( self ):
-        self.logger.info("Terminating responder thread")
-        self.active = False
-
-    def close_connection( self, socket: zmq.Socket ):
+    def close_connection( self ):
         try:
             for response in self.executing_jobs.values():
-                self.doSendErrorReport( socket, ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") );
-            socket.close()
+                self.doSendErrorReport( self.socket, ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") );
+            self.socket.close()
         except Exception: pass
 
 
 class EDASPortal:
 
-#    def sendErrorReport( taskSpec: Sequence[str],  err: Exception  ):
-#        pass
-
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
         self.logger =  logging.getLogger()
+        self.active = True
         try:
             self.request_port = request_port
             self.zmqContext: zmq.Context = zmq.Context()
             self.request_socket: zmq.Socket = self.zmqContext.socket(zmq.REP)
             self.responder = Responder( self.zmqContext, client_address, response_port)
-            self.responder.setDaemon(True)
-            self.responder.start()
-            self.active = True
             self.handlers = {}
             self.initSocket( client_address, request_port )
 
@@ -225,7 +195,7 @@ class EDASPortal:
         self.responder.setExeStatus(clientId,rid,status)
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
-        self.logger.debug( "@@ Portal: Sending response data to client for rid {}, nbytes={}".format( rid, data.length ) )
+        self.logger.debug( "@@ Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
@@ -263,7 +233,7 @@ class EDASPortal:
         request_args = [ msg.id(), msg.message() ]
         packaged_msg = "!".join( request_args )
         timeStamp =  datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-        self.logger.info( "@@ Sending response {} on request_socket @({}): {}".format( msg.responseId, timeStamp, msg.toString() ) )
+        self.logger.info( "@@ Sending response {} on request_socket @({}): {}".format( msg.responseId, timeStamp, str(msg) ) )
         self.request_socket.send_string( packaged_msg )
         return packaged_msg
 
@@ -314,6 +284,8 @@ class EDASPortal:
                 # clientId = elem( self.taskSpec, 0 )
                 # runargs = self.getRunArgs( self.taskSpec )
                 # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
+                self.logger.error( "Execution error: " + str(ex) )
+                traceback.print_exc()
                 self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
 
         self.logger.info( "EXIT EDASPortal");
@@ -325,7 +297,7 @@ class EDASPortal:
         try: self.request_socket.close()
         except Exception: pass
         self.logger.info( "CLOSE request_socket")
-        self.responder.term()
+        self.responder.close_connection()
         self.logger.info( "TERM responder")
         self.shutdown()
         self.logger.info( "shutdown complete")
