@@ -123,6 +123,17 @@ class TestEdask(EDaskTestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
 
+    def test_detrend(self):
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                    "lon":  { "start":100, "end":130, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
+                        {"name": "xarray.detrend", "input": "dc"},
+                        {"name": "xarray.noop", "input": "dc"} ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
     def test_ave3(self):
         domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
                                     "lon":  { "start":100, "end":130, "system":"values" },

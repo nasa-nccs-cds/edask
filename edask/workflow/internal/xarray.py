@@ -102,10 +102,13 @@ class DetrendKernel(OpKernel):
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
+        dim = variable.data.dims[axisIndex]
         window_size = node.getParm("wsize", variable.data.shape[axisIndex]//5 )
-        interp_input = variable.data.interpolate_na( dim=variable.data.dims[axisIndex], method='linear' )
-        trend = ndimage.convolve1d( interp_input, np.ones((window_size,))/float(window_size), axisIndex, None, "reflect" )
-        detrend: EDASArray = variable - variable.updateNp( trend )
+        interp_na = bool( node.getParm("interp_na", "false") )
+        xadata = variable.data.interpolate_na( dim=dim, method='linear' ) if interp_na else variable.data
+        detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
+        trend = xadata.rolling(**detrend_args).mean()
+        detrend: EDASArray = variable - variable.updateXa( trend )
         return detrend
 
 class EofKernel(OpKernel):

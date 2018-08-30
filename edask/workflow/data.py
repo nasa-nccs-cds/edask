@@ -147,25 +147,25 @@ class EDASArray:
     def __sub__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data - other.data
-        result.name = self.data.name + "-" + other.data.name
+        result.name = self.name + "-" + other.name
         return self.updateXa(result)
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data + other.data
-        result.name = self.data.name + "+" + other.data.name
+        result.name = self.name + "+" + other.name
         return self.updateXa(result)
 
     def __mul__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data * other.data
-        result.name = self.data.name + "*" + other.data.name
+        result.name = self.name + "*" + other.name
         return self.updateXa(result)
 
     def __truediv__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.data / other.data
-        result.name = self.data.name + "/" + other.data.name
+        result.name = self.name + "/" + other.name
         return self.updateXa(result)
 
 class EDASDataset:
@@ -278,7 +278,7 @@ class EDASDataset:
         arrays = [ EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() ]
         self.addArrays( arrays, dataset.attrs )
 
-    def plot(self, tindex: int = 0 ):
+    def splot(self, tindex: int = 0 ):
         for array in self.inputs:
             input_data = array.data.isel( { "t": slice( tindex, tindex + 1 ) } ).squeeze()
             mesh = xrplot.pcolormesh( input_data )
@@ -296,6 +296,11 @@ class EDASDataset:
         self.arrayMap.update( other.arrayMap )
         self.attrs.update( other.attrs )
         return self
+
+    def plot(self):
+        fig, axes = plt.subplots(ncols=len( self.ids ) )
+        for iaxis, result in enumerate( self.xarrays ):
+            result.plot(ax=axes[iaxis])
 
     @staticmethod
     def merge(dsets: List["EDASDataset"]):
