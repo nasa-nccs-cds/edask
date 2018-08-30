@@ -38,9 +38,9 @@ class KernelSpec:
     def title(self): return self._title
 
     @property
-    def summary(self) -> str: return ";".join( [ self._name, self.title ] )
+    def summary(self) -> str: return ";".join( [ self.name, self.title ] )
 
-    def __str__(self): return ";".join( [ self._name, self.title, self.description, str(self._options) ] )
+    def __str__(self): return ";".join( [ self.name, self.title, self.description, str(self._options) ] )
 
 class Transformation:
     def __init__(self, type: str, **kwargs: str ):
@@ -48,64 +48,68 @@ class Transformation:
         self.parms = kwargs
 
 class EDASArray:
-    def __init__(self, name: str, _domId: str, _data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation]):
+    def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation] ):
         self.domId = _domId
-        self.data = _data
-        self._name = name
+        self._data = data
+        self.name = name
         self.transforms = _transforms
 
     @property
-    def size(self) -> int: return self.data.size
+    def size(self) -> int: return self.xr.size
 
     @property
-    def xr(self) -> xa.DataArray: return self.data
+    def xr(self) -> xa.DataArray:
+        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
+        else: return self._data
 
     @property
-    def name(self) -> str: return self._name
+    def name(self) -> str: return self.xr.name
+
+    def rname(self, op: str ) -> str: return op + "(" + self.name + ")"
 
     @name.setter
-    def name(self, value): self._name = value
+    def name(self, value): self.xr.name = value
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
-        return xa.Dataset( { self.data.name: self.data }, attrs=attrs )
+        return xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
 
     def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
         if len( dims ) <= dimIndex: return default
-        return self.data.get_axis_num( dims[dimIndex] )
+        return self.xr.get_axis_num( dims[dimIndex] )
 
-    def compute(self): self.data.compute()
+    def compute(self): self.xr.compute()
 
     def aligned( self, other: "EDASArray" ):
-        return ( self.domId == other.domId ) and ( self.data.shape == other.data.shape ) and ( self.data.dims == other.data.dims )
+        return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
 
     def groupby( self, grouping: str ):
-        return EDASArray(self._name, self.domId, self.data.groupby(grouping), self.transforms + [ Transformation( "groupby", group=grouping ) ])
+        return EDASArray(self.name, self.domId, self.xr.groupby(grouping), self.transforms + [ Transformation( "groupby", group=grouping ) ] )
 
     def resample( self, resampling:str ):
         if resampling is None: return self
         rs_items = resampling.split(".")
         kwargs = { rs_items[0]: rs_items[1] }
-        return EDASArray(self._name, self.domId, self.data.resample( **kwargs ), self.transforms + [ Transformation( "resample", **kwargs )  ])
+        return EDASArray(self.name, self.domId, self.xr.resample( **kwargs ), self.transforms + [ Transformation( "resample", **kwargs )  ] )
 
     def align( self, other: "EDASArray", assume_sorted=True ):
-        assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.data.name, other.data.name, )
+        assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.xr.name, other.xr.name, )
         if self.aligned( other ): return self
-        new_data = self.data.interp_like( other.data, "linear", assume_sorted )
-        return self.updateXa(new_data)
+        new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
+        return self.updateXa(new_data,"align")
 
-    def updateXa(self, new_data: xa.DataArray) -> "EDASArray":
-        return EDASArray(self._name, self.domId, new_data, self.transforms)
+    def updateXa(self, new_data: xa.DataArray, opId:str) -> "EDASArray":
+        return EDASArray( self.rname(opId), self.domId, new_data, self.transforms )
 
     def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
-        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.data.coords), dims = kwargs.get( "dims", self.data.dims ) )
-        return EDASArray(self._name, self.domId, xrdata, self.transforms)
+        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
+        return EDASArray(self.name, self.domId, xrdata, self.transforms )
 
     def subset( self, domain: Domain ) -> "EDASArray":
-        xarray = self.data
+        xarray = self.xr
         for system in [ "val", "ind" ]:
             bounds_list = [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ]
             if( len(bounds_list) ): xarray = xarray.sel( dict( bounds_list ) ) if system == "val" else xarray.isel( dict( bounds_list ) )
-        return self.updateXa(xarray)
+        return self.updateXa(xarray,"subset")
 
     @staticmethod
     def domains( inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:
@@ -115,58 +119,57 @@ class EDASArray:
 
     @staticmethod
     def shapes( inputs: List["EDASArray"] ) -> Set[Tuple[int]]:
-        return { tuple(var.data.shape) for var in inputs }
+        return { tuple(var.xr.shape) for var in inputs }
 
     def axis(self, axis: Axis ):
-        return self.data.coords.get( axis.name.lower() )
+        return self.xr.coords.get( axis.name.lower() )
 
     def axes(self) -> List[str]:
-        return self.data.coords.keys()
+        return self.xr.coords.keys()
 
     def max( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.max(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), "max" )
 
     def min( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.min(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), "min" )
 
     def mean( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.mean(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.mean(dim=axes, keep_attrs=True), "mean" )
 
     def median( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.median(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), "median" )
 
     def var( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.var(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.var(dim=axes, keep_attrs=True), "var" )
 
     def std( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.std(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.std(dim=axes, keep_attrs=True), "std" )
 
     def sum( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.data.sum(dim=axes, keep_attrs=True))
+        return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), "sum" )
 
     def __sub__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        result: xa.DataArray = self.data - other.data
-        result.name = self.name + "-" + other.name
-        return self.updateXa(result)
+        result: xa.DataArray = self.xr - other.xr
+        return self.updateXa(result, "diff")
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        result: xa.DataArray = self.data + other.data
-        result.name = self.name + "+" + other.name
-        return self.updateXa(result)
+        result: xa.DataArray = self.xr + other.xr
+        return self.updateXa(result, "sum")
 
     def __mul__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        result: xa.DataArray = self.data * other.data
-        result.name = self.name + "*" + other.name
-        return self.updateXa(result)
+        result: xa.DataArray = self.xr * other.xr
+        return self.updateXa(result, "mul")
 
     def __truediv__(self, other: "EDASArray") -> "EDASArray":
         assert self.domId == other.domId, "Can't combine arrays with different domains"
-        result: xa.DataArray = self.data / other.data
-        result.name = self.name + "/" + other.name
-        return self.updateXa(result)
+        result: xa.DataArray = self.xr / other.xr
+        return self.updateXa(result, "div")
+
+    def __getitem__( self, key: str ) -> str: return self.xr.attrs.get( key )
+    def __setitem__(self, key: str, value: str ): self.xr.attrs[key] = value
 
 class EDASDataset:
 
@@ -234,7 +237,7 @@ class EDASDataset:
     def inputs(self) -> List[EDASArray]: return list(self.arrayMap.values())
 
     @property
-    def xarrays(self) -> List[xa.DataArray]: return [ array.data for array in self.arrayMap.values() ]
+    def xarrays(self) -> List[xa.DataArray]: return [ array.xr for array in self.arrayMap.values() ]
 
     @property
     def groupings(self) -> Set[Transformation]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
@@ -280,17 +283,17 @@ class EDASDataset:
 
     def splot(self, tindex: int = 0 ):
         for array in self.inputs:
-            input_data = array.data.isel( { "t": slice( tindex, tindex + 1 ) } ).squeeze()
+            input_data = array.xr.isel( { "t": slice( tindex, tindex + 1 ) } ).squeeze()
             mesh = xrplot.pcolormesh( input_data )
             plt.show()
 
     def dplot(self, domain: Domain ):
         for array in self.inputs:
-            xrplot.plot( array.subset( domain ).data )
+            xrplot.plot( array.subset( domain ).xr )
 
     def mplot(self, facet_axis: str = "time" ):
         for array in self.inputs:
-            xrplot.plot( array.data, col = facet_axis )
+            xrplot.plot( array.xr, col = facet_axis )
 
     def __iadd__(self, other: "EDASDataset" ) -> "EDASDataset":
         self.arrayMap.update( other.arrayMap )

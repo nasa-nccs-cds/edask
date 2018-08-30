@@ -9,6 +9,7 @@ from edask.process.source import SourceType
 from edask.process.source import DataSource
 from edask.process.domain import Axis
 from edask.collections.agg import Collection
+from itertools import chain
 
 class Kernel:
 
@@ -58,16 +59,11 @@ class OpKernel(Kernel):
         return result
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        results: List[EDASArray] = [ self.processInput( request, node, input ) for input in inputDset.inputs ]
+        results: List[EDASArray] = list(chain.from_iterable([ self.processVariable( request, node, input ) for input in inputDset.inputs ]))
         return EDASDataset.init( results, inputDset.attrs )
 
     @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray: pass
-
-    def processInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray:
-        result = self.processVariable( request, node, inputs )
-        result.name = node.name +"_" + inputs.name
-        return result
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]: pass
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = EDASArray.domains( inputs, op.domain )

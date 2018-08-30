@@ -28,7 +28,7 @@ class PlotTESTS:
                     "lon": {"start": 100, "end": 100, "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
-                        {"name": "xarray.detrend", "input": "dc"},
+                        {"name": "xarray.detrend", "input": "dc", "wsize":50 },
                         {"name": "xarray.noop", "input": "dc"} ]
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
