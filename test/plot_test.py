@@ -33,7 +33,16 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
+    def test_eofs(self):
+        domains = [{"name": "d0", "lat": {"start": 0, "end": 75, "system": "values"}}]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "input": "v0", "interp_na":True, "result":"dc"},
+                        {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
+                        {"name": "xarray.eof", "modes":4, "input": "dt" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        print( str( results.ids ) )
+
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_detrend()
+    result = tester.test_eofs()
     plt.show()

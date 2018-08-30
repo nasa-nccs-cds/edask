@@ -103,11 +103,9 @@ class DetrendKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
         dim = variable.xr.dims[axisIndex]
-        window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//5 )
-        interp_na = bool( node.getParm("interp_na", "false") )
-        xadata = variable.xr.interpolate_na( dim=dim, method='linear' ) if interp_na else variable.xr
+        window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
         detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
-        trend = xadata.rolling(**detrend_args).mean()
+        trend = variable.xr.rolling(**detrend_args).mean()
         detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
         return [detrend]
 
@@ -119,11 +117,10 @@ class EofKernel(OpKernel):
         nModes = node.getParm("modes", 16 )
         center = bool( node.getParm("center", "true") )
         scale =  bool( node.getParm("scale", "true") )
-        input_array: xa.DataArray = variable.xr.interpolate_na( dim="time", method='linear' )
-        solver = Eof( variable, center = center, scale = scale )
+        solver = Eof( variable.xr, center = center, scale = scale )
         eofs = variable.updateXa( solver.eofs( neofs=nModes ), "eofs" )
         pcs = variable.updateXa(  solver.pcs( npcs=nModes ).transpose(), "pcs" )
-        projected_pcs = variable.updateXa(  solver.projectField(input_array,neofs=nModes).transpose(), "ppcs" )
+        projected_pcs = variable.updateXa(  solver.projectField(variable.xr,neofs=nModes).transpose(), "ppcs" )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         eofs["pves"] = str(pves)
