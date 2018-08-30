@@ -1,8 +1,9 @@
 import unittest
 from typing import List, Dict, Sequence, Mapping, Any
-import xarray as xr
+import xarray as xa
 import time, traceback, logging
 import numpy.ma as ma
+from pandas.core.indexes.datetimes import DatetimeIndex
 from edask.workflow.internal.xarray import *
 from edask.process.test import TestManager
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
@@ -37,7 +38,7 @@ class TestEdask(EDaskTestCase):
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
         results = self.mgr.testExec( domains, variables, operations )
-        self.assertTrue( self.mgr.equals( results[0], [ verification_data ] ) )
+        self.assertTrue( self.mgr.equals( results, [ verification_data ] ) )
 
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
@@ -51,7 +52,7 @@ class TestEdask(EDaskTestCase):
         operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
-        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+        self.assertTrue(self.mgr.equals(results, [verification_data]))
 
     def test_max1(self):
         # Verification data: nco_scripts/max1.sh
@@ -63,7 +64,7 @@ class TestEdask(EDaskTestCase):
         operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
-        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+        self.assertTrue(self.mgr.equals(results, [verification_data]))
 
     def test_min1(self):
         # Verification data: nco_scripts/min1.sh
@@ -77,7 +78,7 @@ class TestEdask(EDaskTestCase):
         operations = [ { "name":"xarray.min", "input":"v0", "domain":"d0", "axes":"xy" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
-        self.assertTrue(self.mgr.equals(results[0], [verification_data]))
+        self.assertTrue(self.mgr.equals(results, [verification_data]))
 
     def test_diff1(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
@@ -97,11 +98,43 @@ class TestEdask(EDaskTestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
 
-
-class DebugTests(EDaskTestCase):
-
     def test_diff2(self):
         domains = [{ "name":"d0",   "time": { "start":'1980-01-01T00:00:00', "end":'1980-03-30T23:00:00', "system":"values" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": self.mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
         operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
         results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+    def test_ave2(self):
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":10,  "system":"values" },
+                                    "lon":  { "start":100, "end":110, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1982-01-30T23:00:00', "system":"values"  } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "groupby": "t.season" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+    def test_decycle(self):
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                    "lon":  { "start":100, "end":130, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.decycle", "input":"v0" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+    def test_ave3(self):
+        domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                    "lon":  { "start":100, "end":130, "system":"values" },
+                                    "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        self.mgr.print(results)
+
+class DebugTests(EDaskTestCase):
+
+    pass
+
+
+

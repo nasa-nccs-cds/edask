@@ -1,50 +1,41 @@
-from typing import Dict, Any, Union
-
-import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml
-from xml.etree.ElementTree import Element, ElementTree
-from threading import Thread
-from cdms2.variable import DatasetVariable
-from random import SystemRandom
-import random, string, os, queue, datetime, atexit
+import zmq, traceback
+from dask.distributed import Future
+from edask.workflow.data import EDASDataset
+import random, string, os, datetime, atexit
 from edask.portal.base import EDASPortal, Message, Response
-from typing import List, Dict, Sequence
+from typing import List, Dict, Any, Union, Sequence
 from edask.workflow.module import edasOpManager
 from edask.process.manager import ProcessManager, Job
-from enum import Enum
+
+
+class ExecResultHandler:
+
+    def __init__(self, portal: EDASPortal, clientId: str, jobId: str, **kwargs ):
+        self.clientId = clientId
+        self.jobId = jobId
+        self.cacheDir = kwargs.get( "cache", "/tmp")
+        self.portal = portal
+        self.filePath = self.cacheDir + "/" + portal.randomStr(6) + ".nc"
+
+    def successCallback(self, resultFuture: Future):
+      status = resultFuture.status
+      if status == "finished":
+          result: EDASDataset = resultFuture.result()
+          filePath = result.save( self.filePath )
+          self.portal.sendFile( self.clientId, self.jobId, result.id, filePath, True )
+      else:
+          self.failureCallback( "status = " + status )
+      self.portal.removeHandler( self.clientId, self.jobId )
+
+    def failureCallback(self, message: str):
+      self.portal.sendErrorReport( self.clientId, self.jobId, message )
+      self.portal.removeHandler( self.clientId, self.jobId )
 
 class EDASapp(EDASPortal):
-
-    # class ExecutionCallback:
-    #     def __init(self, _app: EDASapp ,_logger: Logger ):
-    #         self.logger = _logger
-    #         self.app = _app
-    #
-    #     def success( results: xml.Node ):
-    #         metadata  = {}
-    #         self.logger.info(" *** ExecutionCallback: jobId = ${jobId}, responseType = ${responseType} *** " )
-    #         if responseType == "object":
-    #             metadata  =   self.app.sendDirectResponse(response_syntax, clientId, jobId, results)
-    #         elif responseType == "file":\
-    #             metadata  =   self.app.sendFileResponse(response_syntax, clientId, jobId, results)
-    #         self.app.setExeStatus(clientId, jobId, "completed|" + ( metadata.map { case (key,value) => key + ":" + value } mkString(",") ) )
-    #
-    #     def failure( msg: str ):
-    #         self.logger.error( "ERROR CALLBACK ($jobId:$clientId): " + msg )
-    #         self.setExeStatus( clientId, jobId, "error" )
 
     @staticmethod
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
-
-    # @staticmethod
-    # def getConfiguration( parameter_file_path: String ): Map[String, String] = {
-    #     if( parameter_file_path.isEmpty ) { Map.empty[String, String]  }
-    #     else if( Files.exists( Paths.get(parameter_file_path) ) ) {
-    #       val params: Iterator[Array[String]] = for ( line <- Source.fromFile(parameter_file_path).getLines() ) yield { line.split('=') }
-    #       Map( params.filter( _.length > 1 ).map( a => ( a.head.trim, a.last.trim ) ).toSeq: _* )
-    #     }
-    #     else { throw new Exception( "Can't find parameter file: " + parameter_file_path) }
-    #   }
 
     def __init__( self, client_address: str="127.0.0.1", request_port: int=4556, response_port: int=4557, appConfiguration: Dict[str,str]={} ):
         super( EDASapp, self ).__init__( client_address, request_port, response_port )
@@ -99,11 +90,15 @@ class EDASapp(EDASPortal):
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
-          (rid, responseElem) = self.processManager.executeProcess( jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ) )
-          return Message(clientId, jobId, responseElem )
+          resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId ) )
+          self.processManager.executeProcess(jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ), resultHandler.successCallback, resultHandler.failureCallback)
+          return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
+            traceback.print_exc()
             return Message( clientId, jobId, str(err) )
+
+
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):
     #     err = WPSExceptionReport(exc)
@@ -126,79 +121,6 @@ class EDASapp(EDASPortal):
 
     def sendDirectResponse( self, clientId: str, responseId: str, response: str ) -> Dict[str,str]:
         return {}
-
-
-
-#         refs: list[Element] = response.findall( "data" )
-#         val resultHref = refs.flatMap( _.attribute("href") ).find( _.nonEmpty ).map( _.text ) match {
-#           case Some( href ) =>
-#             val rid = href.split("[/]").last
-#             logger.info( "\n\n     **** Found result Id: " + rid + " ****** \n\n")
-#             processManager.getResultVariable("edas",rid) match {
-#               case Some( resultVar ) =>
-#                 val slice: CDRecord = resultVar.result.concatSlices.records.head
-#                 slice.elements.foreach { case ( id, array ) =>
-#                   sendArrayData( clientId, rid, array.origin, array.shape, array.toByteArray, resultVar.result.metadata  + ( "elem" -> id ) )  // + ("gridfile" -> gridfilename)
-#                 }
-#
-#     //            var gridfilename = ""
-#     //            resultVar.result.slices.foreach { case (key, data) =>
-#     //              if( gridfilename.isEmpty ) {
-#     //                val gridfilepath = data.metadata("gridfile")
-#     //                gridfilename = sendFile( clientId, rid, "gridfile", gridfilepath, true )
-#     //              }
-#               case None =>
-#                 logger.error( "Can't find result variable " + rid)
-#                 sendErrorReport( response_format, clientId, rid, new Exception( "Can't find result variable " + rid + " in [ " + processManager.getResultVariables("edas").mkString(", ") + " ]") )
-#             }
-#           case None =>
-#             logger.error( "Can't find result Id in direct response: " + response.toString() )
-#             sendErrorReport( response_format, clientId, responseId, new Exception( "Can't find result Id in direct response: " + response.toString()  ) )
-#         }
-#         Map.empty[String,String]
-#
-#   def getNodeAttribute( node: xml.Node, attrId: String ): Option[String] = {
-#     node.attribute( attrId ).flatMap( _.find( _.nonEmpty ).map( _.text ) )
-#   }
-#
-#   def getNodeAttributes( node: xml.Node ): String = node.attributes.toString()
-#
-#   def sendFileResponse( response_format: ResponseSyntax.Value, clientId: String, jobId: String, response: xml.Node  ): Map[String,String] =  {
-#     val refs: xml.NodeSeq = response \\ "data"
-#     var result_files = new ArrayBuffer[String]()
-#     for( node: xml.Node <- refs; hrefOpt = getNodeAttribute( node,"href"); fileOpt = getNodeAttribute( node,"files") ) {
-#       if (hrefOpt.isDefined && fileOpt.isDefined) {
-#         val sharedDataDir = appParameters( "wps.shared.data.dir" )
-# //        val href = hrefOpt.get
-# //        val rid = href.split("[/]").last
-#         fileOpt.get.split(",").foreach( filepath => {
-#           logger.info("     ****>> Found file node for jobId: " + jobId + ", clientId: " + clientId + ", sending File: " + filepath + " ****** ")
-#           result_files += sendFile( clientId, jobId, "publish", filepath, sharedDataDir.isEmpty )
-#         })
-#       } else if (hrefOpt.isDefined && hrefOpt.get.startsWith("collection")) {
-#         responder.sendResponse( new Message( clientId, jobId, "Created " + hrefOpt.get ) )
-#       } else {
-#         sendErrorReport( response_format, clientId, jobId, new Exception( "Can't find href or files in attributes: " + getNodeAttributes( node ) ) )
-#       }
-#     }
-#     Map( "files" -> result_files.mkString(",") )
-#
-#
-#
-#
-#
-
-
-# //  def getResult( resultSpec: Array[String], response_syntax: ResponseSyntax.Value ) = {
-# //    val result: xml.Node = processManager.getResult( process, resultSpec(0),response_syntax )
-# //    sendResponse( resultSpec(0), printer.format( result )  )
-# //  }
-# //
-# //  def getResultStatus( resultSpec: Array[String], response_syntax: ResponseSyntax.Value ) = {
-# //    val result: xml.Node = processManager.getResultStatus( process, resultSpec(0), response_syntax )
-# //    sendResponse( resultSpec(0), printer.format( result )  )
-# //  }
-
 
 if __name__ == "__main__":
     server = EDASapp()

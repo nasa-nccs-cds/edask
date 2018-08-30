@@ -1,11 +1,17 @@
 import zmq, traceback, time, logging, xml, cdms2
 from threading import Thread
 from cdms2.variable import DatasetVariable
-from typing import Sequence, List, Dict, Mapping
+from typing import Sequence, List, Dict, Mapping, Optional
 from edask.process.task import UID
 import random, string, os
 from enum import Enum
 MB = 1024 * 1024
+
+def s2b( s: str ):
+    return bytearray( s, 'utf-8'  )
+
+def b2s( b: bytearray ):
+    return b.decode( 'utf-8'  )
 
 class ConnectionMode():
     BIND = 1
@@ -49,7 +55,7 @@ class ResponseManager(Thread):
         self.filePaths = {}
         self.setDaemon(True)
         self.cacheDir = os.environ.get( 'EDAS_CACHE_DIR','/tmp/' )
-        self.log("Created RM")
+        self.log("Created RM, cache dir = " + self.cacheDir )
 
     def cacheResult(self, id: str, result: str ):
         self.logger.info( "Caching result array: " + id )
@@ -69,10 +75,10 @@ class ResponseManager(Thread):
         response_socket = None
         try:
             self.log("Run RM thread")
-            response_socket: zmq.Socket = self.context.socket( zmq.SUB )
+            response_socket: zmq.Socket = self.context.socket( zmq.PULL )
             response_port = ConnectionMode.connectSocket( response_socket, self.host, self.port )
-            response_socket.subscribe( self.clientId )
-            self.log("Connected response socket on port: {0}".format( response_port ) )
+#            response_socket.subscribe( self.clientId )
+            self.log("Connected response socket on port {} with subscription (client) id: '{}'".format( response_port, self.clientId ) )
             while( self.active ):
                 self.processNextResponse( response_socket )
 
@@ -81,10 +87,11 @@ class ResponseManager(Thread):
             if response_socket: response_socket.close()
 
     def term(self):
+        self.log("Terminate RM thread")
         if self.active:
-            self.active = False;
+            self.active = False
 
-    def popResponse(self) -> str:
+    def popResponse(self) -> Optional[str]:
         if( len( self.cached_results ) == 0 ):
             return None
         else:
@@ -108,11 +115,12 @@ class ResponseManager(Thread):
 
     def processNextResponse(self, socket: zmq.Socket ):
         try:
+            self.log("Awaiting responses" )
             response = socket.recv()
-            toks = response.split('!')
-            rId = self.getItem( toks, 0 )
-            type = self.getItem( toks, 1 )
-            msg = self.getItem(toks, 2)
+            toks: List[bytearray] = response.split( s2b('!') )
+            rId = b2s( toks[0] )
+            type = b2s( toks[1] )
+            msg = b2s( toks[2] )
             self.log("Received response, rid: " + rId + ", type: " + type )
             if type == "array":
                 self.log( "\n\n #### Received array " + rId + ": " + msg )
@@ -144,21 +152,20 @@ class ResponseManager(Thread):
     def getFileCacheDir( self, role: str ) -> str:
         filePath = os.path.join( self.cacheDir, "transfer", role )
         if not os.path.exists(filePath): os.makedirs(filePath)
+        self.log(" ***->> getFileCacheDir = {0}".format(filePath) )
         return filePath
 
     def saveFile(self, header: str, socket: zmq.Socket ):
         header_toks = header.split('|')
         id = header_toks[1]
         role = header_toks[2]
-        fileName = header_toks[3]
-        if( len(header_toks) > 4 ):
-            filePath = header_toks[4]
-        else:
-            data = socket.recv()
-            filePath = os.path.join( self.getFileCacheDir(role), fileName )
-            with open( filePath, mode='wb') as file:
-                file.write( bytearray(data) )
-                self.log(" ***->> Saving File, path = {0}".format(filePath) )
+        fileName = os.path.basename(header_toks[3])
+        data = socket.recv()
+        filePath = os.path.join( self.getFileCacheDir(role), fileName )
+        self.log(" %%%% filePath = {0}".format(filePath) )
+        with open( filePath, mode='wb') as file:
+            file.write( data )
+            self.log(" ***->> Saving File, path = {0}".format(filePath) )
         return filePath
 
 
@@ -244,7 +251,9 @@ class EDASPortalClient:
         self.logger.info( "[P] " + msg )
         print  (msg)
 
-    def __del__(self): self.shutdown()
+    def __del__(self):
+        print(  " Portal client being deleted " )
+        self.shutdown()
 
     # def start_EDAS(self):  # Stage the EDAS app using the "{EDAS_HOME}>> sbt stage" command.
     #     self.application_thread = AppThread( self.app_host, self.request_port, self.response_port )
@@ -255,20 +264,17 @@ class EDASPortalClient:
 
     def shutdown(self):
         if self.active:
+            print(  " ############################## Disconnect Portal Client from Server & shutdown Client ##############################"  )
             self.active = False
-            self.log(  " ############################## Disconnect Portal Client from Server & shutdown Client ##############################"  )
             try: self.request_socket.close()
             except Exception: pass
             if( self.application_thread ):
                 response = self.sendMessage("shutdown")
-                self.log( "Shutdown Response: " + response )
                 self.application_thread.term()
                 self.application_thread = None
             if not (self.response_manager is None):
-                self.log(  " Terminate Response Manager " )
                 self.response_manager.term()
                 self.response_manager = None
-                self.log(  " Completed shutdown " )
 
     def sendMessage( self, type: str, mDataList: Sequence[str] = [""] ):
         msgStrs = [ str(mData).replace("'",'"') for mData in mDataList ]
@@ -281,6 +287,9 @@ class EDASPortalClient:
             self.logger.error( "Error sending message {0} on request socket: {1}".format( message, str(err) ) )
             response = str(err)
         return response
+
+    def waitUntilDone(self):
+        self.response_manager.join()
 
 class AppThread(Thread):
     def __init__(self, host, request_port, response_port):

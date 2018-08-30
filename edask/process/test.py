@@ -1,10 +1,12 @@
 from typing import List, Dict, Sequence, Mapping, Any
-import xarray as xr
+import xarray as xa
 import time, traceback, logging
 import numpy.ma as ma
+from edask.process.task import TaskRequest, Job
 from edask.workflow.internal.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
+
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
 def q(item: str):
@@ -36,22 +38,18 @@ class TestManager:
   def getAddress(self, model: str, varName: str) -> str:
     return self.addresses[model.lower()].format(varName)
 
-  def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]],
-                    operations: List[Dict[str, str]]) -> List[EDASDataset]:
+  def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> EDASDataset:
     testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
-    dataInputs = WpsCwtParser.parseDatainputs(testRequest)
-    request: TaskRequest = TaskRequest.new("requestId", "jobId", dataInputs)
-    return edasOpManager.buildRequest(request)
+    job = Job( "requestId", "jobId", testRequest )
+    return edasOpManager.buildTask(job)
 
-  def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]],
-               operations: List[Dict[str, Any]]) -> List[EDASDataset]:
+  def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
     datainputs = {"domain": domains, "variable": variables, "operation": operations}
-    request: TaskRequest = TaskRequest.new("requestId", "jobId", datainputs)
+    request: TaskRequest = TaskRequest.init( "requestId", "jobId", datainputs )
     return edasOpManager.buildRequest(request)
 
-  def print(self, results: List[EDASDataset]):
-    for result in results:
-      for variable in result.inputs:
+  def print(self, results: EDASDataset):
+      for variable in results.inputs:
         result = variable.data.load()
         self.logger.info("\n\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
         self.logger.info(result)

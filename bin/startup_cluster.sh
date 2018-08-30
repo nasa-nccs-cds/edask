@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-dask-ssh --nprocs 10 --hostfile $DIR/../resources/hosts
+dask-ssh --nprocs 4 --hostfile $DIR/../resources/hosts

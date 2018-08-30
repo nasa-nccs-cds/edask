@@ -2,7 +2,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from enum import Enum, auto
 from .source import VariableManager, VariableSource, DataSource
 from .domain import DomainManager, Domain, Axis
-import xarray as xr
+import xarray as xa
 import edask, abc
 
 class OperationInput:
@@ -83,6 +83,25 @@ class WorkflowNode:
     @property
     def alignmentStrategy(self) -> Optional[str]:
         return self.getParm("align")
+
+    @property
+    def grouping(self) -> Optional[str]:
+        rv: Optional[str] = self.getParm("groupby")
+        if rv is None: return None
+        toks = rv.split(".")
+        assert len(toks) == 2, "Malformed grouping parameter (should be 'axis.freq', e.g. 't.season'): " + rv
+        axis, freq = toks[0].lower(), toks[1].lower()
+        return axis + "." + freq
+
+    @property
+    def resampling(self) -> Optional[str]:
+        rv: Optional[str] = self.getParm("resample")
+        if rv is None: return None
+        toks = rv.split(".")
+        assert len(toks) == 2, "Malformed resampling parameter (should be 'axis.freq', e.g. 't.season'): " + rv
+        axis, freq = toks[0].lower(), toks[1].lower()
+        if freq.startswith( "season" ): freq = 'Q-FEB'
+        return axis + "." + freq
 
     def isSimple( self, minInputs: int ) -> bool:
         return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)

@@ -1,28 +1,20 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List, Callable
 import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
-from cdms2.variable import DatasetVariable
-from random import SystemRandom
+from edask.workflow.module import edasOpManager
+from edask.workflow.results import EDASDataset, EDASArray
+from edask.process.task import Job
+from dask.distributed import Client, Future, LocalCluster
 import random, string, os, queue, datetime, atexit
 from enum import Enum
-from edask.portal.parsers import WpsCwtParser
-from edask.process.task import TaskRequest
-
-
-class Job:
-  def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    self.requestId = requestId
-    self.identifier = identifier
-    self.datainputs = datainputs
-    self.runargs = runargs
-    self.priority = priority
+import xarray as xa
 
 class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def executeProcess( self,  service: str, job: Job )-> str: pass
+  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable )-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -44,17 +36,28 @@ class GenericProcessManager:
 
 
 class ProcessManager(GenericProcessManager):
-  parser = WpsCwtParser()
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
-    self.config = serverConfiguration
+      self.config = serverConfiguration
+      self.logger =  logging.getLogger()
+      self.cluster = LocalCluster()
+      self.client = Client(self.cluster)
 
-  def term(self): pass
+  def term(self):
+      self.client.close()
+      self.cluster.close()
 
-  def executeProcess( self, service: str, job: Job ) -> str:
-      dataInputsObj = WpsCwtParser.parseDatainputs( job.datainputs )
-      request: TaskRequest = TaskRequest.new( job.requestId, job.identifier, dataInputsObj )
-      return ""
+  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable ):
+      try:
+        self.logger.info("Defining workflow")
+        result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
+        result_future.add_done_callback( successCallback )
+        self.logger.info("Submitted computation")
+
+      except Exception as ex:
+          self.logger.error( "Execution error: " + str(ex))
+          failureCallback( str(ex) )
+          traceback.print_exc()
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
       #

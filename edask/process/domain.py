@@ -1,7 +1,7 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set
 import string, random
 from enum import Enum, auto
-import xarray as xr
+import xarray as xa
 
 class Axis(Enum):
     UNKNOWN = auto()
@@ -20,7 +20,7 @@ class Axis(Enum):
         return cls.UNKNOWN
 
     @classmethod
-    def bestGuess(cls, variable: xr.DataArray, index: int) -> "Axis":
+    def bestGuess(cls, variable: xa.Dataset, index: int) -> "Axis":
         firstGuess = cls.parse( variable.name )
         if firstGuess == cls.UNKNOWN:
             if "time" in variable.dims:
@@ -35,21 +35,21 @@ class Axis(Enum):
         else: return firstGuess
 
     @classmethod
-    def getCoordMap( cls, variable: xr.DataArray ) -> Dict["Axis",str]:
+    def getCoordMap( cls, variable: xa.Dataset ) -> Dict["Axis",str]:
         try:
             return { cls.parse(coord.attrs["axis"]): name  for ( name, coord ) in variable.coords.items() }
         except:
             return { cls.bestGuess(variable, index): variable.dims[index] for index in range(len(variable.dims)) }
 
     @classmethod
-    def getAxisMap( cls, variable: xr.DataArray ) -> Dict[str,"Axis"]:
+    def getAxisMap( cls, variable: xa.Dataset ) -> Dict[str,"Axis"]:
         try:
             return { name: cls.parse(coord.attrs["axis"])  for ( name, coord ) in variable.coords.items() }
         except:
             return { variable.dims[index]: cls.bestGuess(variable, index) for index in range(len(variable.dims)) }
 
     @classmethod
-    def getAxisAttr( cls, coord: xr.DataArray ) -> "Axis":
+    def getAxisAttr( cls, coord: xa.Dataset ) -> "Axis":
         if "axis" in coord.attrs: return cls.parse( coord.attrs["axis"] )
         else: return cls.UNKNOWN
 
@@ -60,7 +60,7 @@ class Axis(Enum):
         else:           axis_map[aval] = name
 
     @classmethod
-    def getDatasetCoordMap( cls, dset: xr.Dataset, nameToAxis = True, axis2str = True ) -> Dict:
+    def getDatasetCoordMap( cls, dset: xa.Dataset, nameToAxis = True, axis2str = True ) -> Dict:
         axis_map = {}
         for ( name, coord ) in dset.coords.items():
             axis = cls.getAxisAttr( coord )
@@ -162,7 +162,7 @@ class Domain:
     def slice( cls, axis: Axis, bounds: AxisBounds ) -> Tuple[str,slice]:
          return ( bounds.name if axis == Axis.UNKNOWN else axis.name.lower(), bounds.slice() )
 
-    def subset( self, array: xr.DataArray ) -> xr.DataArray:
+    def subset( self, array: xa.Dataset ) -> xa.Dataset:
         for system in [ "val", "ind" ] :
             bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
             if( len(bounds_list) ): array = array.sel( dict( bounds_list ) ) if system == "val" else array.isel( dict( bounds_list ) )

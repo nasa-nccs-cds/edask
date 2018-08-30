@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import xarray as xr
+import xarray as xa
 import time, traceback
 from dask.distributed import Client
 
@@ -19,7 +19,7 @@ try:
 
     print( "READ " + dataset )
     
-    ds_m=xr.open_mfdataset( dataset, autoclose=True, data_vars=['KE'], parallel=True ) 
+    ds_m=xa.open_mfdataset( dataset, autoclose=True, data_vars=['KE'], parallel=True )
 
     print( "COMPUTE MEAN, Result:" )
 
