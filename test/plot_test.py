@@ -10,9 +10,9 @@ class PlotTESTS:
 
     def eof_plot(self, dset: EDASDataset ):
         eofsarray = dset.find_arrays("eofs")[0]
-        fig, axes = plt.subplots(ncols=eofsarray.shape[0])
-        for iaxis in range(eofsarray.shape[0]):
-            eofsarray.sel(mode=iaxis).plot(ax=axes[iaxis])
+        fig, axes = plt.subplots( nrows=2, ncols=2 )
+        for iaxis in range(4):
+            eofsarray.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
 
     def test_diff(self):
         domains = [{"name": "d0", "lat": {"start": -100, "end": 100, "system": "values"},
@@ -42,7 +42,7 @@ class PlotTESTS:
         results.plot()
 
     def test_eofs(self):
-        domains = [{"name": "d0", "lat": {"start": 0, "end": 75, "system": "values"}}]
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}}]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
