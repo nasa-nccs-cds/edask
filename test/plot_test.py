@@ -49,7 +49,8 @@ class PlotTESTS:
                         {"name": "xarray.norm", "input": "dt", "axis": "t", "result": "nt" },
                         {"name": "xarray.eof", "modes": 4, "input": "nt" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot(results)
+        self.eof_plot( "pcs", results )
+        self.eof_plot( "eofs", results )
 
     def test_eofs_reduced(self):
         domains = [{"name": "d0",   "lat":  {"start": 0, "end": 30, "system": "values"},
