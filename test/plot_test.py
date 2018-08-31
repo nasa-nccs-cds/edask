@@ -8,11 +8,11 @@ class PlotTESTS:
     def __init__(self):
         self.mgr = TestManager()
 
-    def eof_plot(self, dset: EDASDataset ):
-        eofsarray = dset.find_arrays("eofs")[0]
+    def eof_plot(self, mtype: str, dset: EDASDataset ):
+        results_array = dset.find_arrays(mtype)[0]
         fig, axes = plt.subplots( nrows=2, ncols=2 )
         for iaxis in range(4):
-            eofsarray.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
+            results_array.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
 
     def test_diff(self):
         domains = [{"name": "d0", "lat": {"start": -100, "end": 100, "system": "values"},
@@ -61,7 +61,8 @@ class PlotTESTS:
                         {"name": "xarray.norm", "input": "dt", "axis": "t", "result": "nt" },
                         {"name": "xarray.eof", "modes": 4, "input": "nt" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( results )
+        self.eof_plot( "pcs", results )
+        self.eof_plot( "eofs", results )
 
 if __name__ == '__main__':
     tester = PlotTESTS()

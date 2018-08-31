@@ -115,12 +115,11 @@ class EofKernel(OpKernel):
         input = variable.xr.rename( {"t":"time"} )
         solver = Eof( input, center = center )
         eofs = variable.updateXa( solver.eofs( neofs=nModes ), "eofs" )
-        pcs = variable.updateXa(  solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs" )
-        projected_pcs = variable.updateXa(  solver.projectField( input, neofs=nModes).rename( {"time":"t"} ).transpose(), "ppcs" )
+        pcs = variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs" )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         eofs["pves"] = str(pves)
-        return [ eofs, pcs, projected_pcs ]
+        return [ eofs, pcs ]
 
 class AnomalyKernel(OpKernel):
     def __init__( self ):
