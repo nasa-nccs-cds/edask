@@ -2,7 +2,7 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
-import string, random, os
+import string, random, os, re
 import xarray as xa
 from xarray.core.groupby import DataArrayGroupBy
 import xarray.plot as xrplot
@@ -242,6 +242,9 @@ class EDASDataset:
     @property
     def groupings(self) -> Set[Transformation]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
 
+    def find_arrays(self, idmatch: str ) -> List[xa.DataArray]:
+        return [ array.xr for id, array in self.arrayMap.items() if re.match(idmatch,id) ]
+
     def compute(self):
         for ( vid, array ) in self.arrayMap.items(): array.compute()
         return self
@@ -300,9 +303,9 @@ class EDASDataset:
         self.attrs.update( other.attrs )
         return self
 
-    def plot(self):
+    def plot(self, idmatch: str = None ):
         fig, axes = plt.subplots(ncols=len( self.ids ) )
-        for iaxis, result in enumerate( self.xarrays ):
+        for iaxis, result in enumerate( self.find_arrays(idmatch) ):
             result.plot(ax=axes[iaxis])
 
     @staticmethod

@@ -3,7 +3,6 @@ import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
 from edask.workflow.module import edasOpManager
-from edask.workflow.results import EDASDataset, EDASArray
 from edask.process.task import Job
 from dask.distributed import Client, Future, LocalCluster
 import random, string, os, queue, datetime, atexit

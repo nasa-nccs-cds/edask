@@ -8,5 +8,5 @@ setup(name='edask',
       author='Thomas Maxwell',
       author_email='thomas.maxwell@nasa.gov',
       url='https://github.com/nasa-nccs-cds/edask.git',
-      packages=['edask', 'edask.portal', 'edask.process', 'edask.workflow', 'edask.collections', 'edask.eofs', 'edask.workflow.internal']
+      packages=['edask', 'edask.portal', 'edask.process', 'edask.workflow', 'edask.collections', 'edask.workflow.internal']
 )
