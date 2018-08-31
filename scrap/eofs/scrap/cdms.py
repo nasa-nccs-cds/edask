@@ -5,7 +5,7 @@ import collections
 import cdms2
 
 from . import standard
-from eofs.tools.xarray import weights_array, cdms2_name
+from scrap.eofs.tools.xarray import weights_array, cdms2_name
 
 
 class Eof(object):

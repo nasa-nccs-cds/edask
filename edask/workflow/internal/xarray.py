@@ -1,17 +1,13 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
-from edask.process.operation import WorkflowNode, SourceNode, OpNode
+from edask.process.operation import WorkflowNode, OpNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
-from typing import List, Dict, Optional, Tuple
-from edask.process.domain import Domain, Axis
-from edask.eofs.solver import Eof
-from scipy import ndimage
+from typing import List, Optional
+from edask.process.domain import Axis
+from eofs.xarray import Eof
 import numpy as np
-import numpy.ma as ma
-import cdms2 as cdms
-from cdutil.times import ANNUALCYCLE
-from xarray.core import ops
+
 
 def accum( accumulator: xa.Dataset, array: xa.Dataset) -> xa.Dataset:
     return array if accumulator is None else accumulator + array
@@ -115,12 +111,12 @@ class EofKernel(OpKernel):
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         nModes = node.getParm("modes", 16 )
-        center = bool( node.getParm("center", "true") )
-        scale =  bool( node.getParm("scale", "true") )
-        solver = Eof( variable.xr, center = center, scale = scale )
+        center = bool( node.getParm("center", "false") )
+        input = variable.xr.rename( {"t":"time"} )
+        solver = Eof( input, center = center )
         eofs = variable.updateXa( solver.eofs( neofs=nModes ), "eofs" )
         pcs = variable.updateXa(  solver.pcs( npcs=nModes ).transpose(), "pcs" )
-        projected_pcs = variable.updateXa(  solver.projectField(variable.xr,neofs=nModes).transpose(), "ppcs" )
+        projected_pcs = variable.updateXa(  solver.projectField( input, neofs=nModes).transpose(), "ppcs" )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         eofs["pves"] = str(pves)

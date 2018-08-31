@@ -1,5 +1,6 @@
 from edask.process.test import TestManager
 import matplotlib.pyplot as plt
+import xarray as xa
 
 class PlotTESTS:
 
@@ -36,9 +37,10 @@ class PlotTESTS:
     def test_eofs(self):
         domains = [{"name": "d0", "lat": {"start": 0, "end": 75, "system": "values"}}]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "input": "v0", "interp_na":True, "result":"dc"},
+        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.eof", "modes":4, "input": "dt" } ]
+                        {"name": "xarray.norm", "input": "dt", "axis": "t", "result": "nt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "nt" } ]
         results = self.mgr.testExec(domains, variables, operations)
         print( str( results.ids ) )
 

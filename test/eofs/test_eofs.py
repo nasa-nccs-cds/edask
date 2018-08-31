@@ -1,7 +1,7 @@
 import cdms2 as cdms
-import  math, cdutil, time, os
-from edask.eofs.solver import EOFSolver
-from edask.eofs.pcProject import InputVarRec
+import time, os
+from scrap.eofs.solver import EOFSolver
+from scrap.eofs.pcProject import InputVarRec
 
 #------------------------------ SET PARAMETERS   ------------------------------
 pname = "20CRv2c"

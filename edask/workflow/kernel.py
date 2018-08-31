@@ -69,7 +69,8 @@ class OpKernel(Kernel):
         domains: Set[str] = EDASArray.domains( inputs, op.domain )
         shapes: Set[Tuple[int]] = EDASArray.shapes( inputs )
         interp_na = bool(op.getParm("interp_na", False))
-        if interp_na: inputs = [ input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for input in inputs ]
+        if interp_na:
+            inputs = [ input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for input in inputs ]
         if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
