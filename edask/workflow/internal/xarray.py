@@ -88,9 +88,26 @@ class DecycleKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
-        climatology = variable.xr.groupby('t.month').mean('t')
-        anomalies = variable.xr.groupby('t.month') - climatology
+        norm = bool(node.getParm("norm", False))
+        grouping = node.getParm("groupby", 't.month')
+        climatology = variable.xr.groupby(grouping).mean('t')
+        anomalies = variable.xr.groupby(grouping) - climatology
+        if norm:
+            anomalies = anomalies.groupby(grouping) / variable.xr.groupby(grouping).std('t')
         return [variable.updateXa( anomalies, "decycle" )]
+
+# class DecycleKernel1(OpKernel):
+#     def __init__( self ):
+#         Kernel.__init__( self, KernelSpec("decycle1", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
+#
+#     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+#         norm = bool(node.getParm( "norm", False ) )
+#         grouping = node.getParm("groupby", 't.month' )
+#         climatology = variable.xr.groupby(grouping).mean('t')
+#         anomalies = variable.xr.groupby(grouping) - climatology
+#         if norm:
+#             anomalies = anomalies.groupby(grouping) / variable.xr.groupby(grouping).std('t')
+#         return [variable.updateXa( anomalies, "decycle" )]
 
 class DetrendKernel(OpKernel):
     def __init__( self ):

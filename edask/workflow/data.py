@@ -305,7 +305,8 @@ class EDASDataset:
 
     def plot(self, idmatch: str = None ):
         fig, axes = plt.subplots(ncols=len( self.ids ) )
-        for iaxis, result in enumerate( self.find_arrays(idmatch) ):
+        xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
+        for iaxis, result in enumerate( xarrays ):
             result.plot(ax=axes[iaxis])
 
     @staticmethod

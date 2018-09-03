@@ -27,7 +27,7 @@ class PlotTESTS:
         domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
                     "lon": {"start": 100, "end": 100, "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [ {"name": "xarray.decycle", "input": "v0"}, {"name": "xarray.noop", "input": "v0"} ]
+        operations = [ {"name": "xarray.decycle", "input": "v0", "norm": "true"}, {"name": "xarray.noop", "input": "v0"} ]
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
@@ -44,10 +44,9 @@ class PlotTESTS:
     def test_eofs(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}}]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
+        operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.norm", "input": "dt", "axis": "t", "result": "nt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "nt" } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pcs", results )
         self.eof_plot( "eofs", results )
@@ -67,5 +66,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_eofs()
+    result = tester.test_decycle()
     plt.show()

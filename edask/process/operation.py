@@ -200,7 +200,14 @@ class OperationManager:
         self.operations: List[WorkflowNode] = _operations
         self.domains = domainManager
         self.variables = variableManager
+        self.module = self.getModule()
         self.addInputOperations()
+
+    def getModule(self):
+        self.module = self.operations[0].module
+        for op in self.operations:
+            if op.module != self.module:
+                raise Exception( "Can't mix modules in a single request: {}, {}".format( op.module, self.module ) )
 
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
