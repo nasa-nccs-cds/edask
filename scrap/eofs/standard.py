@@ -454,7 +454,7 @@ class Eof(object):
         # Create a slicer and use it on the eigenvalue array. A copy must be
         # returned in case the slicer takes all elements, in which case a
         # reference to the eigenvalue array is returned. If this is modified
-        # then the internal eigenvalues array would then be modified as well.
+        # then the modules eigenvalues array would then be modified as well.
         slicer = slice(0, neigs)
         return self._L[slicer].copy()
 

@@ -4,7 +4,7 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging
 import numpy as np
-from edask.workflow.internal.xarray import *
+from edask.workflow.modules.xarray import *
 from edask.process.operation import WorkflowNode
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser

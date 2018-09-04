@@ -51,6 +51,15 @@ class PlotTESTS:
         self.eof_plot( "pcs", results )
         self.eof_plot( "eofs", results )
 
+    def test_proxy_nodes(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}}]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [  {"name": "keras.layer", "input": "v0", "result":"L0"},
+                        {"name": "keras.layer", "input": "L0", "result":"L1" },
+                        {"name": "keras.layer", "input": "L1", "result":"L2" },
+                        {"name": "xarray.ave",  "input": "L2" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+
     def test_eofs_reduced(self):
         domains = [{"name": "d0",   "lat":  {"start": 0, "end": 30, "system": "values"},
                                     "lon":  {"start": 0, "end": 30, "system": "values"},
@@ -66,5 +75,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_decycle()
+    result = tester.test_proxy_nodes()
     plt.show()

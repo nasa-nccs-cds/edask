@@ -72,8 +72,9 @@ class TaskRequest:
   def intersectDomains(self, domainIds = Set[str], allow_broadcast: bool = True  ) -> str:
       return self.operationManager.domains.intersectDomains( domainIds, allow_broadcast )
 
-  def linkWorkflow(self):
+  def linkWorkflow(self) -> List[WorkflowNode]:
       self.operationManager.createWorkflow()
+      return self.operationManager.getOperations()
 
   def domain(self, domId: str ) -> Domain:
       return self.operationManager.getDomain(domId)

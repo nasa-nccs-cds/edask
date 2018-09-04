@@ -3,7 +3,7 @@ import xarray as xa
 import time, traceback, logging
 import numpy.ma as ma
 from edask.process.task import TaskRequest, Job
-from edask.workflow.internal.xarray import *
+from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 

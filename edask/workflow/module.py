@@ -3,9 +3,9 @@ from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel, InputKernel, EDASDataset
 from os import listdir
 from os.path import isfile, join, os
-from edask.process.operation import WorkflowNode,  WorkflowInput
+from edask.process.operation import WorkflowNode,  WorkflowConnector, MasterNode, OpNode
 from edask.process.task import TaskRequest, Job
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Set, Optional
 import xarray as xa
 
 
@@ -51,10 +51,12 @@ class KernelModule(OperationModule):
     #     elif( action == "reduce"): return kernel.executeReduceOp(task, inputs)
     #     else: raise Exception( "Unrecognized kernel.py action: " + action )
 
-    def getKernel(self, task: WorkflowNode):
-        key = task.op.lower()
-        constructor = self._kernels.get( key )
-        assert constructor is not None, "Unidentified Kernel: " + key
+    def getKernel(self, node: WorkflowNode):
+        return self.createKernel( node.op.lower() )
+
+    def createKernel(self, name ):
+        constructor = self._kernels.get( name )
+        assert constructor is not None, "Unidentified Kernel: " + name
         return constructor()
 
     def getCapabilities(self): return [ kernel().getCapabilities() for kernel in self._kernels.values() ]
@@ -73,11 +75,11 @@ class KernelManager:
 
     def build(self):
         directory = os.path.dirname(os.path.abspath(__file__))
-        internals_path = os.path.join( directory, "internal")
+        internals_path = os.path.join( directory, "modules")
         allfiles = [ os.path.splitext(f) for f in listdir(internals_path) if ( isfile(join(internals_path, f)) ) ]
         modules = [ ftoks[0] for ftoks in allfiles if ( (ftoks[1] == ".py") and (ftoks[0] != "__init__") ) ]
         for module_name in modules:
-            module_path = "edask.workflow.internal." + module_name
+            module_path = "edask.workflow.modules." + module_name
             module = __import__( module_path, globals(), locals(), ['*']  )
             kernels = { InputKernel().name.lower(): InputKernel }
             for clsname in dir(module):
@@ -98,9 +100,14 @@ class KernelManager:
     def getModule(self, task: WorkflowNode) -> KernelModule:
         return self.operation_modules[ task.module ]
 
-    def getKernel(self, task: WorkflowNode):
-        module = self.operation_modules[ task.module ]
-        return module.getKernel(task)
+    def getKernel(self, node: WorkflowNode):
+        module = self.operation_modules[ node.module ]
+        return module.getKernel(node)
+
+    def getMasterKernel(self, node: MasterNode):
+        [ module, op ] = node.name.split(".")
+        module = self.operation_modules[ module ]
+        return module.createKernel( op )
 
     def getCapabilitiesStr(self) -> str:
         specs = [ opMod.serialize() for opMod in self.operation_modules.values() ]
@@ -114,14 +121,14 @@ class KernelManager:
         inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
-            if isinstance( input, WorkflowInput ):
+            if isinstance(input, WorkflowConnector):
                 connection = input.getConnection()
                 inputDatasets.append( self.buildSubWorkflow( request, connection ) )
         return kernel.getResultDataset( request, op, inputDatasets )
 
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
-        resultOps = request.getResultOperations()
+        resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
         return result
@@ -129,6 +136,41 @@ class KernelManager:
     def buildTask(self, job: Job ) -> EDASDataset:
         request: TaskRequest = TaskRequest.new( job )
         return self.buildRequest( request )
+
+    def createMasterNodes(self, rootNode: WorkflowNode, masterNode: Optional[MasterNode], masterNodeList: Set[MasterNode] ):
+        currentMasterNode = masterNode
+        if rootNode.proxyProcessed:
+            if masterNode is not None and rootNode.masterNode is not None:
+                assert rootNode.masterNode.name == currentMasterNode.name, "Overlapping proxy domains (conflicting master nodes) in workflow: {} vs {} at kernel {}".format( rootNode.masterNode.node.name, currentMasterNode.name, rootNode.name )
+                rootNode.masterNode.absorb( currentMasterNode )
+                masterNodeList.remove( currentMasterNode )
+        else:
+            kernel = self.getKernel( rootNode )
+            if kernel.parent is None:
+                if currentMasterNode is not None:
+                    currentMasterNode.addInput( rootNode )
+                currentMasterNode = None
+            else:
+                if currentMasterNode is None:
+                    currentMasterNode = MasterNode(kernel.parent)
+                    currentMasterNode.addOutputs( rootNode.outputs )
+                    masterNodeList.add( currentMasterNode )
+                currentMasterNode.addProxey(rootNode)
+            for conn in rootNode.inputs:
+                self.createMasterNodes( conn.getConnection(), currentMasterNode, masterNodeList )
+
+    def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
+        masterNodes: Set[MasterNode] = set()
+        currentMasterNode: MasterNode = None
+        for node in resultOps:
+            self.createMasterNodes( node, currentMasterNode, masterNodes )
+        for masterNode in masterNodes:
+            outputConnections: Set[WorkflowConnector] = masterNode.getOutputs()
+            rids = [ conn.name for conn in outputConnections ]
+            opNode = OpNode( masterNode.name, None, ",".join(rids), {} )
+            for inputConnector in masterNode.getInputConnectiouns():  opNode.addInput(inputConnector)
+            opNode["master"] = masterNode
+        return resultOps
 
 
 edasOpManager = KernelManager()

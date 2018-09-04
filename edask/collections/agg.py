@@ -4,7 +4,7 @@ import numpy as np
 import edask
 from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
-from edask.process.operation import SourceInput
+from edask.process.operation import SourceConnector
 from edask.process.source import VID
 
 

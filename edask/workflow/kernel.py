@@ -18,6 +18,7 @@ class Kernel:
     def __init__( self, spec: KernelSpec ):
         self.logger = logging.getLogger()
         self._spec: KernelSpec = spec
+        self.parent: Optional[str] = None
         self._minInputs = 1
         self._maxInputs = 100000
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )

@@ -1,11 +1,11 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from enum import Enum, auto
 from .source import VariableManager, VariableSource, DataSource
-from .domain import DomainManager, Domain, Axis
+from .domain import DomainManager, Domain, Axis, Sequence
 import xarray as xa
 import edask, abc
 
-class OperationInput:
+class OperationConnector:
    __metaclass__ = abc.ABCMeta
 
    def __init__( self, _name: str ):
@@ -14,10 +14,10 @@ class OperationInput:
    @abc.abstractmethod
    def getResultIds(self): pass
 
-class SourceInput(OperationInput):
+class SourceConnector(OperationConnector):
 
     def __init__( self, _name: str, _source: VariableSource ):
-        super(SourceInput, self).__init__( _name )
+        super(SourceConnector, self).__init__(_name)
         self.source = _source
 
     def __str__(self):
@@ -26,14 +26,14 @@ class SourceInput(OperationInput):
     def getResultIds(self):
         return self.source.ids()
 
-class WorkflowInput(OperationInput):
+class WorkflowConnector(OperationConnector):
 
     def __init__( self, name: str ):
-        super(WorkflowInput, self).__init__( name )
+        super(WorkflowConnector, self).__init__(name)
         self._connection: WorkflowNode = None
 
-    def setConnection(self, connection: 'WorkflowNode'):
-        self._connection = connection
+    def setConnection(self, inputNode: 'WorkflowNode'):
+        self._connection = inputNode
 
     def getConnection( self ) -> "WorkflowNode":
         return self._connection
@@ -46,6 +46,10 @@ class WorkflowInput(OperationInput):
     def __str__(self):
         return "WI({})[ connection: {} ]".format( self.name, self._connection.getId() if self._connection else "UNDEF" )
 
+class MasterNodeWrapper:
+
+    def __init__(self, _node: Optional["MasterNode"] = None ):
+        self.node = _node
 
 class WorkflowNode:
     __metaclass__ = abc.ABCMeta
@@ -58,15 +62,29 @@ class WorkflowNode:
         self.module: str = nameToks[0]
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
-        self.inputs: List[OperationInput] = []
+        self.inputs: List[OperationConnector] = []
+        self.outputs: List[WorkflowNode] = []
+        self._masterNode: MasterNodeWrapper = None
         self._addWorkflowInputs()
+
+    @property
+    def proxyProcessed(self)->bool: return self._masterNode is not None
+
+    @property
+    def masterNode(self)-> "MasterNode": return self._masterNode.node
+
+    @masterNode.setter
+    def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
 
     def _addWorkflowInputs(self):
         for inputName in self.metadata.get("input","").split(","):
-            if inputName: self.addInput( WorkflowInput( inputName ) )
+            if inputName: self.addInput(WorkflowConnector(inputName))
 
-    def addInput(self, input: OperationInput ):
+    def addInput(self, input: OperationConnector):
         self.inputs.append( input )
+
+    def addOutput(self, output: "WorkflowNode"):
+        self.outputs.append( output )
 
     def getParm(self, key: str, default: Any = None ) -> Any:
         return self.metadata.get( key, default )
@@ -132,6 +150,9 @@ class WorkflowNode:
 
     variableManager: VariableManager
 
+    def __getitem__( self, key: str ) -> Any: return self.metadata.get( key )
+    def __setitem__(self, key: str, value: Any ): self.metadata[key] = value
+
     def __str__(self):
         return "Op({}:{})[ domain: {}, rid: {}, axes: {}, inputs: {} ]".format( self.name, self.op, self.domain, self.rid, str(self.axes), "; ".join( [ str(i) for i in self.inputs ] ) )
 
@@ -189,6 +210,55 @@ class OpNode(WorkflowNode):
         nodeName = self.rid if self.rid else self.name
         return "-".join( [ nodeName, varName ] )
 
+class MasterNode:
+
+    def __init__(self, _name: str  ):
+        self.name: str = _name
+        self.children: Set[WorkflowNode] = set()
+        self.inputs: Set[WorkflowNode] = set()
+        self.outputs: Set[WorkflowNode] = set()
+
+    def getInputConnectiouns(self):
+        connections: Set[WorkflowConnector] = set()
+        for childNode in self.children:
+            for input in childNode.inputs:
+                if isinstance( input, WorkflowConnector ):
+                    wc: WorkflowConnector = input
+                    if wc.getConnection() in self.inputs:
+                       connections.add(wc)
+        return connections
+
+    def getOutputConnectiouns(self):
+        connections: Set[WorkflowConnector] = set()
+        for childNode in self.children:
+            for input in childNode.inputs:
+                if isinstance( input, WorkflowConnector ):
+                    wc: WorkflowConnector = input
+                    if wc.getConnection() in self.inputs:
+                       connections.add(wc)
+        return connections
+
+    def addProxey(self, node: WorkflowNode):
+        self.children.add( node )
+        node.masterNode = self
+
+    def addInput(self, node: WorkflowNode):
+        self.inputs.add( node )
+
+    def addOutputs(self, outputNodes: List[WorkflowNode] ):
+        self.outputs.update( outputNodes )
+
+    def getOutputs(self) -> Set[WorkflowNode]:
+        return set( filter( lambda output: output not in self.children, self.outputs ) )
+
+    def overlaps(self, other: "MasterNode" )-> bool:
+        return not self.children.isdisjoint( other.children )
+
+    def absorb(self, other: "MasterNode" ):
+        self.children.update( other.children )
+        self.inputs.update( other.inputs )
+        self.rids.update( other.rids )
+
 class OperationManager:
 
     @classmethod
@@ -200,14 +270,13 @@ class OperationManager:
         self.operations: List[WorkflowNode] = _operations
         self.domains = domainManager
         self.variables = variableManager
-        self.module = self.getModule()
         self.addInputOperations()
 
-    def getModule(self):
-        self.module = self.operations[0].module
-        for op in self.operations:
-            if op.module != self.module:
-                raise Exception( "Can't mix modules in a single request: {}, {}".format( op.module, self.module ) )
+    # def getModule(self):
+    #     self.module = self.operations[0].module
+    #     for op in self.operations:
+    #         if op.module != self.module:
+    #             raise Exception( "Can't mix modules in a single request: {}, {}".format( op.module, self.module ) )
 
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
@@ -226,13 +295,19 @@ class OperationManager:
     def createWorkflow(self):
         for operation in self.operations:
             for input in operation.inputs:
-                if isinstance( input, WorkflowInput ) and not input.isConnected():
-                    connection = self.findOperationByResult( input.name )
-                    if connection is not None: input.setConnection( connection )
+                if isinstance(input, WorkflowConnector) and not input.isConnected():
+                    connection: Optional[WorkflowNode] = self.findOperationByResult( input.name )
+                    if connection is not None:
+                        input.setConnection( connection )
+                        connection.addOutput( operation )
                     else: raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
 
     def getResultOperations(self) -> List[WorkflowNode]:
          return list( filter( lambda x: x.isResult(), self.operations ) )
+
+    def getOperations(self) -> List[WorkflowNode]:
+         return self.operations
+
 
 
 #    def getkernels(self):

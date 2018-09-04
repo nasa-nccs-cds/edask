@@ -4,7 +4,7 @@ import xarray as xa
 import time, traceback, logging
 import numpy.ma as ma
 from pandas.core.indexes.datetimes import DatetimeIndex
-from edask.workflow.internal.xarray import *
+from edask.workflow.modules.xarray import *
 from edask.process.test import TestManager
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
