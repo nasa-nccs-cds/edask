@@ -14,6 +14,22 @@ def parse_dict( dict_spec ):
         elem_toks = elem.split(":")
         result[ elem_toks[0].strip() ] = elem_toks[1].strip()
 
+class Archive:
+
+    cacheDir = os.environ['EDAS_CACHE_DIR']
+    baseDir = os.path.join( cacheDir, "results" )
+
+    @classmethod
+    def getProjectPath( cls, project: str ):
+        path = os.path.join( Archive.baseDir, project )
+        os.makedirs( path, mode=0o777, exist_ok=True )
+        return path
+
+    @classmethod
+    def getExperimentPath( cls, project: str, experiment: str ):
+        projPath = cls.getProjectPath( project )
+        return os.path.join( projPath, experiment + ".nc")
+
 class Collection:
 
     cacheDir = os.environ['EDAS_CACHE_DIR']

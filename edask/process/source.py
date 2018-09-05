@@ -7,6 +7,7 @@ class SourceType(Enum):
     collection = auto()
     dap = auto()
     file = auto()
+    archive = auto()
 
 class DataSource:
 
@@ -34,6 +35,9 @@ class DataSource:
             elif scheme == "file":
                 self.type = SourceType.file
                 self.address = toks[1]
+            elif scheme == "archive":
+                self.type = SourceType.archive
+                self.address = toks[1]
             else:
                 raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,_address) )
         else:
@@ -50,6 +54,8 @@ class VID:
         self.id = _id
 
    def elem(self) -> Tuple[str,str]: return ( self.name, self.id  )
+
+   def identity(self) -> bool: return ( self.name == self.id  )
 
    def __str__(self):
         return "{}:{}".format( self.name, self.id )
@@ -75,7 +81,7 @@ class VariableSource:
         self.dataSource: DataSource = _source
 
     def name2id(self, existingMap: Dict[str,str] = {} ) -> Dict[str,str]:
-        existingMap.update( { v.elem() for v in self.vids } )
+        existingMap.update( { v.elem() for v in self.vids if not v.identity() } )
         return existingMap
 
     def names(self):

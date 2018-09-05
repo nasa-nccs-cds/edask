@@ -1,11 +1,13 @@
 from edask.process.test import TestManager
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset, EDASArray
+import logging
 import xarray as xa
 
 class PlotTESTS:
 
     def __init__(self):
+        self.logger =  logging.getLogger()
         self.mgr = TestManager()
 
     def eof_plot(self, mtype: str, dset: EDASDataset ):
@@ -13,6 +15,12 @@ class PlotTESTS:
         fig, axes = plt.subplots( nrows=2, ncols=2 )
         for iaxis in range(4):
             results_array.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
+
+    def print(self, results: EDASDataset):
+      for variable in results.inputs:
+        result = variable.xr.load()
+        self.logger.info("\n\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
+        self.logger.info(result)
 
     def test_diff(self):
         domains = [{"name": "d0", "lat": {"start": -100, "end": 100, "system": "values"},
@@ -46,21 +54,20 @@ class PlotTESTS:
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt" } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"eofs" },
+                        {"name": "xarray.archive", "proj":"test_eofs", "exp":"pcs-eofs", "input": "eofs" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pcs", results )
         self.eof_plot( "eofs", results )
 
     def test_proxy_nodes(self):
-        domains = [{"name": "d0",   "lat":  {"start": 0, "end": 80, "system": "values"},
-                                    "time": {"start": '1980-01-01T00', "end": '1985-01-31T00', "system": "values"}}]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        variables = [{"uri": "archive:test_eofs/pcs-eofs", "name": "pcs:v0"}]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0"},
                         {"name": "keras.layer", "input": "L0", "result":"L1" },
                         {"name": "keras.layer", "input": "L1", "result":"L2" },
                         {"name": "xarray.ave",  "axis":"t", "input": "L2" } ]
-        results = self.mgr.testExec(domains, variables, operations)
-        results.plot()
+        results = self.mgr.testExec( [], variables, operations )
+        self.print( results )
 
     def test_eofs_reduced(self):
         domains = [{"name": "d0",   "lat":  {"start": 0, "end": 30, "system": "values"},

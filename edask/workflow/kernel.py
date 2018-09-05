@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string
+import logging, random, string, os, datetime
 from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional, Tuple
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
+from edask.collections.agg import Archive
 import xarray as xa
 from .data import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType
@@ -105,6 +106,11 @@ class InputKernel(Kernel):
             self.logger.info( "Reading data from address: " + dataSource.address )
             dset = xa.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
             result += self.processDataset( request, dset, snode )
+        elif dataSource.type == SourceType.archive:
+            self.logger.info( "Reading data from archive: " + dataSource.address )
+            dataPath = Archive.getExperimentPath( *dataSource.address.split("/") )
+            dset = xa.open_dataset( dataPath, autoclose=True )
+            result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
             dset = xa.open_dataset( dataSource.address, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
@@ -113,4 +119,4 @@ class InputKernel(Kernel):
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
         edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
-        return edset.subset( request.domain( snode.domain ) )
+        return edset.subset( request.domain( snode.domain ) ) if snode.domain else edset

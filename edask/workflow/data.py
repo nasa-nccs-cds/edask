@@ -65,7 +65,7 @@ class EDASArray:
     @property
     def name(self) -> str: return self.xr.name
 
-    def rname(self, op: str ) -> str: return op + "(" + self.name + ")"
+    def rname(self, op: str ) -> str: return op + "[" + self.name + "]"
 
     @name.setter
     def name(self, value): self.xr.name = value
@@ -213,7 +213,7 @@ class EDASDataset:
     def id(self) -> str: return "-".join( self.arrayMap.keys() )
 
     @property
-    def xr(self) -> xa.Dataset: return xa.Dataset( { xa.name:xa for xa in self.xarrays }, self.attrs )
+    def xr(self) -> xa.Dataset: return xa.Dataset( { xa.name:xa for xa in self.xarrays }, attrs=self.attrs )
 
     @property
     def vars2doms(self) -> Dict[str,str]: return { name:array.domId for ( name, array ) in self.arrayMap.items() }
@@ -322,3 +322,6 @@ class EDASDataset:
             arrayMap.update( dset.arrayMap )
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
+
+    def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )
+    def __setitem__(self, key: str, value: Any ): self.attrs[key] = value

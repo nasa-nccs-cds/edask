@@ -118,6 +118,7 @@ class KernelManager:
         return module.describeProcess( op )
 
     def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> EDASDataset:
+        print( "buildSubWorkflow: " + op.name )
         inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
@@ -129,6 +130,7 @@ class KernelManager:
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
+        assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
         return result
@@ -139,8 +141,7 @@ class KernelManager:
 
     def createMasterNodes(self, rootNode: WorkflowNode, masterNodeList: Set[MasterNode], currentMasterNode: Optional[MasterNode] = None ):
         if rootNode.proxyProcessed:
-            if currentMasterNode is not None and rootNode.masterNode is not None:
-                assert rootNode.masterNode.name == currentMasterNode.name, "Overlapping proxy domains (conflicting master nodes) in workflow: {} vs {} at kernel {}".format( rootNode.masterNode.node.name, currentMasterNode.name, rootNode.name )
+            if (currentMasterNode is not None) and (rootNode.masterNode is not None) and (rootNode.masterNode.name == currentMasterNode.name):
                 rootNode.masterNode.absorb( currentMasterNode )
                 masterNodeList.remove( currentMasterNode )
         else:

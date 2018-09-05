@@ -3,9 +3,11 @@ import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
+from edask.collections.agg import Archive
 from typing import List, Optional
-from edask.process.domain import Axis
+from edask.process.domain import Axis, DomainManager
 from eofs.xarray import Eof
+import datetime, os
 import numpy as np
 
 
@@ -188,3 +190,20 @@ class NoOp(Kernel):
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, NoOp inputs: " + str( [ str(w) for w in op.inputs ] ) )
         return EDASDataset.merge(inputs)
+
+class ArchiveKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("archive", "Archive Result Data","Save request result data onto cluster for use by subsequest requests" ) )
+
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]):
+        node: OpNode = wnode
+        project = node.getParm("proj", DomainManager.randomId(6) )
+        experiment = node.getParm("exp", request.name  + "." + datetime.datetime.now().strftime("%m-%d-%y.%H-%M-%S") )
+        resultPath = Archive.getExperimentPath( project, experiment )
+        result: EDASDataset = EDASDataset.merge(inputs)
+        renameMap = { id:id.split("[")[0] for id in result.ids }
+        result.xr.rename(renameMap).to_netcdf( resultPath, mode="w" )
+        self.logger.info( "Archived results {} to {}".format( result.id, resultPath ) )
+        result["archive"] = resultPath
+        return result
+
