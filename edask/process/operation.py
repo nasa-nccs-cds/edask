@@ -8,20 +8,23 @@ import edask, abc
 class OperationConnector:
    __metaclass__ = abc.ABCMeta
 
-   def __init__( self, _name: str ):
-        self.name = _name
+   def __init__( self, name: str ):
+        self._name = name
+
+   @property
+   def name(self)->str: return self._name
 
    @abc.abstractmethod
    def getResultIds(self): pass
 
 class SourceConnector(OperationConnector):
 
-    def __init__( self, _name: str, _source: VariableSource ):
-        super(SourceConnector, self).__init__(_name)
+    def __init__( self, name: str, _source: VariableSource ):
+        super(SourceConnector, self).__init__(name)
         self.source = _source
 
     def __str__(self):
-        return "SI({})[ {} ]".format( self.name, str(self.source) )
+        return "SI({})[ {} ]".format(self._name, str(self.source))
 
     def getResultIds(self):
         return self.source.ids()
@@ -32,8 +35,11 @@ class WorkflowConnector(OperationConnector):
         super(WorkflowConnector, self).__init__(name)
         self._connection: WorkflowNode = None
 
-    def setConnection(self, inputNode: 'WorkflowNode'):
+    def setConnection(self, inputNode: 'WorkflowNode', updateName = False):
         self._connection = inputNode
+        if updateName and isinstance( inputNode, OpNode ):
+            opNode: OpNode = inputNode
+            self._name = opNode.rid
 
     def getConnection( self ) -> "WorkflowNode":
         return self._connection
@@ -198,7 +204,7 @@ class OpNode(WorkflowNode):
         rid: str = operationSpec.get("result",None)
         return OpNode(name, domain, rid, operationSpec)
 
-    def __init__(self, name: str, domain: str, _rid: str, metadata: Dict[str,Any] ):
+    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
         super( OpNode, self ).__init__( name, domain, metadata)
         self.rid = _rid
 
@@ -236,6 +242,11 @@ class MasterNode:
                        connections.add(wc)
         return connections
 
+    def getInputProxies(self) -> List[WorkflowNode]:
+        input_node_candidates = [ internal_node_candidate for external_node in self.inputs for internal_node_candidate in external_node.outputs ]
+        return list( filter( lambda node: node in self.proxies, input_node_candidates) )
+
+
     def getOutputRids(self) -> List[str]:
         outputRids: Set[str] = set()
         for proxy in self.proxies:
@@ -262,19 +273,21 @@ class MasterNode:
     def absorb(self, other: "MasterNode" ):
         self.proxies.update(other.proxies)
         self.inputs.update( other.inputs )
-        self.rids.update( other.rids )
+        self.outputs.update( other.outputs )
 
     def spliceIntoWorkflow(self):
         outputRids = self.getOutputRids()
         assert len( outputRids ) == 1, "Wrong number of outputs in Master Node {}: {}".format( self.name, len( outputRids ) )
-        opNode = OpNode( self.name, None, outputRids[0], {} )
+        opNode = OpNode( self.name, None, outputRids[0], {"master": self} )
         for inputConnector in self.getInputConnectiouns():  opNode.addInput(inputConnector)
         for outputNode in self.getOutputs():
             for connection in outputNode.inputs:
-                if connection.getConnection() in self.proxies:
-                    connection.setConnection(opNode)
-                    connection.name = opNode.rid
-                    opNode.addOutput( outputNode )
+                if isinstance( connection, WorkflowConnector):
+                    wfconn: WorkflowConnector = connection
+                    if wfconn.getConnection() in self.proxies:
+                        wfconn.setConnection(opNode,True)
+                        opNode.addOutput( outputNode )
+
 
 class OperationManager:
 
