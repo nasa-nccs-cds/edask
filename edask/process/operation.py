@@ -62,8 +62,8 @@ class WorkflowNode:
         self.module: str = nameToks[0]
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
-        self.inputs: List[OperationConnector] = []
-        self.outputs: List[WorkflowNode] = []
+        self._inputs: List[OperationConnector] = []
+        self._outputs: List[WorkflowNode] = []
         self._masterNode: MasterNodeWrapper = None
         self._addWorkflowInputs()
 
@@ -73,6 +73,12 @@ class WorkflowNode:
     @property
     def masterNode(self)-> "MasterNode": return self._masterNode.node
 
+    @property
+    def inputs(self)-> List[OperationConnector]: return self._inputs
+
+    @property
+    def outputs(self)-> List["WorkflowNode"]: return self._outputs
+
     @masterNode.setter
     def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
 
@@ -81,10 +87,10 @@ class WorkflowNode:
             if inputName: self.addInput(WorkflowConnector(inputName))
 
     def addInput(self, input: OperationConnector):
-        self.inputs.append( input )
+        self._inputs.append( input )
 
     def addOutput(self, output: "WorkflowNode"):
-        self.outputs.append( output )
+        self._outputs.append( output )
 
     def getParm(self, key: str, default: Any = None ) -> Any:
         return self.metadata.get( key, default )
@@ -147,6 +153,8 @@ class WorkflowNode:
 
     def hasAxis( self, axis: Axis ) -> bool:
         return self.axes.count( axis.name.lower() ) > 0
+
+
 
     variableManager: VariableManager
 
@@ -214,32 +222,29 @@ class MasterNode:
 
     def __init__(self, _name: str  ):
         self.name: str = _name
-        self.children: Set[WorkflowNode] = set()
+        self.proxies: Set[WorkflowNode] = set()
         self.inputs: Set[WorkflowNode] = set()
         self.outputs: Set[WorkflowNode] = set()
 
-    def getInputConnectiouns(self):
+    def getInputConnectiouns(self) -> Set[WorkflowConnector]:
         connections: Set[WorkflowConnector] = set()
-        for childNode in self.children:
-            for input in childNode.inputs:
+        for proxy in self.proxies:
+            for input in proxy.inputs:
                 if isinstance( input, WorkflowConnector ):
                     wc: WorkflowConnector = input
                     if wc.getConnection() in self.inputs:
                        connections.add(wc)
         return connections
 
-    def getOutputConnectiouns(self):
-        connections: Set[WorkflowConnector] = set()
-        for childNode in self.children:
-            for input in childNode.inputs:
-                if isinstance( input, WorkflowConnector ):
-                    wc: WorkflowConnector = input
-                    if wc.getConnection() in self.inputs:
-                       connections.add(wc)
-        return connections
+    def getOutputRids(self) -> List[str]:
+        outputRids: Set[str] = set()
+        for proxy in self.proxies:
+            outputNodes = filter( lambda node: node not in self.proxies, proxy.outputs )
+            if len( list( outputNodes ) ): outputRids.update( proxy.getResultIds() )
+        return list( outputRids )
 
-    def addProxey(self, node: WorkflowNode):
-        self.children.add( node )
+    def addProxy(self, node: WorkflowNode):
+        self.proxies.add(node)
         node.masterNode = self
 
     def addInput(self, node: WorkflowNode):
@@ -249,15 +254,27 @@ class MasterNode:
         self.outputs.update( outputNodes )
 
     def getOutputs(self) -> Set[WorkflowNode]:
-        return set( filter( lambda output: output not in self.children, self.outputs ) )
+        return set(filter(lambda output: output not in self.proxies, self.outputs))
 
     def overlaps(self, other: "MasterNode" )-> bool:
-        return not self.children.isdisjoint( other.children )
+        return not self.proxies.isdisjoint(other.proxies)
 
     def absorb(self, other: "MasterNode" ):
-        self.children.update( other.children )
+        self.proxies.update(other.proxies)
         self.inputs.update( other.inputs )
         self.rids.update( other.rids )
+
+    def spliceIntoWorkflow(self):
+        outputRids = self.getOutputRids()
+        assert len( outputRids ) == 1, "Wrong number of outputs in Master Node {}: {}".format( self.name, len( outputRids ) )
+        opNode = OpNode( self.name, None, outputRids[0], {} )
+        for inputConnector in self.getInputConnectiouns():  opNode.addInput(inputConnector)
+        for outputNode in self.getOutputs():
+            for connection in outputNode.inputs:
+                if connection.getConnection() in self.proxies:
+                    connection.setConnection(opNode)
+                    connection.name = opNode.rid
+                    opNode.addOutput( outputNode )
 
 class OperationManager:
 

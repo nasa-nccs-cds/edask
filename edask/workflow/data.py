@@ -304,10 +304,14 @@ class EDASDataset:
         return self
 
     def plot(self, idmatch: str = None ):
-        fig, axes = plt.subplots(ncols=len( self.ids ) )
-        xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
-        for iaxis, result in enumerate( xarrays ):
-            result.plot(ax=axes[iaxis])
+        nplots = len( self.ids )
+        fig, axes = plt.subplots(ncols=nplots)
+        if nplots == 1:
+            self.xarrays[0].plot(ax=axes)
+        else:
+            xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
+            for iaxis, result in enumerate( xarrays ):
+                result.plot(ax=axes[iaxis])
 
     @staticmethod
     def merge(dsets: List["EDASDataset"]):

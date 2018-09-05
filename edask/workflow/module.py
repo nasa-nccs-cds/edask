@@ -137,10 +137,9 @@ class KernelManager:
         request: TaskRequest = TaskRequest.new( job )
         return self.buildRequest( request )
 
-    def createMasterNodes(self, rootNode: WorkflowNode, masterNode: Optional[MasterNode], masterNodeList: Set[MasterNode] ):
-        currentMasterNode = masterNode
+    def createMasterNodes(self, rootNode: WorkflowNode, masterNodeList: Set[MasterNode], currentMasterNode: Optional[MasterNode] = None ):
         if rootNode.proxyProcessed:
-            if masterNode is not None and rootNode.masterNode is not None:
+            if currentMasterNode is not None and rootNode.masterNode is not None:
                 assert rootNode.masterNode.name == currentMasterNode.name, "Overlapping proxy domains (conflicting master nodes) in workflow: {} vs {} at kernel {}".format( rootNode.masterNode.node.name, currentMasterNode.name, rootNode.name )
                 rootNode.masterNode.absorb( currentMasterNode )
                 masterNodeList.remove( currentMasterNode )
@@ -155,21 +154,14 @@ class KernelManager:
                     currentMasterNode = MasterNode(kernel.parent)
                     currentMasterNode.addOutputs( rootNode.outputs )
                     masterNodeList.add( currentMasterNode )
-                currentMasterNode.addProxey(rootNode)
+                currentMasterNode.addProxy(rootNode)
             for conn in rootNode.inputs:
-                self.createMasterNodes( conn.getConnection(), currentMasterNode, masterNodeList )
+                self.createMasterNodes( conn.getConnection(), masterNodeList, currentMasterNode )
 
     def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
         masterNodes: Set[MasterNode] = set()
-        currentMasterNode: MasterNode = None
-        for node in resultOps:
-            self.createMasterNodes( node, currentMasterNode, masterNodes )
-        for masterNode in masterNodes:
-            outputConnections: Set[WorkflowConnector] = masterNode.getOutputs()
-            rids = [ conn.name for conn in outputConnections ]
-            opNode = OpNode( masterNode.name, None, ",".join(rids), {} )
-            for inputConnector in masterNode.getInputConnectiouns():  opNode.addInput(inputConnector)
-            opNode["master"] = masterNode
+        for node in resultOps: self.createMasterNodes( node, masterNodes )
+        for masterNode in masterNodes: masterNode.spliceIntoWorkflow()
         return resultOps
 
 

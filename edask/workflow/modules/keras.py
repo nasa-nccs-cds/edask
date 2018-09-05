@@ -18,7 +18,7 @@ class ModelKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
-        pass
+        return [variable]
 
 
 

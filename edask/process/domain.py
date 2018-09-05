@@ -196,7 +196,8 @@ class DomainManager:
         self.domains[ new_domId ] = result_domain
         return new_domId
 
-    def randomId(self, length )-> str:
+    @staticmethod
+    def randomId( length )-> str:
         tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
         return ''.join( random.SystemRandom().choice( tokens ) for _ in range( length ) )
 
