@@ -64,7 +64,7 @@ class PlotTESTS:
         variables = [{"uri": "archive:test_eofs/pcs-eofs", "name": "pcs:v0"}]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
-                        {"name": "keras.train",  "axis":"t", "input": "L1", "epochs":100, "scheduler:iterations":100 } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1", "epochs":100, "scheduler:iterations":1 } ]
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 
