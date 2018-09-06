@@ -133,8 +133,8 @@ class EofKernel(OpKernel):
         center = bool( node.getParm("center", "false") )
         input = variable.xr.rename( {"t":"time"} )
         solver = Eof( input, center = center )
-        eofs = variable.updateXa( solver.eofs( neofs=nModes ), "eofs" )
-        pcs = variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs" )
+        eofs = variable.updateXa( solver.eofs( neofs=nModes ), "eofs", { "mode": "m"} )
+        pcs = variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs", { "mode": "m"}  )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         eofs["pves"] = str(pves)

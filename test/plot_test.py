@@ -14,7 +14,7 @@ class PlotTESTS:
         results_array = dset.find_arrays(mtype)[0]
         fig, axes = plt.subplots( nrows=2, ncols=2 )
         for iaxis in range(4):
-            results_array.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
+            results_array.sel(m=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
 
     def print(self, results: EDASDataset):
       for variable in results.inputs:
@@ -62,10 +62,9 @@ class PlotTESTS:
 
     def test_proxy_nodes(self):
         variables = [{"uri": "archive:test_eofs/pcs-eofs", "name": "pcs:v0"}]
-        operations = [  {"name": "keras.layer", "input": "v0", "result":"L0"},
-                        {"name": "keras.layer", "input": "L0", "result":"L1" },
-                        {"name": "keras.layer", "input": "L1", "result":"L2" },
-                        {"name": "xarray.ave",  "axis":"t", "input": "L2" } ]
+        operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
+                        {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
+                        {"name": "keras.train",  "axis":"t", "input": "L1" } ]
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 

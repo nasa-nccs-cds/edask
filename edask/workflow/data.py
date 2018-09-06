@@ -97,8 +97,8 @@ class EDASArray:
         new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
         return self.updateXa(new_data,"align")
 
-    def updateXa(self, new_data: xa.DataArray, opId:str) -> "EDASArray":
-        return EDASArray( self.rname(opId), self.domId, new_data, self.transforms )
+    def updateXa(self, new_data: xa.DataArray, opId:str, rename_dict: Dict[str,str] = {}) -> "EDASArray":
+        return EDASArray( self.rname(opId), self.domId, new_data.rename(rename_dict), self.transforms )
 
     def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
         xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
@@ -202,6 +202,8 @@ class EDASDataset:
     def save( self, filePath  ):
         self.xr.to_netcdf( path=filePath )
         return filePath
+
+    def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
 
     @property
     def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }

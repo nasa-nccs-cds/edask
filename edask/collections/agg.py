@@ -30,6 +30,12 @@ class Archive:
         projPath = cls.getProjectPath( project )
         return os.path.join( projPath, experiment + ".nc")
 
+    @classmethod
+    def getLogDir( cls ):
+        path = os.path.join( Archive.baseDir, "logs" )
+        os.makedirs( path, mode=0o777, exist_ok=True )
+        return path
+
 class Collection:
 
     cacheDir = os.environ['EDAS_CACHE_DIR']

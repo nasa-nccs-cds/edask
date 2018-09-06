@@ -5,14 +5,29 @@ from .domain import DomainManager, Domain, Axis, Sequence
 import xarray as xa
 import edask, abc
 
-class OperationConnector:
+class Node:
+
+    def __init__( self, name: str, _metadata: Dict[str,Any] = {} ):
+       self._name = name
+       self.metadata: Dict[str,Any] = _metadata
+
+    @property
+    def name(self)->str: return self._name
+
+    def getParm(self, key: str, default: Any = None ) -> Any:
+        return self.metadata.get( key, default )
+
+    def getParms(self, keys: List[str] ) -> Dict[str,Any]:
+        return dict( filter( lambda item: item[0] in keys, self.metadata.items() ) )
+
+    def getMetadata(self, ignore: List[str] ) -> Dict[str,Any]:
+        return { key:val for key,val in self.metadata.items() if key not in ignore }
+
+    def __getitem__( self, key: str ) -> Any: return self.metadata.get( key )
+    def __setitem__(self, key: str, value: Any ): self.metadata[key] = value
+
+class OperationConnector(Node):
    __metaclass__ = abc.ABCMeta
-
-   def __init__( self, name: str ):
-        self._name = name
-
-   @property
-   def name(self)->str: return self._name
 
    @abc.abstractmethod
    def getResultIds(self): pass
@@ -57,14 +72,13 @@ class MasterNodeWrapper:
     def __init__(self, _node: Optional["MasterNode"] = None ):
         self.node = _node
 
-class WorkflowNode:
+class WorkflowNode(Node):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, _name: str, _domain: str, _metadata: Dict[str,Any] ):
-        self.name: str = _name
+    def __init__(self, name: str, _domain: str, metadata: Dict[str,Any] ):
+        super(WorkflowNode, self).__init__( name, metadata )
         self.domain: str = _domain
-        self.metadata: Dict[str,Any] = _metadata
-        nameToks = _name.split(".")
+        nameToks = name.split(".")
         self.module: str = nameToks[0]
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
@@ -97,9 +111,6 @@ class WorkflowNode:
 
     def addOutput(self, output: "WorkflowNode"):
         self._outputs.append( output )
-
-    def getParm(self, key: str, default: Any = None ) -> Any:
-        return self.metadata.get( key, default )
 
     @property
     def domset(self) -> Set[str]: return set() if self.domain is None else { self.domain }
@@ -160,12 +171,7 @@ class WorkflowNode:
     def hasAxis( self, axis: Axis ) -> bool:
         return self.axes.count( axis.name.lower() ) > 0
 
-
-
     variableManager: VariableManager
-
-    def __getitem__( self, key: str ) -> Any: return self.metadata.get( key )
-    def __setitem__(self, key: str, value: Any ): self.metadata[key] = value
 
     def __str__(self):
         return "Op({}:{})[ domain: {}, rid: {}, axes: {}, inputs: {} ]".format( self.name, self.op, self.domain, self.rid, str(self.axes), "; ".join( [ str(i) for i in self.inputs ] ) )
@@ -224,10 +230,10 @@ class OpNode(WorkflowNode):
         nodeName = self.rid if self.rid else self.name
         return "-".join( [ nodeName, varName ] )
 
-class MasterNode:
+class MasterNode(Node):
 
-    def __init__(self, _name: str  ):
-        self.name: str = _name
+    def __init__(self, name: str, metadata: Dict[str,Any] = {}   ):
+        super(MasterNode, self).__init__( name, metadata )
         self.proxies: Set[WorkflowNode] = set()
         self.inputs: Set[WorkflowNode] = set()
         self.outputs: Set[WorkflowNode] = set()
