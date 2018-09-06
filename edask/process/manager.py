@@ -4,6 +4,7 @@ from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job
+from edask.portal.app import ExecResultHandler
 from dask.distributed import Client, Future, LocalCluster
 import random, string, os, queue, datetime, atexit
 from enum import Enum
@@ -13,7 +14,7 @@ class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable )-> str: pass
+  def executeProcess( self, service: str, job: Job, resultHandler: ExecResultHandler )-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -46,16 +47,21 @@ class ProcessManager(GenericProcessManager):
       self.client.close()
       self.cluster.close()
 
-  def executeProcess( self, service: str, job: Job, successCallback: Callable, failureCallback: Callable ):
+  def executeProcess( self, service: str, job: Job, resultHandler: ExecResultHandler ):
       try:
         self.logger.info("Defining workflow")
-        result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
-        result_future.add_done_callback( successCallback )
+        if resultHandler.iterations > 1:
+            jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.iterations) ]
+            result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
+            for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
+        else:
+            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
+            result_future.add_done_callback( resultHandler.successCallback )
         self.logger.info("Submitted computation")
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
-          failureCallback( str(ex) )
+          resultHandler.failureCallback( str(ex) )
           traceback.print_exc()
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )

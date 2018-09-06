@@ -14,6 +14,8 @@ class ExecResultHandler:
         self.clientId = clientId
         self.jobId = jobId
         self.cacheDir = kwargs.get( "cache", "/tmp")
+        self.iterations = kwargs.get( "iterations", 1 )
+        self.completed = 0
         self.portal = portal
         self.filePath = self.cacheDir + "/" + portal.randomStr(6) + ".nc"
 
@@ -30,6 +32,18 @@ class ExecResultHandler:
     def failureCallback(self, message: str):
       self.portal.sendErrorReport( self.clientId, self.jobId, message )
       self.portal.removeHandler( self.clientId, self.jobId )
+
+    def iterationCallback( self, resultFuture: Future ):
+      status = resultFuture.status
+      if status == "finished":
+          self.completed = self.completed + 1
+          result: EDASDataset = resultFuture.result()
+      else:
+          self.failureCallback( "status = " + status )
+
+      if self.completed == self.iterations:
+        self.successCallback( resultFuture )
+        self.portal.removeHandler( self.clientId, self.jobId )
 
 class EDASapp(EDASPortal):
 
@@ -90,8 +104,9 @@ class EDASapp(EDASPortal):
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
-          resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId ) )
-          self.processManager.executeProcess(jobId, Job( jobId, process_name, dataInputsSpec, runargs, 1.0 ), resultHandler.successCallback, resultHandler.failureCallback)
+          job = Job( jobId, process_name, dataInputsSpec, runargs, 1.0 )
+          resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId, iterations=job.iterations ) )
+          self.processManager.executeProcess(jobId, job, resultHandler )
           return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )

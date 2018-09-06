@@ -1,7 +1,7 @@
 from typing import Dict, Any, Union, Sequence, List, Set
 import zmq, traceback, time, logging, xml, random, string, defusedxml, abc
 from edask.process.domain import DomainManager, Domain
-import xarray as xa
+import copy, xarray as xa
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
 from edask.workflow.data import EDASDataset
@@ -27,21 +27,41 @@ class Job:
   def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
     self.requestId = requestId
     self.identifier = identifier
-    self.datainputs = datainputs
+    self.dataInputs = WpsCwtParser.parseDatainputs( datainputs )
     self.runargs = runargs
     self.priority = priority
+    self.workerIndex = 0
+
+  def copy( self, workerIndex: int ) -> "Job":
+      newjob = copy.deepcopy( self )
+      newjob.workerIndex = workerIndex
+      return newjob
+
+  def getSchedulerParameters(self):
+      ops: List[Dict[str,Any]] = self.dataInputs.get("operation")
+      sParms = {}
+      for op in ops:
+          for key, value in op.items():
+              keyToks = key.split(":")
+              if (len(keyToks) > 1) and keyToks[0] == "scheduler":
+                  sParms[ ":".join(keyToks[1:]) ] = value
+      return sParms
+
+  @property
+  def iterations(self):
+      sParms = self.getSchedulerParameters()
+      return int( sParms.get("iterations",1) )
 
 class TaskRequest:
     
   @classmethod
   def new( cls, job: Job ):
     logger = logging.getLogger()
-    dataInputs = WpsCwtParser.parseDatainputs( job.datainputs )
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( job.identifier, str( dataInputs ) ))
+    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( job.identifier, str( job.dataInputs ) ))
     uid = UID( job.requestId )
-    domainManager = DomainManager.new( dataInputs.get("domain") )
-    variableManager = VariableManager.new( dataInputs.get("variable") )
-    operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
+    domainManager = DomainManager.new( job.dataInputs.get("domain") )
+    variableManager = VariableManager.new( job.dataInputs.get("variable") )
+    operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
     rv = TaskRequest( uid, job.identifier, operationManager )
     return rv
 

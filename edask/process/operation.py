@@ -230,6 +230,12 @@ class OpNode(WorkflowNode):
         nodeName = self.rid if self.rid else self.name
         return "-".join( [ nodeName, varName ] )
 
+class IterativeNode(OpNode):
+
+    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
+        super( IterativeNode, self ).__init__( name, domain, metadata)
+        self.iterations = metadata.get("iterations",1)
+
 class MasterNode(Node):
 
     def __init__(self, name: str, metadata: Dict[str,Any] = {}   ):

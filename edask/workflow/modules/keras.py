@@ -1,6 +1,6 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
-from edask.process.operation import WorkflowNode, OpNode, MasterNode
+from edask.process.operation import WorkflowNode, OpNode, MasterNode, IterativeNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
 from typing import List, Optional
