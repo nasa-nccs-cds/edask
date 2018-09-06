@@ -66,8 +66,25 @@ class TrainKernel(OpKernel):
         sgd = SGD( **optArgs )
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
         if self.weights is not None: model.set_weights(self.weights)
-        history: History = model.fit( self.inputData, self.outputData, callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
+        inputData = self.getTrainingData( model_node, inputDset, 1 )
+        targetData = self.getTargetData( node, inputDset, 1 )
+        history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
         return inputDset
+
+    def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
+        train_input_ids = [ inp.name for inp in model_node.inputs ]
+        assert (required_size == None) or (len( train_input_ids ) == required_size), "Train Kernel expects exactly {} input(s): got {}".format( required_size, len( train_input_ids ) )
+        return self.getInputData( train_input_ids, inputDset )
+
+    def getTargetData(self, train_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
+        target_input_ids = train_node.getParm("target","").split(",")
+        assert (required_size == None) or (len( target_input_ids ) == required_size), "Train Kernel expects exactly {} target(s): got {}".format( required_size, len( target_input_ids ) )
+        return self.getInputData( target_input_ids, inputDset )
+
+    def getInputData(self, ids: List[str], inputDset: EDASDataset ) -> List[np.ndarray]:
+        inputs: List[EDASArray] = inputDset.inputs
+        train_inputs = list( filter( lambda arr: arr.name in ids, inputs ) )
+        return [ train_input.xr.data for train_input in train_inputs ]
 
     def reseed(self):
         seed = random.randint(0, 2 ** 32 - 2)
