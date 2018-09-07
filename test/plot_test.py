@@ -69,19 +69,6 @@ class PlotTESTS:
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 
-    def test_eofs_reduced(self):
-        domains = [{"name": "d0",   "lat":  {"start": 0, "end": 30, "system": "values"},
-                                    "lon":  {"start": 0, "end": 30, "system": "values"},
-                                    "time": {"start": '1980-01-01T00', "end": '1990-01-31T00', "system": "values"}}]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
-                        {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.norm", "input": "dt", "axis": "t", "result": "nt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "nt" } ]
-        results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "pcs", results )
-        self.eof_plot( "eofs", results )
-
 if __name__ == '__main__':
     tester = PlotTESTS()
     result = tester.test_proxy_nodes()

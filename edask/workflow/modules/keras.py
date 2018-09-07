@@ -1,9 +1,9 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
-from edask.process.operation import WorkflowNode, OpNode, MasterNode, IterativeNode
+from edask.process.operation import WorkflowNode, OpNode, MasterNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from operator import mul
 from functools import reduce
 import copy, sys, logging, random, numpy as np
@@ -25,7 +25,8 @@ class ModelKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        masterNode: MasterNode = node["master"]
+        assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
+        masterNode: MasterNode = node
         keras_model = Sequential()
         input_layers: List[OpNode] = masterNode.getInputProxies()
         assert len(input_layers) == 1, "Must have one and only one input layer to network, found {}".format( len(input_layers) )
@@ -56,19 +57,28 @@ class TrainKernel(OpKernel):
         self.performanceTracker = PerformanceTracker( self.stop_condition )
         self.reseed()
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def getModel(self, node: OpNode ) -> Tuple[MasterNode,Model]:
         input_connection: WorkflowConnector = node.inputs[0]
-        model_node: WorkflowNode = input_connection.getConnection()
-        master_node = model_node.getParm("master")
-        model = master_node.getParm("model")
+        master_node = input_connection.getConnection()
+        assert isinstance( master_node, MasterNode ), "Training Kernel is not connected to a network!"
+        return master_node, master_node.getParm("model")
+
+    def buildLearningModel(self, node: MasterNode, model: Model ):
         optArgs = node.getParms( ["lr", "decay", "momentum", "nesterov" ] )
-        fitArgs = node.getParms( ["batchSize", "epochs", "validation_split", "shuffle" ] )
         sgd = SGD( **optArgs )
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
         if self.weights is not None: model.set_weights(self.weights)
-        inputData = self.getTrainingData( model_node, inputDset, 1 )
+
+    def fitModel(self, node: MasterNode, model: Model, inputDset: EDASDataset ) -> History:
+        fitArgs = node.getParms( ["batchSize", "epochs", "validation_split", "shuffle" ] )
+        inputData = self.getTrainingData( node, inputDset, 1 )
         targetData = self.getTargetData( node, inputDset, 1 )
         history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
+
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+        master_node, model = self.getModel( node )
+        self.buildLearningModel( master_node, model )
+        history: History = self.fitModel( master_node, model, inputDset )
         return inputDset
 
     def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:

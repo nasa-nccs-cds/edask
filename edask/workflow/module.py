@@ -148,12 +148,12 @@ class KernelManager:
             kernel = self.getKernel( rootNode )
             if kernel.parent is None:
                 if currentMasterNode is not None:
-                    currentMasterNode.addInput( rootNode )
+                    currentMasterNode.addMasterInput(rootNode)
                 currentMasterNode = None
             else:
                 if currentMasterNode is None:
                     currentMasterNode = MasterNode(kernel.parent)
-                    currentMasterNode.addOutputs( rootNode.outputs )
+                    currentMasterNode.addMasterOutputs(rootNode.outputs)
                     masterNodeList.add( currentMasterNode )
                 currentMasterNode.addProxy(rootNode)
             for conn in rootNode.inputs:

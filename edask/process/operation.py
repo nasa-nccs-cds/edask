@@ -230,36 +230,30 @@ class OpNode(WorkflowNode):
         nodeName = self.rid if self.rid else self.name
         return "-".join( [ nodeName, varName ] )
 
-class IterativeNode(OpNode):
-
-    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
-        super( IterativeNode, self ).__init__( name, domain, metadata)
-        self.iterations = metadata.get("iterations",1)
-
-class MasterNode(Node):
+class MasterNode(OpNode):
 
     def __init__(self, name: str, metadata: Dict[str,Any] = {}   ):
-        super(MasterNode, self).__init__( name, metadata )
+        super(MasterNode, self).__init__( name, None, "", metadata )
         self.proxies: Set[WorkflowNode] = set()
-        self.inputs: Set[WorkflowNode] = set()
-        self.outputs: Set[WorkflowNode] = set()
+        self.master_inputs: Set[WorkflowNode] = set()
+        self.master_outputs: Set[WorkflowNode] = set()
 
-    def getInputConnectiouns(self) -> Set[WorkflowConnector]:
+    def getMasterInputConnectiouns(self) -> Set[WorkflowConnector]:
         connections: Set[WorkflowConnector] = set()
         for proxy in self.proxies:
             for input in proxy.inputs:
                 if isinstance( input, WorkflowConnector ):
                     wc: WorkflowConnector = input
-                    if wc.getConnection() in self.inputs:
+                    if wc.getConnection() in self.master_inputs:
                        connections.add(wc)
         return connections
 
     def getInputProxies(self) -> List[WorkflowNode]:
-        input_node_candidates = [ internal_node_candidate for external_node in self.inputs for internal_node_candidate in external_node.outputs ]
+        input_node_candidates = [internal_node_candidate for external_node in self.master_inputs for internal_node_candidate in external_node.outputs]
         return list( filter( lambda node: node in self.proxies, input_node_candidates) )
 
 
-    def getOutputRids(self) -> List[str]:
+    def getMasterOutputRids(self) -> List[str]:
         outputRids: Set[str] = set()
         for proxy in self.proxies:
             outputNodes = filter( lambda node: node not in self.proxies, proxy.outputs )
@@ -270,35 +264,35 @@ class MasterNode(Node):
         self.proxies.add(node)
         node.masterNode = self
 
-    def addInput(self, node: WorkflowNode):
-        self.inputs.add( node )
+    def addMasterInput(self, node: WorkflowNode):
+        self.master_inputs.add(node)
 
-    def addOutputs(self, outputNodes: List[WorkflowNode] ):
-        self.outputs.update( outputNodes )
+    def addMasterOutputs(self, outputNodes: List[WorkflowNode]):
+        self.master_outputs.update(outputNodes)
 
-    def getOutputs(self) -> Set[WorkflowNode]:
-        return set(filter(lambda output: output not in self.proxies, self.outputs))
+    def getMasterOutputs(self) -> Set[WorkflowNode]:
+        return set(filter(lambda output: output not in self.proxies, self.master_outputs))
 
     def overlaps(self, other: "MasterNode" )-> bool:
         return not self.proxies.isdisjoint(other.proxies)
 
     def absorb(self, other: "MasterNode" ):
         self.proxies.update(other.proxies)
-        self.inputs.update( other.inputs )
-        self.outputs.update( other.outputs )
+        self.master_inputs.update(other.master_inputs)
+        self.master_outputs.update(other.master_outputs)
 
     def spliceIntoWorkflow(self):
-        outputRids = self.getOutputRids()
+        outputRids = self.getMasterOutputRids()
         assert len( outputRids ) == 1, "Wrong number of outputs in Master Node {}: {}".format( self.name, len( outputRids ) )
-        opNode = OpNode( self.name, None, outputRids[0], {"master": self} )
-        for inputConnector in self.getInputConnectiouns():  opNode.addInput(inputConnector)
-        for outputNode in self.getOutputs():
+        self.rid =  outputRids[0]
+        for inputConnector in self.getMasterInputConnectiouns():  self.addInput(inputConnector)
+        for outputNode in self.getMasterOutputs():
             for connection in outputNode.inputs:
                 if isinstance( connection, WorkflowConnector):
                     wfconn: WorkflowConnector = connection
                     if wfconn.getConnection() in self.proxies:
-                        wfconn.setConnection(opNode,True)
-                        opNode.addOutput( outputNode )
+                        wfconn.setConnection(self,True)
+                        self.addOutput( outputNode )
 
 
 class OperationManager:
