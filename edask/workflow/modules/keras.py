@@ -69,16 +69,16 @@ class TrainKernel(OpKernel):
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
         if self.weights is not None: model.set_weights(self.weights)
 
-    def fitModel(self, node: MasterNode, model: Model, inputDset: EDASDataset ) -> History:
-        fitArgs = node.getParms( ["batchSize", "epochs", "validation_split", "shuffle" ] )
-        inputData = self.getTrainingData( node, inputDset, 1 )
-        targetData = self.getTargetData( node, inputDset, 1 )
+    def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset) -> History:
+        fitArgs = master_node.getParms(["batchSize", "epochs", "validation_split", "shuffle"])
+        inputData = self.getTrainingData(master_node, inputDset, 1)
+        targetData = self.getTargetData( train_node, inputDset, 1)
         history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        master_node, model = self.getModel( node )
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+        master_node, model = self.getModel( train_node )
         self.buildLearningModel( master_node, model )
-        history: History = self.fitModel( master_node, model, inputDset )
+        history: History = self.fitModel( master_node, train_node, model, inputDset )
         return inputDset
 
     def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
