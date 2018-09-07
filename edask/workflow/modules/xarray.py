@@ -98,19 +98,6 @@ class DecycleKernel(OpKernel):
             anomalies = anomalies.groupby(grouping) / variable.xr.groupby(grouping).std('t')
         return [variable.updateXa( anomalies, "decycle" )]
 
-# class DecycleKernel1(OpKernel):
-#     def __init__( self ):
-#         Kernel.__init__( self, KernelSpec("decycle1", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
-#
-#     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
-#         norm = bool(node.getParm( "norm", False ) )
-#         grouping = node.getParm("groupby", 't.month' )
-#         climatology = variable.xr.groupby(grouping).mean('t')
-#         anomalies = variable.xr.groupby(grouping) - climatology
-#         if norm:
-#             anomalies = anomalies.groupby(grouping) / variable.xr.groupby(grouping).std('t')
-#         return [variable.updateXa( anomalies, "decycle" )]
-
 class DetrendKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
@@ -123,6 +110,18 @@ class DetrendKernel(OpKernel):
         trend = variable.xr.rolling(**detrend_args).mean()
         detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
         return [detrend]
+
+class LowpassKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("lowpass", "Lowpass Kernel","Smooths the input arrays by applying a 1D convolution (lowpass) filter along the given axes." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+        axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
+        dim = variable.xr.dims[axisIndex]
+        window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
+        lowpass_args = { dim:window_size, "center":True, "min_periods": 1 }
+        lowpass = variable.xr.rolling(**lowpass_args).mean()
+        return [lowpass]
 
 class EofKernel(OpKernel):
     def __init__( self ):
