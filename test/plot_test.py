@@ -60,15 +60,17 @@ class PlotTESTS:
         self.eof_plot( "pcs", results )
         self.eof_plot( "eofs", results )
 
-    def test_proxy_nodes(self):
+    def test_monsoon_learning(self):
         variables = [{"uri": "archive:test_eofs/pcs-eofs", "name": "pcs:v0"}, {"uri": "archive:IITM/monsoon", "name": "AI:v1"}]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
-                        {"name": "keras.train",  "axis":"t", "input": "L1,v1", "epochs":100, "scheduler:iterations":1, "target":"v1" } ]
+                        {"name": "xarray.decycle", "input": "v1", "result": "dc"},
+                        {"name": "xarray.detrend", "input": "dc", "wsize": 50, "result": "t1"},
+                        {"name": "keras.train",  "axis":"t", "input": "L1,v1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_proxy_nodes()
+    result = tester.test_monsoon_learning()
     plt.show()
