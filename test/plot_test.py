@@ -38,6 +38,32 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
+    def test_filter0(self):
+        domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
+                    "lon": {"start": 100, "end": 100, "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [ {"name": "xarray.noop", "input": "v0"} ]
+        results = self.mgr.testExec(domains, variables, operations)
+        test_array = results.inputs[0]
+        xarray = time_axis = test_array.xr
+        time_axis = xarray.t
+        months = time_axis.dt.month
+        filter = months.isin( [ 8 ] )
+        filtered_array = xarray.sel( t = filter )
+        print(xarray.shape)
+        print( filtered_array.shape )
+        results.plot()
+
+    def test_filter1(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
+                                    "lon":  { "start":40, "end":42, "system":"values" },
+                                    "time": { "start":'1980-01-01', "end":'1990-01-01', "system":"values" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.filter", "input":"v0", "domain":"d0", "axis":"t", "sel":"month=aug"} ]
+        results = self.mgr.testExec( domains, variables, operations )
+        print( results.xarrays[0].shape )
+
+
     def test_detrend(self):
         domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
                     "lon": {"start": 100, "end": 100, "system": "values"} }]
@@ -48,9 +74,22 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
-    def test_eofs(self):
-        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}}]
+    def compute_eofs(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "time": {"start": '1880-01-01T00', "end": '2010-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modes" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "modes-pcs", results )
+        self.eof_plot( "modes-eofs", results )
+
+
+    def test_eofs(self):
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        domains = [ { "name": "d0",    "lat":  {"start": -80, "end": 80, "system": "values"}  } ]
+#                                       "time": {"start": '1900-01-01T00', "end": '2000-01-31T00', "system": "values"}  } ]
         operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
@@ -71,5 +110,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_monsoon_learning()
+    result = tester.test_filter1()
     plt.show()

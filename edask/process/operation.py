@@ -1,7 +1,7 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from .source import VariableManager, VariableSource
 from .domain import DomainManager, Domain, Axis
-import abc
+import abc, re
 
 class Node:
 
@@ -14,6 +14,10 @@ class Node:
 
     def getParm(self, key: str, default: Any = None ) -> Any:
         return self.metadata.get( key, default )
+
+    def findParm(self, idmatch: str, default: Any = None ) -> Any:
+        found = [value for id, value in self.metadata.items() if re.match(idmatch,id) ]
+        return found[0] if len(found) else default
 
     def getParms(self, keys: List[str] ) -> Dict[str,Any]:
         return dict( filter( lambda item: item[0] in keys, self.metadata.items() ) )

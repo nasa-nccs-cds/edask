@@ -40,6 +40,16 @@ class TestEdask(EDaskTestCase):
         results = self.mgr.testExec( domains, variables, operations )
         self.assertTrue( self.mgr.equals( results, [ verification_data ] ) )
 
+    def test_filter(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
+                                    "lon":  { "start":40, "end":42, "system":"values" },
+                                    "time": { "start":'1980-01-01', "end":'1990-01-01', "system":"values" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+        operations = [ { "name":"xarray.filter", "input":"v0", "domain":"d0", "axis":"t", "sel":"aug"} ]
+        results = self.mgr.testExec( domains, variables, operations )
+        print( results.xarrays[0].shape )
+        self.assertTrue( results.xarrays[0].shape[0] == 10 )
+
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
         verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,

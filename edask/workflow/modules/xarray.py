@@ -85,6 +85,14 @@ class NormKernel(OpKernel):
         centered_result =  variable - variable.mean( node.axes )
         return [centered_result / centered_result.std( node.axes )]
 
+class FilterKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("filter", "Filter Kernel","Filters input arrays, currently only supports subsetting by month(s)" ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+        selection = node.findParm("sel.*")
+        return [ variable.filter( Axis.parse(node.axes[0]), selection ) ]
+
 class DecycleKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )

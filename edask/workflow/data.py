@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
 import string, random, os, re
 import xarray as xa
+from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
 import xarray.plot as xrplot
 import matplotlib.pyplot as plt
@@ -125,6 +126,14 @@ class EDASArray:
             bounds_list = [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ]
             if( len(bounds_list) ): xarray = xarray.sel( dict( bounds_list ) ) if system == "val" else xarray.isel( dict( bounds_list ) )
         return self.updateXa(xarray,"subset")
+
+    def filter( self, axis: Axis, condition: str ) -> "EDASArray":
+        assert axis == Axis.T, "Filter only supported on time axis"
+        assert "=" in condition, "Filter condition should be of the form 'period=selection', i.e. 'month=jja' or 'month=aug' "
+        period,selector = condition.split("=")
+        assert period.strip().lower().startswith("mon"), "Only month filtering currently supported"
+        filter = self.xr.t.dt.month.isin( TimeIndexer.getMonthIndices( selector ) )
+        return self.updateXa( self.xr.sel( t=filter ), "filter" )
 
     @staticmethod
     def domains( inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:

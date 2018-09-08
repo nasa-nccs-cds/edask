@@ -155,3 +155,23 @@ class CTimeRange(object):
 
     def inDateRange( self, date: datetime.date ) -> bool:
         return date >= self.dateRange[0] and date <= self.dateRange[1]
+
+class TimeIndexer(object):
+
+    year = "jfmamjjasonjfmamjjason"
+    months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
+
+    @classmethod
+    def getMonthIndices( cls, selection:str ) -> List[int]:
+        sel = selection.lower()
+        try:
+            return [ int(sel) ]
+        except:
+            try:
+                return [ cls.months.index(sel) ]
+            except ValueError:
+                try:
+                    start_index = "xjfmamjjasondjfmamjjasond".index(sel)
+                    return list( range( start_index, start_index + len(sel) ) )
+                except ValueError:
+                    raise Exception( "Unrecognizable filter value: '{0}' ".format(filter) )
