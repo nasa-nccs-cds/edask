@@ -84,17 +84,27 @@ class TrainKernel(OpKernel):
     def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
         train_input_ids = [ inp.name for inp in model_node.inputs ]
         assert (required_size == None) or (len( train_input_ids ) == required_size), "Train Kernel expects exactly {} input(s): got {}".format( required_size, len( train_input_ids ) )
-        return self.getInputData( train_input_ids, inputDset )
+        return self.getInputData( train_input_ids, inputDset, model_node.axes[0], 1 )
 
     def getTargetData(self, train_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
         target_input_ids = train_node.getParm("target","").split(",")
         assert (required_size == None) or (len( target_input_ids ) == required_size), "Train Kernel expects exactly {} target(s): got {}".format( required_size, len( target_input_ids ) )
-        return self.getInputData( target_input_ids, inputDset )
+        return self.getInputData( target_input_ids, inputDset, train_node.axes[0], 0 )
 
-    def getInputData(self, ids: List[str], inputDset: EDASDataset ) -> List[np.ndarray]:
+    def getInputData( self, ids: List[str], inputDset: EDASDataset, dim: str, expectedDimIndex: int ) -> List[np.ndarray]:
         inputs: List[EDASArray] = inputDset.inputs
         train_inputs = list( filter( lambda arr: arr.name in ids, inputs ) )
-        return [ train_input.xr.data for train_input in train_inputs ]
+        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, [arr.name for arr in inputs] )
+        return self.getAlignedArrays( train_inputs, dim, expectedDimIndex )
+
+    def getAlignedArrays( self, inputs: List[EDASArray], dim: str, expectedDimIndex: int ) -> List[np.ndarray]:
+        results: List[np.ndarray] = []
+        for array in inputs:
+            try:
+                dimIndex = array.dims.index( dim )
+                results.append( array.xr.T.data if dimIndex != expectedDimIndex else array.xr.data )
+            except ValueError: raise Exception( "Can't find dim {} in network input dimensions: {}".format(dim,array.dims) )
+        return results
 
     def reseed(self):
         seed = random.randint(0, 2 ** 32 - 2)

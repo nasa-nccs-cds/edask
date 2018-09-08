@@ -62,7 +62,12 @@ class OpKernel(Kernel):
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         results: List[EDASArray] = list(chain.from_iterable([ self.processVariable( request, node, input ) for input in inputDset.inputs ]))
+        self.renameResults(results,node)
         return EDASDataset.init( results, inputDset.attrs )
+
+    def renameResults(self, results: List[EDASArray], node: OpNode  ):
+        multiResults =  len( results ) > 1
+        for result in results: result.name = node.getResultId(result.name) if multiResults else node.rid
 
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]: pass

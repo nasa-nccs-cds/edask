@@ -1,11 +1,9 @@
 from typing import List, Dict, Sequence, Mapping, Any
-import xarray as xa
-import time, traceback, logging
+import logging
 import numpy.ma as ma
-from edask.process.task import TaskRequest, Job
+from edask.process.task import Job
 from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
-from edask.portal.parsers import WpsCwtParser
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 

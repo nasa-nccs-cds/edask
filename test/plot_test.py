@@ -1,8 +1,7 @@
 from edask.process.test import TestManager
 import matplotlib.pyplot as plt
-from edask.workflow.data import EDASDataset, EDASArray
+from edask.workflow.data import EDASDataset
 import logging
-import xarray as xa
 
 class PlotTESTS:
 
@@ -51,22 +50,22 @@ class PlotTESTS:
 
     def test_eofs(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}}]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"eofs" },
-                        {"name": "xarray.archive", "proj":"test_eofs", "exp":"pcs-eofs", "input": "eofs" } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modes" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "pcs", results )
-        self.eof_plot( "eofs", results )
+        self.eof_plot( "modes-pcs", results )
+        self.eof_plot( "modes-eofs", results )
 
     def test_monsoon_learning(self):
-        variables = [{"uri": "archive:test_eofs/pcs-eofs", "name": "pcs:v0"}, {"uri": "archive:IITM/monsoon", "name": "AI:v1"}]
+        variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "modes-pcs:v0"}, {"uri": "archive:IITM/monsoon", "name": "AI:v1"}]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,v1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 

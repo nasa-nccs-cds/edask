@@ -63,6 +63,18 @@ class EDASArray:
         else: return self._data
 
     @property
+    def T(self) -> "EDASArray":
+        return EDASArray( self.name, self.domId,  self.xr.T, self.transforms )
+
+    @property
+    def axes(self) -> List[str]:
+        return self.xr.coords.keys()
+
+    @property
+    def dims(self) -> Tuple[str]:
+        return self.xr.dims
+
+    @property
     def name(self) -> str: return self.xr.name
 
     def rname(self, op: str ) -> str: return op + "[" + self.name + "]"
@@ -76,6 +88,9 @@ class EDASArray:
     def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
         if len( dims ) <= dimIndex: return default
         return self.xr.get_axis_num( dims[dimIndex] )
+
+    def transpose(self, *dims: str ) -> "EDASArray":
+        return EDASArray( self.name, self.domId,  self.xr.transpose(*dims), self.transforms )
 
     def compute(self): self.xr.compute()
 
@@ -123,9 +138,6 @@ class EDASArray:
 
     def axis(self, axis: Axis ):
         return self.xr.coords.get( axis.name.lower() )
-
-    def axes(self) -> List[str]:
-        return self.xr.coords.keys()
 
     def max( self, axes: List[str] ) -> "EDASArray":
         return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), "max" )

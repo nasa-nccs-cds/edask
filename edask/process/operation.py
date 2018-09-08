@@ -1,9 +1,7 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
-from enum import Enum, auto
-from .source import VariableManager, VariableSource, DataSource
-from .domain import DomainManager, Domain, Axis, Sequence
-import xarray as xa
-import edask, abc
+from .source import VariableManager, VariableSource
+from .domain import DomainManager, Domain, Axis
+import abc
 
 class Node:
 
@@ -250,8 +248,9 @@ class MasterNode(OpNode):
 
     def getInputProxies(self) -> List[WorkflowNode]:
         input_node_candidates = [internal_node_candidate for external_node in self.master_inputs for internal_node_candidate in external_node.outputs]
-        return list( filter( lambda node: node in self.proxies, input_node_candidates) )
-
+        input_proxies = list( filter( lambda node: node in self.proxies, input_node_candidates) )
+        for input_proxy in input_proxies: self.axes.extend( input_proxy.axes )
+        return input_proxies
 
     def getMasterOutputRids(self) -> List[str]:
         outputRids: Set[str] = set()
