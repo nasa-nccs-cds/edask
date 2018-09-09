@@ -22,6 +22,7 @@ class Kernel:
         self.parent: Optional[str] = None
         self._minInputs = 1
         self._maxInputs = 100000
+        self.requiredOptions = []
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     @property
@@ -30,6 +31,13 @@ class Kernel:
     def getSpec(self) -> KernelSpec: return self._spec
     def getCapabilities(self) -> str: return self._spec.summary
     def describeProcess( self ) -> str: return str(self._spec)
+    def addRequiredOptions(self, options: List[str] ): self.requiredOptions.extend(options)
+    def removeRequiredOptions(self, options: List[str] ):
+        for opt in options: self.requiredOptions.remove(opt)
+
+    def testOptions(self, node: WorkflowNode):
+        for option in self.requiredOptions:
+            assert node.findParm( option, None ) is not None, "Option re[{}] is required for the {} kernel".format( option, self.name )
 
     def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         result = request.getCachedResult( self._id )
@@ -45,12 +53,17 @@ class OpKernel(Kernel):
     # Operates independently on sets of variables with same index across all input datasets
     # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
 
+    def __init__(self, spec: KernelSpec):
+        super(OpKernel, self).__init__(spec)
+        self.addRequiredOptions( ["ax.s", "input"] )
+
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
         if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         input_vars: List[List[EDASArray]] = [ dset.inputs for dset in inputs ]
+        self.testOptions( wnode )
         matched_inputs: List[EDASArray] = None
         for matched_inputs in zip( *input_vars ):
             inputVars: EDASDataset = self.preprocessInputs(request, op, matched_inputs, inputs[0].attrs )
@@ -92,6 +105,24 @@ class OpKernel(Kernel):
         sarray: xa.DataArray = xa.concat( inputDset.xarrays, dim=op.ensDim )
         result = EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
         return EDASDataset.init( [result], inputDset.attrs )
+
+class DualOpKernel(OpKernel):
+    # Operates independently on sets of variables with same index across all input datasets
+    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
+
+    def __init__(self, spec: KernelSpec):
+        super(DualOpKernel, self).__init__(spec)
+        self.removeRequiredOptions( ["ax.s"] )
+        self._minInputs = 2
+        self._maxInputs = 2
+
+class TimeOpKernel(OpKernel):
+    # Operates independently on sets of variables with same index across all input datasets
+    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
+
+    def __init__(self, spec: KernelSpec):
+        super(TimeOpKernel, self).__init__(spec)
+        self.removeRequiredOptions( ["ax.s"] )
 
 class InputKernel(Kernel):
     def __init__( self ):

@@ -129,10 +129,11 @@ class EDASArray:
 
     def filter( self, axis: Axis, condition: str ) -> "EDASArray":
         assert axis == Axis.T, "Filter only supported on time axis"
-        assert "=" in condition, "Filter condition should be of the form 'period=selection', i.e. 'month=jja' or 'month=aug' "
-        period,selector = condition.split("=")
-        assert period.strip().lower().startswith("mon"), "Only month filtering currently supported"
-        filter = self.xr.t.dt.month.isin( TimeIndexer.getMonthIndices( selector ) )
+        if "=" in condition:
+            period,selector = condition.split("=")
+            assert period.strip().lower().startswith("mon"), "Only month filtering currently supported"
+        else: selector = condition
+        filter = self.xr.t.dt.month.isin( TimeIndexer.getMonthIndices( selector.strip() ) )
         return self.updateXa( self.xr.sel( t=filter ), "filter" )
 
     @staticmethod

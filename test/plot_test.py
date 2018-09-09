@@ -79,10 +79,11 @@ class PlotTESTS:
     def compute_eofs(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "time": {"start": '1880-01-01T00', "end": '2010-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "input": "v0", "norm":"true", "result":"dc"},
-                        {"name": "xarray.detrend", "input": "dc", "wsize":50, "result":"dt" },
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.detrend", "axis":"t", "input": "dc", "wsize":50, "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modes" } ]
+                        {"name": "xarray.norm", "modes": 4, "input": "modes", "result": "nmodes"},
+                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "nmodes" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "modes-pcs", results )
         self.eof_plot( "modes-eofs", results )
@@ -101,16 +102,18 @@ class PlotTESTS:
         self.eof_plot( "modes-eofs", results )
 
     def test_monsoon_learning(self):
+        domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2010-01-01T00', "system": "values"} } ]
         variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "modes-pcs:v0"}, {"uri": "archive:IITM/monsoon", "name": "AI:v1"}]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
-                        {"name": "xarray.norm", "input": "v1", "result": "dc"},
-                        {"name": "xarray.detrend", "input": "dc", "wsize": 50, "result": "t1"},
+                        {"name": "xarray.filter", "input": "v1", "result": "v1f", "axis":"t", "sel": "aug"},
+                        {"name": "xarray.norm", "input": "v1f", "axis":"t", "result": "dc"},
+                        {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
                         {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
         results = self.mgr.testExec( [], variables, operations )
         self.print( results )
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_filter1()
+    result = tester.compute_eofs()
     plt.show()

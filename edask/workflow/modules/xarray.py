@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
+from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, DualOpKernel, TimeOpKernel
 import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode
 from edask.process.task import TaskRequest
@@ -19,7 +19,7 @@ def weights( array: xa.Dataset ) -> xa.Dataset:
 
 class AverageKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, inputVar: EDASArray ) -> List[EDASArray]:
         weights = self.getWeights( node, inputVar )
@@ -44,42 +44,42 @@ class AverageKernel(OpKernel):
 
 class MaxKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("max", "Maximum Kernel","Computes the maximum of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("max", "Maximum Kernel","Computes the maximum of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.max( node.axes )]
 
 class MinKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("min", "Minimum Kernel","Computes the minimum of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("min", "Minimum Kernel","Computes the minimum of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.min( node.axes )]
 
 class MeanKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("mean", "Mean Kernel","Computes the unweighted average of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("mean", "Mean Kernel","Computes the unweighted average of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.mean( node.axes )]
 
 class MedianKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("median", "Median Kernel","Computes the median of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("median", "Median Kernel","Computes the median of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.median( node.axes )]
 
 class StdKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel","Computes the standard deviation of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel","Computes the standard deviation of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.std( node.axes )]
 
 class NormKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("norm", "Normalization Kernel","Normalizes input arrays by centering (computing anomaly) and then dividing by the standard deviation along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("norm", "Normalization Kernel","Normalizes input arrays by centering (computing anomaly) and then dividing by the standard deviation along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         centered_result =  variable - variable.mean( node.axes )
@@ -87,15 +87,17 @@ class NormKernel(OpKernel):
 
 class FilterKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("filter", "Filter Kernel","Filters input arrays, currently only supports subsetting by month(s)" ) )
+        OpKernel.__init__( self, KernelSpec("filter", "Filter Kernel","Filters input arrays, currently only supports subsetting by month(s)" ) )
+        self.requiredOptions.append("sel.*")
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         selection = node.findParm("sel.*")
-        return [ variable.filter( Axis.parse(node.axes[0]), selection ) ]
+        assert ( len(node.axes) == 0 ) or ( ( len(node.axes) == 1 ) and (node.axes[0] == 't') ), "Filter currently can only operate on the time axis"
+        return [ variable.filter( Axis.T, selection ) ]
 
 class DecycleKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
+        OpKernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         norm = bool(node.getParm("norm", False))
@@ -108,7 +110,7 @@ class DecycleKernel(OpKernel):
 
 class DetrendKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
@@ -121,7 +123,7 @@ class DetrendKernel(OpKernel):
 
 class LowpassKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("lowpass", "Lowpass Kernel","Smooths the input arrays by applying a 1D convolution (lowpass) filter along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("lowpass", "Lowpass Kernel","Smooths the input arrays by applying a 1D convolution (lowpass) filter along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
@@ -131,9 +133,9 @@ class LowpassKernel(OpKernel):
         lowpass = variable.xr.rolling(**lowpass_args).mean()
         return [lowpass]
 
-class EofKernel(OpKernel):
+class EofKernel(TimeOpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
+        TimeOpKernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         nModes = node.getParm("modes", 16 )
@@ -149,30 +151,28 @@ class EofKernel(OpKernel):
 
 class AnomalyKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("anomaly", "Anomaly Kernel", "Centers the input arrays by subtracting off the mean along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("anomaly", "Anomaly Kernel", "Centers the input arrays by subtracting off the mean along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return  [variable - variable.mean( node.axes )]
 
 class VarKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("var", "Variance Kernel","Computes the variance of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("var", "Variance Kernel","Computes the variance of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.var( node.axes )]
 
 class SumKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("sum", "Sum Kernel","Computes the sum of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.sum( node.axes )]
 
-class DiffKernel(OpKernel):
+class DiffKernel(DualOpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
-        self._minInputs = 2
-        self._maxInputs = 2
+        DualOpKernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
 
     def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
@@ -200,7 +200,8 @@ class NoOp(Kernel):
 
 class ArchiveKernel(OpKernel):
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("archive", "Archive Result Data","Save request result data onto cluster for use by subsequest requests" ) )
+        OpKernel.__init__( self, KernelSpec("archive", "Archive Result Data","Save request result data onto cluster for use by subsequest requests" ) )
+        self.removeRequiredOptions(["ax.s"])
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]):
         node: OpNode = wnode
