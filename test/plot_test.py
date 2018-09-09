@@ -82,7 +82,19 @@ class PlotTESTS:
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "axis":"t", "input": "dc", "wsize":50, "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.norm", "modes": 4, "input": "modes", "result": "nmodes"},
+                        {"name": "xarray.norm", "axis":"t", "input": "modes", "result": "nmodes"},
+                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "nmodes" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "modes-pcs", results )
+        self.eof_plot( "modes-eofs", results )
+
+    def compute_eofs_reduced(self):
+        domains = [{"name": "d0", "lat": {"start": 0, "end": 20, "system": "values"}, "lon": {"start": 0, "end": 20, "system": "values"}, "time": {"start": '1900-01-01T00', "end": '1905-01-01T00', "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.detrend", "axis":"t", "input": "dc", "wsize":50, "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"pcs:modes" },
+                        {"name": "xarray.norm", "axis":"t", "input": "modes", "result": "nmodes"},
                         {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "nmodes" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "modes-pcs", results )
@@ -115,5 +127,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.compute_eofs()
+    result = tester.compute_eofs_reduced()
     plt.show()

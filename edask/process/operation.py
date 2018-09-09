@@ -206,15 +206,24 @@ class SourceNode(WorkflowNode):
 class OpNode(WorkflowNode):
 
     @classmethod
+    def parseMap(cls, mapSpec: str ) -> Dict[str,str]:
+        resultMap: Dict[str,str] = {}
+        for elem in mapSpec.split(","):
+            toks = elem.split(":")
+            if len(toks) == 2: resultMap[toks[0]] = toks[1]
+            else: resultMap["*"] = toks[0]
+        return resultMap
+
+    @classmethod
     def new(cls, operationSpec: Dict[str, Any] ):
         name = operationSpec.get("name",None)
         domain = operationSpec.get("domain",None)
-        rid: str = operationSpec.get("result",None)
-        return OpNode(name, domain, rid, operationSpec)
+        resultMap: Dict[str,str] = operationSpec.get("result",{})
+        return OpNode(name, domain, resultMap, operationSpec)
 
-    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
+    def __init__(self, name: str, domain: Optional[str], _resultMap: Dict[str,str], metadata: Dict[str,Any] ):
         super( OpNode, self ).__init__( name, domain, metadata)
-        self.rid = _rid
+        self.resultMap = _resultMap
 
     def getId(self):
         return self.rid
