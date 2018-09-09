@@ -39,8 +39,10 @@ class PlotTESTS:
         results.plot()
 
     def test_filter0(self):
+        from edask.data.sources.timeseries import TimeIndexer
         domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
-                    "lon": {"start": 100, "end": 100, "system": "values"} }]
+                    "lon": {"start": 100, "end": 100, "system": "values"} ,
+                    "time": {"start": '1980-01-01', "end": '1990-01-01', "system": "values"}}]
         variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
         operations = [ {"name": "xarray.noop", "input": "v0"} ]
         results = self.mgr.testExec(domains, variables, operations)
@@ -48,11 +50,9 @@ class PlotTESTS:
         xarray = time_axis = test_array.xr
         time_axis = xarray.t
         months = time_axis.dt.month
-        filter = months.isin( [ 8 ] )
-        filtered_array = xarray.sel( t = filter )
-        print(xarray.shape)
-        print( filtered_array.shape )
-        results.plot()
+        indices = TimeIndexer.getMonthIndices("aug")
+        print( months )
+        print(indices)
 
     def test_filter1(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
@@ -61,7 +61,9 @@ class PlotTESTS:
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.filter", "input":"v0", "domain":"d0", "axis":"t", "sel":"month=aug"} ]
         results = self.mgr.testExec( domains, variables, operations )
-        print( results.xarrays[0].shape )
+        xarray = results.xarrays[0]
+        print( "Shape = " +  str( xarray.shape ) )
+        print( "Months = " + str( xarray.t.dt.month ) )
 
 
     def test_detrend(self):

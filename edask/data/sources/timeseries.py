@@ -158,8 +158,8 @@ class CTimeRange(object):
 
 class TimeIndexer(object):
 
-    year = "jfmamjjasonjfmamjjason"
-    months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
+    year = "xjfmamjjasondjfmamjjasond"
+    months = [ "x", "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"]
 
     @classmethod
     def getMonthIndices( cls, selection:str ) -> List[int]:
@@ -171,7 +171,7 @@ class TimeIndexer(object):
                 return [ cls.months.index(sel) ]
             except ValueError:
                 try:
-                    start_index = "xjfmamjjasondjfmamjjasond".index(sel)
+                    start_index = cls.year.index(sel)
                     return list( range( start_index, start_index + len(sel) ) )
                 except ValueError:
                     raise Exception( "Unrecognizable filter value: '{0}' ".format(filter) )
