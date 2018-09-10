@@ -31,8 +31,6 @@ class Node:
 class OperationConnector(Node):
    __metaclass__ = abc.ABCMeta
 
-   @abc.abstractmethod
-   def getResultIds(self): pass
 
 class SourceConnector(OperationConnector):
 
@@ -43,8 +41,6 @@ class SourceConnector(OperationConnector):
     def __str__(self):
         return "SI({})[ {} ]".format(self._name, str(self.source))
 
-    def getResultIds(self):
-        return self.source.ids()
 
 class WorkflowConnector(OperationConnector):
 
@@ -62,9 +58,6 @@ class WorkflowConnector(OperationConnector):
         return self._connection
 
     def isConnected(self): return self._connection is not None
-
-    def getResultIds(self):
-        return self._connection.getResultIds()
 
     def __str__(self):
         return "WI({})[ connection: {} ]".format( self.name, self._connection.getId() if self._connection else "UNDEF" )
@@ -153,9 +146,6 @@ class WorkflowNode(Node):
     def getId(self): pass
 
     @abc.abstractmethod
-    def getResultIds(self): pass
-
-    @abc.abstractmethod
     def suppliesDownstreamInput(self, inputId ): pass
 
     @abc.abstractmethod
@@ -194,9 +184,6 @@ class SourceNode(WorkflowNode):
     def getId(self):
         return self.varSource.getId()
 
-    def getResultIds(self):
-        return self.varSource.ids()
-
     def suppliesDownstreamInput(self, inputId ):
         return self.varSource.providesId(inputId)
 
@@ -227,9 +214,6 @@ class OpNode(WorkflowNode):
 
     def getId(self):
         return self.rid
-
-    def getResultIds(self):
-        return [ self.rid ]
 
     def suppliesDownstreamInput(self, inputId ):
         return self.rid == inputId
