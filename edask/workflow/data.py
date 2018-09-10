@@ -78,6 +78,9 @@ class EDASArray:
     @property
     def name(self) -> str: return self.xr.name
 
+    @property
+    def product(self) -> str: return self.name.split("[")[0]
+
     def rname(self, op: str ) -> str: return op + "[" + self.name + "]"
 
     @name.setter
@@ -267,7 +270,7 @@ class EDASDataset:
     def groupings(self) -> Set[Transformation]: return {(grouping for grouping in array.transforms) for array in self.arrayMap.values()}
 
     def find_arrays(self, idmatch: str ) -> List[xa.DataArray]:
-        return [ array.xr for id, array in self.arrayMap.items() if re.match(idmatch,id) ]
+        return [ array.xr for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None ]
 
     def compute(self):
         for ( vid, array ) in self.arrayMap.items(): array.compute()

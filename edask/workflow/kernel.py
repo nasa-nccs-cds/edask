@@ -39,15 +39,15 @@ class Kernel:
         for option in self.requiredOptions:
             assert node.findParm( option, None ) is not None, "Option re[{}] is required for the {} kernel".format( option, self.name )
 
-    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         result = request.getCachedResult( self._id )
         if result is None:
-           result = self.buildWorkflow( request, node, inputs )
+           result = self.buildWorkflow( request, node, inputs, products )
            request.cacheResult( self._id, result )
         return result
 
     @abstractmethod
-    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset: pass
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset: pass
 
 class OpKernel(Kernel):
     # Operates independently on sets of variables with same index across all input datasets
@@ -57,7 +57,7 @@ class OpKernel(Kernel):
         super(OpKernel, self).__init__(spec)
         self.addRequiredOptions( ["ax.s", "input"] )
 
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
@@ -68,13 +68,13 @@ class OpKernel(Kernel):
         for matched_inputs in zip( *input_vars ):
             inputVars: EDASDataset = self.preprocessInputs(request, op, matched_inputs, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
-            product = self.processInputCrossSection( request, op, inputCrossSection )
+            product = self.processInputCrossSection( request, op, inputCrossSection, products )
             product.name = op.getResultId( inputVars.id )
             result += product
         return result
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        results: List[EDASArray] = list(chain.from_iterable([ self.processVariable( request, node, input ) for input in inputDset.inputs ]))
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
+        results: List[EDASArray] = list(chain.from_iterable([ self.processVariable( request, node, input, products ) for input in inputDset.inputs ]))
 #        self.renameResults(results,node)
         return EDASDataset.init( results, inputDset.attrs )
 
@@ -83,7 +83,7 @@ class OpKernel(Kernel):
         for result in results: result.name = node.getResultId(result.name) if multiResults else node.rid
 
     @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]: pass
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]: pass
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         domains: Set[str] = EDASArray.domains( inputs, op.domain )
@@ -118,7 +118,7 @@ class DualOpKernel(OpKernel):
 
 class TimeOpKernel(OpKernel):
     # Operates independently on sets of variables with same index across all input datasets
-    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
+    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.   , products: List[EDASDataset]
 
     def __init__(self, spec: KernelSpec):
         super(TimeOpKernel, self).__init__(spec)
@@ -128,7 +128,7 @@ class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
-    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset]) -> EDASDataset:
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         snode: SourceNode = node
         dataSource: DataSource = snode.varSource.dataSource
         result: EDASDataset = EDASDataset.empty()
