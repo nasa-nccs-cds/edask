@@ -252,7 +252,7 @@ class MasterNode(OpNode):
         outputRids: Set[str] = set()
         for proxy in self.proxies:
             outputNodes = filter( lambda node: node not in self.proxies, proxy.outputs )
-            if len( list( outputNodes ) ): outputRids.update( proxy.getResultIds() )
+            if len( list( outputNodes ) ): outputRids.add( proxy.getId() )
         return list( outputRids )
 
     def addProxy(self, node: WorkflowNode):

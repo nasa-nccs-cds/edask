@@ -2,7 +2,7 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
-import string, random, os, re
+import string, random, os, re, copy
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
@@ -49,10 +49,11 @@ class Transformation:
         self.parms = kwargs
 
 class EDASArray:
-    def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation] ):
+    def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
         self.domId = _domId
         self._data = data
         self.name = name
+        self._product = product
         self.transforms = _transforms
 
     @property
@@ -79,7 +80,7 @@ class EDASArray:
     def name(self) -> str: return self.xr.name
 
     @property
-    def product(self) -> str: return self.name.split("[")[0]
+    def product(self) -> str: return self._product
 
     def rname(self, op: str ) -> str: return op + "[" + self.name + "]"
 
@@ -88,6 +89,9 @@ class EDASArray:
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
+
+    def propagateHistory( self, precursor: "EDASArray" ):
+        if precursor.product is not None: self._product = precursor.product
 
     def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
         if len( dims ) <= dimIndex: return default
@@ -116,8 +120,8 @@ class EDASArray:
         new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
         return self.updateXa(new_data,"align")
 
-    def updateXa(self, new_data: xa.DataArray, opId:str, rename_dict: Dict[str,str] = {}) -> "EDASArray":
-        return EDASArray( self.rname(opId), self.domId, new_data.rename(rename_dict), self.transforms )
+    def updateXa( self, new_data: xa.DataArray, name:str, rename_dict: Dict[str,str] = {}, product=None ) -> "EDASArray":
+        return EDASArray( self.rname(name), self.domId, new_data.rename(rename_dict), self.transforms, product )
 
     def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
         xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
@@ -204,7 +208,7 @@ class EDASDataset:
         self.logger = logging.getLogger()
 
     @staticmethod
-    def init( arrays: List[EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
+    def init( arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
@@ -214,13 +218,13 @@ class EDASDataset:
         arrayMap = { vid: EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
         return EDASDataset( arrayMap, dataset.attrs )
 
-    def addArrays(self, arrays: List[EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
-        for array in arrays: self.arrayMap[array.name] = array
+    def addArrays(self, arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
+        self.arrayMap = copy.deepcopy(arrays)
         self.attrs.update(attrs)
         return self
 
-    def addArray(self, array: EDASArray, attrs: Dict[str,Any]  ) -> "EDASDataset":
-        self.arrayMap[array.name] = array
+    def addArray(self, id: str, array: EDASArray, attrs: Dict[str,Any]  ) -> "EDASDataset":
+        self.arrayMap[id] = array
         self.attrs.update(attrs)
         return self
 
@@ -304,11 +308,11 @@ class EDASDataset:
     def align( self, alignRes: str = "lowest" ) -> "EDASDataset":
       if not alignRes: return self
       target_var: EDASArray =  self.getAlignmentVariable( alignRes )
-      new_vars: List[EDASArray] = [ var.align(target_var) for var in self.inputs ]
+      new_vars = { var.name: var.align(target_var) for var in self.inputs }
       return EDASDataset.init( new_vars, self.attrs )
 
     def addDataset(self, dataset: xa.Dataset, varMap: Dict[str,str] ):
-        arrays = [ EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() ]
+        arrays = { vid:EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
         self.addArrays( arrays, dataset.attrs )
 
     def splot(self, tindex: int = 0 ):

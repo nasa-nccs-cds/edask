@@ -144,9 +144,9 @@ class EofKernel(TimeOpKernel):
         solver = Eof( input, center = center )
         results = []
         if (len(products) == 0) or ( "eof" in products):
-            results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eofs", { "mode": "m"} ) )
+            results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eof", { "mode": "m" }, "eof" ) )
         if (len(products) == 0) or ( "pc" in products):
-            results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs", { "mode": "m"}  ) )
+            results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pc", { "mode": "m" }, "pc"  ) )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         for result in results: result["pves"] = str(pves)
@@ -177,10 +177,10 @@ class DiffKernel(DualOpKernel):
     def __init__( self ):
         DualOpKernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
 
-    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
-        results = [ inputVars[0] - inputVars[1] ]
-        return EDASDataset.init( results, inputDset.attrs )
+        result = inputVars[0] - inputVars[1]
+        return EDASDataset.init( { result.name: result }, inputDset.attrs )
 
 class SubsetKernel(Kernel):
     def __init__( self ):
@@ -212,7 +212,7 @@ class ArchiveKernel(OpKernel):
         experiment = node.getParm("exp", request.name  + "." + datetime.datetime.now().strftime("%m-%d-%y.%H-%M-%S") )
         resultPath = Archive.getExperimentPath( project, experiment )
         result: EDASDataset = EDASDataset.merge(inputs)
-        renameMap = { id:id.split("[")[0] for id in result.ids }
+        renameMap = { id:array.product for id,array in result.arrayMap.items() }
         result.xr.rename(renameMap).to_netcdf( resultPath, mode="w" )
         self.logger.info( "Archived results {} to {}".format( result.id, resultPath ) )
         result["archive"] = resultPath

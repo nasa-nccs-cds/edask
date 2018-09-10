@@ -74,37 +74,44 @@ class OpKernel(Kernel):
         return result
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
-        results: List[EDASArray] = list(chain.from_iterable([ self.processVariable( request, node, input, products ) for input in inputDset.inputs ]))
+        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, products ) for input in inputDset.inputs ]))
 #        self.renameResults(results,node)
-        return EDASDataset.init( results, inputDset.attrs )
+        return EDASDataset.init( { result.name:result for result in results}, inputDset.attrs )
 
     def renameResults(self, results: List[EDASArray], node: OpNode  ):
         multiResults =  len( results ) > 1
         for result in results: result.name = node.getResultId(result.name) if multiResults else node.rid
 
+    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]:
+        results = self.processVariable( request, node, inputs, products )
+        for result in results: result.propagateHistory( inputs )
+        return results
+
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]: pass
 
-    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputs: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
-        domains: Set[str] = EDASArray.domains( inputs, op.domain )
-        shapes: Set[Tuple[int]] = EDASArray.shapes( inputs )
+    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputList: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
+        domains: Set[str] = EDASArray.domains( inputList, op.domain )
+        shapes: Set[Tuple[int]] = EDASArray.shapes( inputList )
         interp_na = bool(op.getParm("interp_na", False))
-        if interp_na:
-            inputs = [ input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for input in inputs ]
+        if interp_na:   inputs = { input.name: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for input in inputList }
+        else:           inputs = { input.name: input for input in inputList }
         if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
             merged_domain: str  = request.intersectDomains( domains )
             result: EDASDataset = EDASDataset.empty()
-            for input in inputs: result.addArray( input.subset( request.domain( merged_domain ) ), atts )
+            for input in inputs.values():
+                sub_array = input.subset( request.domain( merged_domain ) )
+                result.addArray( sub_array.name, sub_array, atts )
             result.align( op.getParm("align","lowest") )
         return result.groupby( op.grouping ).resample( op.resampling )
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
         sarray: xa.DataArray = xa.concat( inputDset.xarrays, dim=op.ensDim )
-        result = EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray, list(inputDset.groupings) )
-        return EDASDataset.init( [result], inputDset.attrs )
+        result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray, list(inputDset.groupings) ) }
+        return EDASDataset.init( result, inputDset.attrs )
 
 class DualOpKernel(OpKernel):
     # Operates independently on sets of variables with same index across all input datasets
