@@ -234,6 +234,8 @@ class EDASDataset:
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
 
+    def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
+
     @property
     def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }
 

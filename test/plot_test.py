@@ -101,7 +101,7 @@ class PlotTESTS:
 
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2010-01-01T00', "system": "values"} } ]
-        variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "pc:v0"}, {"uri": "archive:IITM/monsoon", "name": "AI:v1"}]
+        variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "pc:v0"}, {"uri": "archive:IITM/monsoon","name": "AI:v1","offset":"1y"} ]
         operations = [  {"name": "keras.layer", "input": "v0", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.filter", "input": "v1", "result": "v1f", "axis":"t", "sel": "aug"},

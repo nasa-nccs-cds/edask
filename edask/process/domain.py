@@ -1,7 +1,10 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set
+from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set, Iterator
 import string, random
 from enum import Enum, auto
 import xarray as xa
+import pandas as pd
+from datetime import datetime, timedelta
+import re
 
 class Axis(Enum):
     UNKNOWN = auto()
@@ -76,13 +79,14 @@ class AxisBounds:
             start = boundsSpec.get("start",None)
             end = boundsSpec.get("end",None)
             system = boundsSpec.get("system",None)
-            return AxisBounds( name, start, end, system, boundsSpec )
+            offset = boundsSpec.get("offset",None)
+            return AxisBounds( name, start, end, system, offset, boundsSpec )
         else:
             value = boundsSpec
-            return AxisBounds(name, value, value, "values", boundsSpec)
+            return AxisBounds(name, value, value, "values", None, boundsSpec)
 
 
-    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict ):
+    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _offset: str, _metadata: Dict ):
         self.name = _name
         if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
@@ -90,30 +94,61 @@ class AxisBounds:
         self.system = _system
         self.start = _start
         self.end = _end + 1 if _system.startswith("ind") else _end
+        self.offset = _offset
         self.metadata = _metadata
 
     def canBroadcast(self) -> bool:
         return self.start == self.end
 
     def slice(self) -> slice:
-        return slice( self.start, self.end )
+        start, end = self.start, self.end
+        if (self.offset is not None) and ( self.type == Axis.T ):
+            start, end = self.offsetBounds()
+        return slice( start, end )
+
+    def offsetBounds(self) -> Iterator[datetime]:
+        assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
+        return map( self.timeDelta, (self.start, self.end ) )
+
+    def timeDelta(self, dateStr: str ) -> datetime:
+        from dateutil.parser import parse
+        from dateutil.relativedelta import relativedelta
+        result: datetime = parse( dateStr )
+        timeToks = self.offset.split(",")
+        for timeTok in timeToks:
+            try:
+                m = re.search(r'[0-9]*',timeTok)
+                val = int(m.group(0))
+                units = timeTok[len(m.group(0)):].strip().lower()
+                if units.startswith("y"): result =  result+relativedelta(years=+val)
+                elif units.startswith("mi"): result =  result+relativedelta(minutes=+val)
+                elif units.startswith("m"): result =  result+relativedelta(months=+val)
+                elif units.startswith("d"): result =  result+relativedelta(days=+val)
+                elif units.startswith("w"): result =  result+relativedelta(weeks=+val)
+                elif units.startswith("h"): result =  result+relativedelta(hours=+val)
+                elif units.startswith("s"): result =  result+relativedelta(seconds=+val)
+                else: raise Exception()
+            except Exception:
+                raise Exception( "Parse error in offset specification, should be like: '5y,3m,6d'")
+        return result
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
         assert self.system ==  other.system, "Can't intersect domain axes with different systems: Axis {}, {} vs {}".format( self.name, self.system, other.system )
+        assert self.offset ==  other.offset, "Can't intersect domain axes with different offsets: Axis {}, {} vs {}".format( self.name, self.offset, other.offset )
         if allow_broadcast and other.canBroadcast(): return self
         if allow_broadcast and self.canBroadcast(): return other
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
         else:
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
 
     def __str__(self):
-        return "B({}:{})[ start: {}, end: {}, system: {} ]".format( self.type.name, self.name, self.start, self.end, self.system )
+        return "B({}:{})[ start: {}, end: {}, system: {}, offset: {} ]".format( self.type.name, self.name, self.start, self.end, self.system, self.offset )
 
 class Domain:
 

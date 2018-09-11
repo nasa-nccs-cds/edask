@@ -15,6 +15,8 @@ from edask.collections.agg import Archive
 from keras.optimizers import SGD
 from keras.callbacks import TensorBoard, History, Callback
 
+def notNone( x ): return x is not None
+
 class LayerKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("layer", "Layer Kernel","Represents a layer in a neural network." ) )
@@ -92,9 +94,8 @@ class TrainKernel(OpKernel):
         return self.getInputData( target_input_ids, inputDset, train_node.axes[0], 0 )
 
     def getInputData( self, ids: List[str], inputDset: EDASDataset, dim: str, expectedDimIndex: int ) -> List[np.ndarray]:
-        inputs: List[EDASArray] = inputDset.inputs
-        train_inputs = list( filter( lambda arr: arr.name in ids, inputs ) )
-        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, [arr.name for arr in inputs] )
+        train_inputs = list( filter( notNone, [ inputDset.getArray(id) for id in ids ] ) )
+        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, inputDset.ids )
         return self.getAlignedArrays( train_inputs, dim, expectedDimIndex )
 
     def getAlignedArrays( self, inputs: List[EDASArray], dim: str, expectedDimIndex: int ) -> List[np.ndarray]:
