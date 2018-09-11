@@ -24,7 +24,7 @@ class ModelKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
         keras_model = Sequential()
@@ -75,7 +75,7 @@ class TrainKernel(OpKernel):
         targetData = self.getTargetData( train_node, inputDset, 1)
         history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
 
-    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         master_node, model = self.getModel( train_node )
         self.buildLearningModel( master_node, model )
         history: History = self.fitModel( master_node, train_node, model, inputDset )
