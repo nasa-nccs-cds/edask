@@ -59,7 +59,7 @@ class TrainKernel(OpKernel):
 
     def getModel(self, node: OpNode ) -> Tuple[MasterNode,Model]:
         input_connection: WorkflowConnector = node.inputs[0]
-        master_node = input_connection.getConnection()
+        master_node = input_connection.connection
         assert isinstance( master_node, MasterNode ), "Training Kernel is not connected to a network!"
         return master_node, master_node.getParm("model")
 

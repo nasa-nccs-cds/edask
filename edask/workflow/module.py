@@ -117,22 +117,21 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode) -> EDASDataset:
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode, products: List[str] ) -> EDASDataset:
         print( "buildSubWorkflow: " + op.name )
         inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:
             if isinstance(input, WorkflowConnector):
-                connection = input.getConnection()
-                inputDatasets.append( self.buildSubWorkflow( request, connection ) )
-        return kernel.getResultDataset( request, op, inputDatasets )
+                inputDatasets.append(self.buildSubWorkflow(request, input.connection, input.products))
+        return kernel.getResultDataset( request, op, inputDatasets, products )
 
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
+        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op, [] ) for op in resultOps ] )
         return result
 
     def buildTask(self, job: Job ) -> EDASDataset:
@@ -157,7 +156,7 @@ class KernelManager:
                     masterNodeList.add( currentMasterNode )
                 currentMasterNode.addProxy(rootNode)
             for conn in rootNode.inputs:
-                self.createMasterNodes( conn.getConnection(), masterNodeList, currentMasterNode )
+                self.createMasterNodes( conn.connection, masterNodeList, currentMasterNode )
 
     def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
         masterNodes: Set[MasterNode] = set()

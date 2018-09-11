@@ -44,9 +44,10 @@ class SourceConnector(OperationConnector):
 
 class WorkflowConnector(OperationConnector):
 
-    def __init__( self, name: str ):
+    def __init__( self, name: str, products: List[str] ):
         super(WorkflowConnector, self).__init__(name)
         self._connection: WorkflowNode = None
+        self._products = products
 
     def setConnection(self, inputNode: 'WorkflowNode', updateName = False):
         self._connection = inputNode
@@ -54,7 +55,11 @@ class WorkflowConnector(OperationConnector):
             opNode: OpNode = inputNode
             self._name = opNode.rid
 
-    def getConnection( self ) -> "WorkflowNode":
+    @property
+    def products(self)-> List[str]: return self._products
+
+    @property
+    def connection(self) -> "WorkflowNode":
         return self._connection
 
     def isConnected(self): return self._connection is not None
@@ -99,7 +104,10 @@ class WorkflowNode(Node):
 
     def _addWorkflowInputs(self):
         for inputName in self.metadata.get("input","").split(","):
-            if inputName: self.addInput(WorkflowConnector(inputName))
+            if inputName:
+                inputNameToks = inputName.split(":")
+                products = inputNameToks[1].split(",") if len(inputNameToks) > 1 else []
+                self.addInput(WorkflowConnector(inputNameToks[0],products))
 
     def addInput(self, input: OperationConnector):
         self._inputs.append( input )
@@ -193,24 +201,15 @@ class SourceNode(WorkflowNode):
 class OpNode(WorkflowNode):
 
     @classmethod
-    def parseMap(cls, mapSpec: str ) -> Dict[str,str]:
-        resultMap: Dict[str,str] = {}
-        for elem in mapSpec.split(","):
-            toks = elem.split(":")
-            if len(toks) == 2: resultMap[toks[0]] = toks[1]
-            else: resultMap["*"] = toks[0]
-        return resultMap
-
-    @classmethod
     def new(cls, operationSpec: Dict[str, Any] ):
         name = operationSpec.get("name",None)
         domain = operationSpec.get("domain",None)
-        resultMap: Dict[str,str] = operationSpec.get("result",{})
-        return OpNode(name, domain, resultMap, operationSpec)
+        rid: str = operationSpec.get("result",None)
+        return OpNode(name, domain, rid, operationSpec)
 
-    def __init__(self, name: str, domain: Optional[str], _resultMap: Dict[str,str], metadata: Dict[str,Any] ):
+    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
         super( OpNode, self ).__init__( name, domain, metadata)
-        self.resultMap = _resultMap
+        self.rid = _rid
 
     def getId(self):
         return self.rid
@@ -239,7 +238,7 @@ class MasterNode(OpNode):
             for input in proxy.inputs:
                 if isinstance( input, WorkflowConnector ):
                     wc: WorkflowConnector = input
-                    if wc.getConnection() in self.master_inputs:
+                    if wc.connection in self.master_inputs:
                        connections.add(wc)
         return connections
 
@@ -253,7 +252,7 @@ class MasterNode(OpNode):
         outputRids: Set[str] = set()
         for proxy in self.proxies:
             outputNodes = filter( lambda node: node not in self.proxies, proxy.outputs )
-            if len( list( outputNodes ) ): outputRids.update( proxy.getResultIds() )
+            if len( list( outputNodes ) ): outputRids.add( proxy.getId() )
         return list( outputRids )
 
     def addProxy(self, node: WorkflowNode):
@@ -286,7 +285,7 @@ class MasterNode(OpNode):
             for connection in outputNode.inputs:
                 if isinstance( connection, WorkflowConnector):
                     wfconn: WorkflowConnector = connection
-                    if wfconn.getConnection() in self.proxies:
+                    if wfconn.connection in self.proxies:
                         wfconn.setConnection(self,True)
                         self.addOutput( outputNode )
 
