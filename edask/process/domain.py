@@ -80,45 +80,45 @@ class AxisBounds:
             start = boundsSpec.get("start",None)
             end = boundsSpec.get("end",None)
             system = boundsSpec.get("system",None)
-            offset = boundsSpec.get("offset",None)
-            return AxisBounds( name, start, end, system, offset, boundsSpec )
+            return AxisBounds( name, start, end, system, boundsSpec )
         else:
             value = boundsSpec
-            return AxisBounds( name, value, value, "values", None, {} )
+            return AxisBounds( name, value, value, "values", {} )
 
 
-    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _offset: str, _metadata: Dict ):
+    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict ):
         self.name = _name
         if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
         self.system = _system
         self.start = _start
+        self._offset = None
         self.end = _end + 1 if _system.startswith("ind") else _end
-        self.offset = self.getRelativeDelta( _offset )
         self.metadata = _metadata
+
+    def offset( self, offsetStr: str ):
+        self._offset = offsetStr
 
     def canBroadcast(self) -> bool:
         return self.start == self.end
 
     def slice(self) -> slice:
         start, end = self.start, self.end
-        if (self.offset is not None) and ( self.type == Axis.T ):
-            ( start, end ) = self.offsetBounds()
+        if (self._offset is not None) and ( self.type == Axis.T ):
+            ( start, end ) = self.offsetBounds( self._offset )
         return slice( start, end )
 
-    def offsetBounds(self) -> Iterator[datetime]:
-        assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
-        return map( self.timeDelta, (self.start, self.end ) )
-
-    def timeDelta(self, dateStr: str ) -> datetime:
+    def offsetBounds( self, offset: str ) -> (datetime,datetime):
         from dateutil.parser import parse
-        return parse( dateStr ) + self.offset
+        assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
+        timeDelta = self.getRelativeDelta( offset )
+        return ( parse( self.start ) + timeDelta, parse( self.end ) + timeDelta )
+
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
         assert self.system ==  other.system, "Can't intersect domain axes with different systems: Axis {}, {} vs {}".format( self.name, self.system, other.system )
-        assert self.offset ==  other.offset, "Can't intersect domain axes with different offsets: Axis {}, {} vs {}".format( self.name, self.offset, other.offset )
         if allow_broadcast and other.canBroadcast(): return self
         if allow_broadcast and self.canBroadcast(): return other
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
@@ -172,6 +172,10 @@ class Domain:
     def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
         self.axisBounds: Dict[Axis,AxisBounds] = _axisBounds
+
+    def offset(self, offset: str ):
+        if offset == None: return self
+        return Domain( self.name, { axis:bound.offset(offset) for axis,bound in self.axisBounds.items()} )
 
     def findAxisBounds( self, type: Axis ) -> Optional[AxisBounds]:
         return self.axisBounds.get( type, None )

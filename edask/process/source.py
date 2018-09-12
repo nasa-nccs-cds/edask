@@ -1,5 +1,6 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
 from enum import Enum, auto
+from edask.process.node import Node
 
 class SourceType(Enum):
     UNKNOWN = auto()
@@ -60,7 +61,7 @@ class VID:
    def __str__(self):
         return "{}:{}".format( self.name, self.id )
 
-class VariableSource:
+class VariableSource(Node):
 
     @classmethod
     def new(cls, variableSpec: Dict[str, Any] ):
@@ -73,12 +74,14 @@ class VariableSource:
             vars.append(VID(name, id))
         domain = variableSpec.get("domain")
         source = DataSource.new( variableSpec )
-        return VariableSource(vars, domain, source)
+        return VariableSource(vars, domain, source, variableSpec)
 
-    def __init__(self, vars: List[VID], _domain: str, _source: DataSource):
+    def __init__(self, vars: List[VID], _domain: str, _source: DataSource, _metadata: Dict[str, Any] ):
+        super(VariableSource,self).__init__( "VS:" + _source.address, _metadata )
         self.vids: List[VID] = vars
         self.domain: str = _domain
         self.dataSource: DataSource = _source
+        self.metadata = _metadata
 
     def name2id(self, existingMap: Dict[str,str] = {} ) -> Dict[str,str]:
         existingMap.update( { v.elem() for v in self.vids if not v.identity() } )
