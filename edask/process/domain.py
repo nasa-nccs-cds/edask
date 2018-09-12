@@ -3,7 +3,8 @@ import string, random
 from enum import Enum, auto
 import xarray as xa
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import re
 
 class Axis(Enum):
@@ -83,7 +84,7 @@ class AxisBounds:
             return AxisBounds( name, start, end, system, offset, boundsSpec )
         else:
             value = boundsSpec
-            return AxisBounds(name, value, value, "values", None, boundsSpec)
+            return AxisBounds( name, value, value, "values", None, {} )
 
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _offset: str, _metadata: Dict ):
@@ -94,7 +95,7 @@ class AxisBounds:
         self.system = _system
         self.start = _start
         self.end = _end + 1 if _system.startswith("ind") else _end
-        self.offset = _offset
+        self.offset = self.getRelativeDelta( _offset )
         self.metadata = _metadata
 
     def canBroadcast(self) -> bool:
@@ -103,7 +104,7 @@ class AxisBounds:
     def slice(self) -> slice:
         start, end = self.start, self.end
         if (self.offset is not None) and ( self.type == Axis.T ):
-            start, end = self.offsetBounds()
+            ( start, end ) = self.offsetBounds()
         return slice( start, end )
 
     def offsetBounds(self) -> Iterator[datetime]:
@@ -112,25 +113,7 @@ class AxisBounds:
 
     def timeDelta(self, dateStr: str ) -> datetime:
         from dateutil.parser import parse
-        from dateutil.relativedelta import relativedelta
-        result: datetime = parse( dateStr )
-        timeToks = self.offset.split(",")
-        for timeTok in timeToks:
-            try:
-                m = re.search(r'[0-9]*',timeTok)
-                val = int(m.group(0))
-                units = timeTok[len(m.group(0)):].strip().lower()
-                if units.startswith("y"): result =  result+relativedelta(years=+val)
-                elif units.startswith("mi"): result =  result+relativedelta(minutes=+val)
-                elif units.startswith("m"): result =  result+relativedelta(months=+val)
-                elif units.startswith("d"): result =  result+relativedelta(days=+val)
-                elif units.startswith("w"): result =  result+relativedelta(weeks=+val)
-                elif units.startswith("h"): result =  result+relativedelta(hours=+val)
-                elif units.startswith("s"): result =  result+relativedelta(seconds=+val)
-                else: raise Exception()
-            except Exception:
-                raise Exception( "Parse error in offset specification, should be like: '5y,3m,6d'")
-        return result
+        return parse( dateStr ) + self.offset
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
@@ -149,6 +132,28 @@ class AxisBounds:
 
     def __str__(self):
         return "B({}:{})[ start: {}, end: {}, system: {}, offset: {} ]".format( self.type.name, self.name, self.start, self.end, self.system, self.offset )
+
+    @classmethod
+    def getRelativeDelta(cls, offsetStr: str ) -> relativedelta:
+        result = None
+        if offsetStr is not None:
+            for timeTok in offsetStr.split(","):
+                try:
+                    m = re.search(r'[0-9]*',timeTok)
+                    val = int(m.group(0))
+                    units = timeTok[len(m.group(0)):].strip().lower()
+                    if units.startswith("y"): delta =  relativedelta(years=+val)
+                    elif units.startswith("mi"): delta =  relativedelta(minutes=+val)
+                    elif units.startswith("m"): delta =  relativedelta(months=+val)
+                    elif units.startswith("d"): delta =  relativedelta(days=+val)
+                    elif units.startswith("w"): delta =  relativedelta(weeks=+val)
+                    elif units.startswith("h"): delta =  relativedelta(hours=+val)
+                    elif units.startswith("s"): delta =  relativedelta(seconds=+val)
+                    else: raise Exception()
+                    result = delta if result is None else result + delta
+                except Exception:
+                    raise Exception( "Parse error in offset specification, should be like: '5y,3m,6d'")
+        return result
 
 class Domain:
 

@@ -1,6 +1,6 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
-from .source import VariableManager, VariableSource
-from .domain import DomainManager, Domain, Axis
+from edask.process.source import VariableManager, VariableSource
+from edask.process.domain import DomainManager, Domain, Axis
 import abc, re
 
 class Node:

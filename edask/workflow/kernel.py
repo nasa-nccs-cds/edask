@@ -65,7 +65,7 @@ class OpKernel(Kernel):
         input_vars: List[List[(str,EDASArray)]] = [ dset.arrayMap.items() for dset in inputs ]
         self.testOptions( wnode )
         for matched_inputs in zip( *input_vars ):
-            inputVars: EDASDataset = self.preprocessInputs(request, op, dict(*matched_inputs), inputs[0].attrs )
+            inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
             product = self.processInputCrossSection( request, op, inputCrossSection, products )
             product.name = op.getResultId( inputVars.id )
