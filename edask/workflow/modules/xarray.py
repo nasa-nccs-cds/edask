@@ -93,7 +93,8 @@ class FilterKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, products: List[str] ) -> List[EDASArray]:
         selection = node.findParm("sel.*")
         assert ( len(node.axes) == 0 ) or ( ( len(node.axes) == 1 ) and (node.axes[0] == 't') ), "Filter currently can only operate on the time axis"
-        return [ variable.filter( Axis.T, selection ) ]
+        result = variable.filter( Axis.T, selection )
+        return [ result ]
 
 class DecycleKernel(OpKernel):
     def __init__( self ):

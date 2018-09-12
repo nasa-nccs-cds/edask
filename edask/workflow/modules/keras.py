@@ -30,14 +30,21 @@ class ModelKernel(OpKernel):
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
         keras_model = Sequential()
-        input_layers: List[OpNode] = masterNode.getInputProxies()
-        assert len(input_layers) == 1, "Must have one and only one input layer to network, found {}".format( len(input_layers) )
-        input_layer: Layer = self.getLayer( input_layers[0], inputDset )
+        layerNodes: List[OpNode] = masterNode.getInputProxies()
+        assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
+        input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
         keras_model.add( input_layer )
+        while True:
+            layerNodes = layerNodes[0].outputs
+            assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
+            current_layer: Layer = self.getLayer( layerNodes[0] )
+            if current_layer is None: break
+            keras_model.add( current_layer )
         masterNode["model"] = keras_model
         return inputDset
 
-    def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Layer:
+    def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
+        if layerNode.name != "keras.layer": return None
         args = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
         type = args.get("type","dense")
         if inputDset is not None:
