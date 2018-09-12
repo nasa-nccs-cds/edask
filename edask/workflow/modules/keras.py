@@ -79,10 +79,13 @@ class TrainKernel(OpKernel):
         if self.weights is not None: model.set_weights(self.weights)
 
     def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset) -> History:
-        fitArgs = master_node.getParms(["batchSize", "epochs", "validation_split", "shuffle"])
-        inputData = self.getTrainingData(master_node, inputDset, 1)
-        targetData = self.getTargetData( train_node, inputDset, 1)
-        history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
+        batchSize = master_node.getParm( "batchSize", 200 )
+        nEpocs = master_node.getParm( "epochs", 600 )
+        validation_fract = master_node.getParm( "valFraction", 0.2 )
+        shuffle = master_node.getParm( "shuffle", True )
+        inputData = self.getTrainingData( master_node, inputDset, 1 )
+        targetData = self.getTargetData( train_node, inputDset, 1 )
+        history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,self.performanceTracker], verbose=0 )
 
     def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         master_node, model = self.getModel( train_node )
