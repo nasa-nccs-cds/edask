@@ -167,6 +167,9 @@ class SourceNode(WorkflowNode):
         self.varSource = src
         self.metadata.update( src.metadata )
 
+    @property
+    def offset(self): return self.varSource.metadata.get("offset")
+
     def getId(self):
         return self.varSource.getId()
 

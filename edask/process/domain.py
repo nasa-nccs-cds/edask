@@ -3,6 +3,7 @@ import string, random
 from enum import Enum, auto
 import xarray as xa
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import re
@@ -80,41 +81,49 @@ class AxisBounds:
             start = boundsSpec.get("start",None)
             end = boundsSpec.get("end",None)
             system = boundsSpec.get("system",None)
+            end = end + 1 if system.startswith("ind") else end
             return AxisBounds( name, start, end, system, boundsSpec )
         else:
             value = boundsSpec
             return AxisBounds( name, value, value, "values", {} )
 
 
-    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict ):
+    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
         self.name = _name
         if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
         self.system = _system
         self.start = _start
-        self._offset = None
-        self.end = _end + 1 if _system.startswith("ind") else _end
+        self._timeDelta = timeDelta
+        self.end = _end
         self.metadata = _metadata
 
     def offset( self, offsetStr: str ):
-        self._offset = offsetStr
+        timeDelta = self.getRelativeDelta( offsetStr )
+        return AxisBounds( self.name, self.start, self.end, self.system, self.metadata, timeDelta )
+
+    def revertByDelta(self, dt64: np.datetime64) -> datetime:
+        return  datetime.utcfromtimestamp( dt64.astype(int) * 1e-9 ) - self._timeDelta
+
+    def revertAxis(self, xarray: xa.DataArray) -> xa.DataArray:
+        if ( self._timeDelta is not None ) and ( self.type == Axis.T ):
+            xarray = xa.Dataset({'t': [self.revertByDelta(xi) for xi in xarray.t.data] } )
+        return xarray
 
     def canBroadcast(self) -> bool:
         return self.start == self.end
 
     def slice(self) -> slice:
         start, end = self.start, self.end
-        if (self._offset is not None) and ( self.type == Axis.T ):
-            ( start, end ) = self.offsetBounds( self._offset )
+        if (self._timeDelta is not None) and ( self.type == Axis.T ):
+            ( start, end ) = self.offsetBounds()
         return slice( start, end )
 
-    def offsetBounds( self, offset: str ) -> (datetime,datetime):
+    def offsetBounds( self ) -> (datetime,datetime):
         from dateutil.parser import parse
         assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
-        timeDelta = self.getRelativeDelta( offset )
-        return ( parse( self.start ) + timeDelta, parse( self.end ) + timeDelta )
-
+        return ( parse( self.start ) + self._timeDelta, parse( self.end ) + self._timeDelta )
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
@@ -124,11 +133,11 @@ class AxisBounds:
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata, self._timeDelta )
         else:
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata, self._timeDelta )
 
     def __str__(self):
         return "B({}:{})[ start: {}, end: {}, system: {}, offset: {} ]".format( self.type.name, self.name, self.start, self.end, self.system, self.offset )

@@ -130,8 +130,14 @@ class EDASArray:
     def subset( self, domain: Domain ) -> "EDASArray":
         xarray = self.xr
         for system in [ "val", "ind" ]:
-            bounds_list = [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ]
-            if( len(bounds_list) ): xarray = xarray.sel( dict( bounds_list ) ) if system == "val" else xarray.isel( dict( bounds_list ) )
+            bounds_map = dict( [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ] )
+            if (len(bounds_map)):
+                if system == "val":
+                    xarray = xarray.sel( bounds_map )
+                    for axis,axisBound in domain.axisBounds.items():
+                        xarray = axisBound.revertAxis(xarray)
+                else:
+                    xarray.isel( bounds_map )
         return self.updateXa(xarray,"subset")
 
     def filter( self, axis: Axis, condition: str ) -> "EDASArray":
@@ -212,9 +218,16 @@ class EDASDataset:
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
-    @staticmethod
-    def new( dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
-        dataset.rename(idMap, True)
+    @classmethod
+    def rename( cls, dataset: xa.Dataset, idMap: Dict[str,str] = {} ) -> xa.Dataset:
+        for id,val in idMap.items():
+            if val not in dataset and val not in dataset.dims:
+                dataset.rename( {id:val}, True )
+        return dataset
+
+    @classmethod
+    def new( cls, dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
+        cls.rename( dataset, idMap )
         arrayMap = { vid: EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
         return EDASDataset( arrayMap, dataset.attrs )
 
