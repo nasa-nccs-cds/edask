@@ -15,6 +15,8 @@ from edask.collections.agg import Archive
 from keras.optimizers import SGD
 from keras.callbacks import TensorBoard, History, Callback
 
+def notNone( x ): return x is not None
+
 class LayerKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("layer", "Layer Kernel","Represents a layer in a neural network." ) )
@@ -24,18 +26,25 @@ class ModelKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
         keras_model = Sequential()
-        input_layers: List[OpNode] = masterNode.getInputProxies()
-        assert len(input_layers) == 1, "Must have one and only one input layer to network, found {}".format( len(input_layers) )
-        input_layer: Layer = self.getLayer( input_layers[0], inputDset )
+        layerNodes: List[OpNode] = masterNode.getInputProxies()
+        assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
+        input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
         keras_model.add( input_layer )
+        while True:
+            layerNodes = layerNodes[0].outputs
+            assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
+            current_layer: Layer = self.getLayer( layerNodes[0] )
+            if current_layer is None: break
+            keras_model.add( current_layer )
         masterNode["model"] = keras_model
         return inputDset
 
-    def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Layer:
+    def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
+        if layerNode.name != "keras.layer": return None
         args = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
         type = args.get("type","dense")
         if inputDset is not None:
@@ -70,12 +79,15 @@ class TrainKernel(OpKernel):
         if self.weights is not None: model.set_weights(self.weights)
 
     def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset) -> History:
-        fitArgs = master_node.getParms(["batchSize", "epochs", "validation_split", "shuffle"])
-        inputData = self.getTrainingData(master_node, inputDset, 1)
-        targetData = self.getTargetData( train_node, inputDset, 1)
-        history: History = model.fit( inputData[0], targetData[0], callbacks=[self.tensorboard,self.performanceTracker], verbose=0, **fitArgs )
+        batchSize = master_node.getParm( "batchSize", 200 )
+        nEpocs = master_node.getParm( "epochs", 600 )
+        validation_fract = master_node.getParm( "valFraction", 0.2 )
+        shuffle = master_node.getParm( "shuffle", True )
+        inputData = self.getTrainingData( master_node, inputDset, 1 )
+        targetData = self.getTargetData( train_node, inputDset, 1 )
+        history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,self.performanceTracker], verbose=0 )
 
-    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         master_node, model = self.getModel( train_node )
         self.buildLearningModel( master_node, model )
         history: History = self.fitModel( master_node, train_node, model, inputDset )
@@ -92,9 +104,8 @@ class TrainKernel(OpKernel):
         return self.getInputData( target_input_ids, inputDset, train_node.axes[0], 0 )
 
     def getInputData( self, ids: List[str], inputDset: EDASDataset, dim: str, expectedDimIndex: int ) -> List[np.ndarray]:
-        inputs: List[EDASArray] = inputDset.inputs
-        train_inputs = list( filter( lambda arr: arr.name in ids, inputs ) )
-        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, [arr.name for arr in inputs] )
+        train_inputs = list( filter( notNone, [ inputDset.getArray(id) for id in ids ] ) )
+        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, inputDset.ids )
         return self.getAlignedArrays( train_inputs, dim, expectedDimIndex )
 
     def getAlignedArrays( self, inputs: List[EDASArray], dim: str, expectedDimIndex: int ) -> List[np.ndarray]:

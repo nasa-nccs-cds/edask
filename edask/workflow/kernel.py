@@ -62,11 +62,10 @@ class OpKernel(Kernel):
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
         if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
-        input_vars: List[List[EDASArray]] = [ dset.inputs for dset in inputs ]
+        input_vars: List[List[(str,EDASArray)]] = [ dset.arrayMap.items() for dset in inputs ]
         self.testOptions( wnode )
-        matched_inputs: List[EDASArray] = None
         for matched_inputs in zip( *input_vars ):
-            inputVars: EDASDataset = self.preprocessInputs(request, op, matched_inputs, inputs[0].attrs )
+            inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
             product = self.processInputCrossSection( request, op, inputCrossSection, products )
             product.name = op.getResultId( inputVars.id )
@@ -75,12 +74,15 @@ class OpKernel(Kernel):
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
         results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, products ) for input in inputDset.inputs ]))
-#        self.renameResults(results,node)
-        return EDASDataset.init( { result.name:result for result in results}, inputDset.attrs )
+        return EDASDataset.init( self.renameResults(results,node), inputDset.attrs )
 
-    def renameResults(self, results: List[EDASArray], node: OpNode  ):
-        multiResults =  len( results ) > 1
-        for result in results: result.name = node.getResultId(result.name) if multiResults else node.rid
+    def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
+        resultMap: Dict[str,EDASArray] = {}
+        for result in results:
+            result.name = node.getResultId(result.name)
+            key = result.product if len( results ) > 1 else node.rid
+            resultMap[key] = result
+        return resultMap
 
     def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]:
         results = self.processVariable( request, node, inputs, products )
@@ -90,12 +92,13 @@ class OpKernel(Kernel):
     @abstractmethod
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]: pass
 
-    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputList: List[EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
+    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
+        inputList = list(inputDict.values())
         domains: Set[str] = EDASArray.domains( inputList, op.domain )
         shapes: Set[Tuple[int]] = EDASArray.shapes( inputList )
         interp_na = bool(op.getParm("interp_na", False))
-        if interp_na:   inputs = { input.name: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for input in inputList }
-        else:           inputs = { input.name: input for input in inputList }
+        if interp_na:   inputs = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
+        else:           inputs = { id: input for (id, input) in inputDict.items() }
         if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
@@ -162,4 +165,4 @@ class InputKernel(Kernel):
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
         edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
-        return edset.subset( request.domain( snode.domain ) ) if snode.domain else edset
+        return edset.subset( request.domain( snode.domain, snode["offset"] ) ) if snode.domain else edset

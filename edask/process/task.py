@@ -96,8 +96,9 @@ class TaskRequest:
       self.operationManager.createWorkflow()
       return self.operationManager.getOperations()
 
-  def domain(self, domId: str ) -> Domain:
-      return self.operationManager.getDomain(domId)
+  def domain(self, domId: str, offset: str ) -> Domain:
+      dom = self.operationManager.getDomain(domId)
+      return dom.offset( offset )
 
   def subset(self, domId: str, dset: EDASDataset ) -> EDASDataset:
       return dset.subset( self.domain( domId ) ) if dset.requiresSubset(domId) else dset

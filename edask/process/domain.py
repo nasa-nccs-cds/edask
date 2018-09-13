@@ -1,7 +1,11 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set
+from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set, Iterator
 import string, random
 from enum import Enum, auto
 import xarray as xa
+import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+import re
 
 class Axis(Enum):
     UNKNOWN = auto()
@@ -79,7 +83,7 @@ class AxisBounds:
             return AxisBounds( name, start, end, system, boundsSpec )
         else:
             value = boundsSpec
-            return AxisBounds(name, value, value, "values", boundsSpec)
+            return AxisBounds( name, value, value, "values", {} )
 
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict ):
@@ -89,14 +93,28 @@ class AxisBounds:
         self.type = Axis.parse( _name )
         self.system = _system
         self.start = _start
+        self._offset = None
         self.end = _end + 1 if _system.startswith("ind") else _end
         self.metadata = _metadata
+
+    def offset( self, offsetStr: str ):
+        self._offset = offsetStr
 
     def canBroadcast(self) -> bool:
         return self.start == self.end
 
     def slice(self) -> slice:
-        return slice( self.start, self.end )
+        start, end = self.start, self.end
+        if (self._offset is not None) and ( self.type == Axis.T ):
+            ( start, end ) = self.offsetBounds( self._offset )
+        return slice( start, end )
+
+    def offsetBounds( self, offset: str ) -> (datetime,datetime):
+        from dateutil.parser import parse
+        assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
+        timeDelta = self.getRelativeDelta( offset )
+        return ( parse( self.start ) + timeDelta, parse( self.end ) + timeDelta )
+
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
@@ -106,14 +124,36 @@ class AxisBounds:
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
         else:
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata )
+            return AxisBounds( self.name, new_start, new_end, self.system, self.offset, self.metadata )
 
     def __str__(self):
-        return "B({}:{})[ start: {}, end: {}, system: {} ]".format( self.type.name, self.name, self.start, self.end, self.system )
+        return "B({}:{})[ start: {}, end: {}, system: {}, offset: {} ]".format( self.type.name, self.name, self.start, self.end, self.system, self.offset )
+
+    @classmethod
+    def getRelativeDelta(cls, offsetStr: str ) -> relativedelta:
+        result = None
+        if offsetStr is not None:
+            for timeTok in offsetStr.split(","):
+                try:
+                    m = re.search(r'[0-9]*',timeTok)
+                    val = int(m.group(0))
+                    units = timeTok[len(m.group(0)):].strip().lower()
+                    if units.startswith("y"): delta =  relativedelta(years=+val)
+                    elif units.startswith("mi"): delta =  relativedelta(minutes=+val)
+                    elif units.startswith("m"): delta =  relativedelta(months=+val)
+                    elif units.startswith("d"): delta =  relativedelta(days=+val)
+                    elif units.startswith("w"): delta =  relativedelta(weeks=+val)
+                    elif units.startswith("h"): delta =  relativedelta(hours=+val)
+                    elif units.startswith("s"): delta =  relativedelta(seconds=+val)
+                    else: raise Exception()
+                    result = delta if result is None else result + delta
+                except Exception:
+                    raise Exception( "Parse error in offset specification, should be like: '5y,3m,6d'")
+        return result
 
 class Domain:
 
@@ -132,6 +172,10 @@ class Domain:
     def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
         self.axisBounds: Dict[Axis,AxisBounds] = _axisBounds
+
+    def offset(self, offset: str ):
+        if offset == None: return self
+        return Domain( self.name, { axis:bound.offset(offset) for axis,bound in self.axisBounds.items()} )
 
     def findAxisBounds( self, type: Axis ) -> Optional[AxisBounds]:
         return self.axisBounds.get( type, None )

@@ -1,10 +1,11 @@
-import os, datetime
+import os, datetime, re
 import xarray as xa
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from edask.collections.agg import Archive
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
+
 import abc
 
 class TimeseriesData(object):
@@ -81,6 +82,7 @@ class CDuration(object):
     def __sub__(self, other: "CDuration" )-> "CDuration":
         assert self.unit == other.unit, "Incommensurable units in CDuration sub operation"
         return CDuration(self.length - other.length, self.unit )
+
 
 class CDate(object):
 
