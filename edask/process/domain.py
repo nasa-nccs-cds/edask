@@ -108,7 +108,9 @@ class AxisBounds:
 
     def revertAxis(self, xarray: xa.DataArray) -> xa.DataArray:
         if ( self._timeDelta is not None ) and ( self.type == Axis.T ):
-            xarray = xa.Dataset({'t': [self.revertByDelta(xi) for xi in xarray.t.data] } )
+            coords = { key:value for key,value in xarray.coords.items() }
+            coords['t'] = [self.revertByDelta(xi) for xi in xarray.t.data]
+            return xa.DataArray( xarray.data, coords, xarray.dims, xarray.name, xarray.attrs )
         return xarray
 
     def canBroadcast(self) -> bool:

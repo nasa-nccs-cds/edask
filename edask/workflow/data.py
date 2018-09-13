@@ -52,6 +52,8 @@ class EDASArray:
     def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
         self.domId = _domId
         self._data = data
+        if isinstance(data,xa.Dataset):
+            x= 1
         self.name = name
         self._product = product
         self.transforms = _transforms
