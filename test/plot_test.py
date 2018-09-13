@@ -77,10 +77,10 @@ class PlotTESTS:
         results.plot()
 
     def compute_pcs(self):
-        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "time": {"start": '1880-01-01T00', "end": '2010-01-01T00', "system": "values"} }]
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
-                        {"name": "xarray.detrend", "axis":"t", "input": "dc", "wsize":50, "result":"dt" },
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
                         {"name": "xarray.norm", "axis":"t", "input":"modes:pc", "result": "modesn"},
                         {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modesn" } ]
@@ -113,5 +113,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_monsoon_learning()
+    result = tester.compute_pcs()
     plt.show()

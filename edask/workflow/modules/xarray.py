@@ -21,26 +21,8 @@ class AverageKernel(OpKernel):
     def __init__( self ):
         OpKernel.__init__( self, KernelSpec("ave", "Average Kernel","Computes the area-weighted average of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, inputVar: EDASArray ) -> List[EDASArray]:
-        weights = self.getWeights( node, inputVar )
-        data = inputVar.xr
-        if weights is None:
-            return [inputVar.mean(node.axes)]
-        else:
-            axes = list(node.axes)
-            weighted_var = data * weights
-            sum = weighted_var.sum( axes )
-            axes.remove("y")
-            norm = weights * data.count( axes ) if len( axes ) else weights
-            new_data =  sum / norm.sum("y")
-            return [inputVar.updateXa(new_data,"ave")]
-
-    def getWeights(self, op: OpNode, variable: EDASArray  ) -> Optional[xa.Dataset]:
-        if op.hasAxis( Axis.Y ):
-            ycoordaxis =  variable.axis( Axis.Y )
-            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( variable.axes() )
-            return np.cos( ycoordaxis * (3.1415926536/180.0) )
-        else: return None
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, products: List[str]  ) -> List[EDASArray]:
+        return [ variable.ave(node.axes) ]
 
 class MaxKernel(OpKernel):
     def __init__( self ):
@@ -82,8 +64,9 @@ class NormKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("norm", "Normalization Kernel","Normalizes input arrays by centering (computing anomaly) and then dividing by the standard deviation along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, products: List[str] ) -> List[EDASArray]:
-        centered_result =  variable - variable.mean( node.axes )
-        return [centered_result / centered_result.std( node.axes )]
+        centered_result =  variable - variable.ave( node.axes )
+        rv = [centered_result / centered_result.std( node.axes )]
+        return rv
 
 class FilterKernel(OpKernel):
     def __init__( self ):
@@ -158,7 +141,7 @@ class AnomalyKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("anomaly", "Anomaly Kernel", "Centers the input arrays by subtracting off the mean along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, products: List[str] ) -> List[EDASArray]:
-        return  [variable - variable.mean( node.axes )]
+        return  [variable - variable.ave( node.axes )]
 
 class VarKernel(OpKernel):
     def __init__( self ):

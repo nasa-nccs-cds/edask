@@ -149,7 +149,8 @@ class EDASArray:
             assert period.strip().lower().startswith("mon"), "Only month filtering currently supported"
         else: selector = condition
         filter = self.xr.t.dt.month.isin( TimeIndexer.getMonthIndices( selector.strip() ) )
-        return self.updateXa( self.xr.sel( t=filter ), "filter" )
+        new_data = self.xr.sel( t=filter )
+        return self.updateXa( new_data, "filter" )
 
     @staticmethod
     def domains( inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:
@@ -170,8 +171,27 @@ class EDASArray:
     def min( self, axes: List[str] ) -> "EDASArray":
         return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), "min" )
 
-    def mean( self, axes: List[str] ) -> "EDASArray":
+    def mean( self, axes: List[str] ) -> "EDASArray":                          # Unweighted
         return self.updateXa(self.xr.mean(dim=axes, keep_attrs=True), "mean" )
+
+    def ave(self, axes: List[str] ) -> "EDASArray":                           # Weighted
+        weights = self.getWeights( axes )
+        if weights is None:
+            return self.mean(axes)
+        else:
+            weighted_var = self.xr * weights
+            sum = weighted_var.sum( axes )
+            axes.remove("y")
+            norm = weights * self.xr.count( axes ) if len( axes ) else weights
+            new_data =  sum / norm.sum("y")
+            return self.updateXa(new_data,"ave")
+
+    def getWeights(self, axes: List[str]  ) -> Optional[xa.Dataset]:
+        if 'y' in axes:
+            ycoordaxis =  self.axis( Axis.Y )
+            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( self.xr.axes() )
+            return np.cos( ycoordaxis * (3.1415926536/180.0) )
+        else: return None
 
     def median( self, axes: List[str] ) -> "EDASArray":
         return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), "median" )
