@@ -158,7 +158,8 @@ class InputKernel(Kernel):
             dset = xa.open_dataset( dataPath, autoclose=True )
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
-            dset = xa.open_dataset( dataSource.address, autoclose=True  )
+            engine = snode.getParm("engine","netcdf4")
+            dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
         return result
 

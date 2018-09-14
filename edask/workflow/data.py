@@ -52,8 +52,6 @@ class EDASArray:
     def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
         self.domId = _domId
         self._data = data
-        if isinstance(data,xa.Dataset):
-            x= 1
         self.name = name
         self._product = product
         self.transforms = _transforms
@@ -88,6 +86,10 @@ class EDASArray:
 
     @name.setter
     def name(self, value): self.xr.name = value
+
+    def xarray(self, id: str ) -> xa.DataArray:
+        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
+        else:  return xa.DataArray(self._data.data, self._data.coords, self._data.dims, id, self._data.attrs, self._data.encoding )
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
@@ -281,7 +283,7 @@ class EDASDataset:
     def id(self) -> str: return "-".join( self.arrayMap.keys() )
 
     @property
-    def xr(self) -> xa.Dataset: return xa.Dataset( { xa.name:xa for xa in self.xarrays }, attrs=self.attrs )
+    def xr(self) -> xa.Dataset: return xa.Dataset( { id:array.xr for id,array in self.arrayMap.items() }, attrs=self.attrs )
 
     @property
     def vars2doms(self) -> Dict[str,str]: return { name:array.domId for ( name, array ) in self.arrayMap.items() }

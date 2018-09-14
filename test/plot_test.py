@@ -78,7 +78,7 @@ class PlotTESTS:
 
     def compute_pcs(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0", "engine":"pydap"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
