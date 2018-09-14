@@ -10,6 +10,7 @@ from edask.process.source import SourceType
 from edask.process.source import DataSource
 from edask.process.domain import Axis
 from edask.collections.agg import Collection
+from edask.portal.parameters import ParmMgr
 from itertools import chain
 
 class Kernel:
@@ -158,7 +159,7 @@ class InputKernel(Kernel):
             dset = xa.open_dataset( dataPath, autoclose=True )
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
-            engine = snode.getParm("engine","netcdf4")
+            engine = ParmMgr.get("engine","netcdf4")
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
         return result
