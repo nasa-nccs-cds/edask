@@ -100,13 +100,13 @@ class OpKernel(Kernel):
         interp_na = bool(op.getParm("interp_na", False))
         if interp_na:   inputs = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
         else:           inputs = { id: input for (id, input) in inputDict.items() }
-        if op.isSimple(self._minInputs) or ( (len(domains) < 2) and (len(shapes) < 2) ):
+        if op.isSimple(self._minInputs):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
-            merged_domain: str  = request.intersectDomains( domains )
+            merged_domain: str  = request.intersectDomains( domains, False )
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
-                sub_array = input.subset( request.domain( merged_domain ) )
+                sub_array = input.subset( request.domain( merged_domain, None ) )
                 result.addArray( sub_array.name, sub_array, atts )
             result.align( op.getParm("align","lowest") )
         return result.groupby( op.grouping ).resample( op.resampling )
@@ -159,7 +159,7 @@ class InputKernel(Kernel):
             dset = xa.open_dataset( dataPath, autoclose=True )
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
-            engine = ParmMgr.get("engine","netcdf4")
+            engine = ParmMgr.get("dap.engine","netcdf4")
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
         return result

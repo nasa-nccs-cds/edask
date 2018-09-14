@@ -82,6 +82,7 @@ class FilterKernel(OpKernel):
 class DecycleKernel(OpKernel):
     def __init__( self ):
         OpKernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
+        self.removeRequiredOptions(["ax.s"])
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, products: List[str] ) -> List[EDASArray]:
         norm = bool(node.getParm("norm", False))
@@ -166,24 +167,19 @@ class DiffKernel(DualOpKernel):
         result = inputVars[0] - inputVars[1]
         return EDASDataset.init( { result.name: result }, inputDset.attrs )
 
-class SubsetKernel(Kernel):
+class SubsetKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("subset", "Subset Kernel","NoOp kernel used to return (subsetted) inputs." ) )
 
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, NoOp inputs: " + str( [ str(w) for w in op.inputs ] ) )
-        return EDASDataset.merge(inputs)
+    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]) -> EDASDataset:
+        return inputDset
 
-
-class NoOp(Kernel):
+class NoOp(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("noop", "NoOp Kernel","NoOp kernel used to output intermediate products in workflow." ) )
 
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, NoOp inputs: " + str( [ str(w) for w in op.inputs ] ) )
-        return EDASDataset.merge(inputs)
+    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]) -> EDASDataset:
+        return inputDset
 
 class ArchiveKernel(OpKernel):
     def __init__( self ):
@@ -195,7 +191,7 @@ class ArchiveKernel(OpKernel):
         project = node.getParm("proj", DomainManager.randomId(6) )
         experiment = node.getParm("exp", request.name  + "." + datetime.datetime.now().strftime("%m-%d-%y.%H-%M-%S") )
         resultPath = Archive.getExperimentPath( project, experiment )
-        result: EDASDataset = EDASDataset.merge(inputs)
+        result: EDASDataset = OpKernel.buildWorkflow( request, wnode, inputs, products )
         renameMap = { id:array.product for id,array in result.arrayMap.items() }
         result.xr.rename(renameMap).to_netcdf( resultPath, mode="w" )
         self.logger.info( "Archived results {} to {}".format( result.id, resultPath ) )

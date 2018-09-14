@@ -194,10 +194,13 @@ class Domain:
     def intersect( self, name: str, other: "Domain", allow_broadcast: bool = True ) -> "Domain":
         result_axes: Dict[Axis,AxisBounds]  = {}
         other_axes = dict( other.axisBounds )
-        for (axis,bounds) in self.axisBounds:
-            intersected_bounds = bounds.intersect( other_axes.pop( axis ), allow_broadcast )
+        for (axis,bounds) in self.axisBounds.items():
+            if axis in other_axes:
+                intersected_bounds = bounds.intersect( other_axes.pop( axis ), allow_broadcast )
+            else:
+                intersected_bounds = bounds
             if intersected_bounds: result_axes[axis] = intersected_bounds
-        for (axis,bounds) in other_axes:
+        for (axis,bounds) in other_axes.items():
             if not (allow_broadcast and bounds.canBroadcast() ):
                 result_axes[axis] = bounds
         return Domain( name, result_axes )
@@ -238,7 +241,7 @@ class DomainManager:
         self.domains = _domains
 
     def getDomain( self, name: str ) -> Domain:
-        return self.domains.get( name.lower() )
+        return self.domains.get( name )
 
     def intersectDomains(self, domainIds: Set[str], allow_broadcast: bool = True ) -> Optional[str]:
         if len( domainIds ) == 0: return None

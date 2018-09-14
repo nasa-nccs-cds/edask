@@ -125,7 +125,7 @@ class WorkflowNode(Node):
         return axis + "." + freq
 
     def isSimple( self, minInputs: int ) -> bool:
-        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2)
+        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2) and (self.domain is None)
 
     @abc.abstractmethod
     def getId(self): pass

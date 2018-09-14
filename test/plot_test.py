@@ -1,6 +1,7 @@
 from edask.process.test import TestManager
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset
+from edask.portal.plotters import plotter
 import xarray as xa
 import logging
 
@@ -75,18 +76,19 @@ class PlotTESTS:
 
 
     def test_detrend(self):
-        domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
-                    "lon": {"start": 100, "end": 100, "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        domains = [ {"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"}, "time": { "start":'1980-01-01', "end":'2000-01-01', "system":"values" }  },
+                    {"name": "d1", "lat": {"start": 50, "end": 50, "system": "values"}, "lon": {"start": 100, "end": 100, "system": "values"}}]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain":"d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
-                        {"name": "xarray.detrend", "input": "dc", "wsize":50 },
-                        {"name": "xarray.noop", "input": "dc"} ]
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.subset", "input": "dt", "domain":"d1"} ]
         results = self.mgr.testExec(domains, variables, operations)
+        print( results.xr )
         results.plot()
 
     def compute_pcs(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0", "engine":"pydap"}]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
@@ -94,6 +96,16 @@ class PlotTESTS:
                         {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modesn" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pc", results )
+
+    def plot_eofs(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "pc", results )
+        self.eof_plot( "eof", results )
 
     def compute_eofs_reduced(self):
         domains = [{"name": "d0", "lat": {"start": 0, "end": 20, "system": "values"}, "lon": {"start": 0, "end": 20, "system": "values"}, "time": {"start": '1900-01-01T00', "end": '1905-01-01T00', "system": "values"} }]
@@ -117,7 +129,7 @@ class PlotTESTS:
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
                         {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
         results = self.mgr.testExec( domains, variables, operations )
-        results.plot()
+        plotter.plotPerformance( results, "20crv-ts" )
 
 if __name__ == '__main__':
     tester = PlotTESTS()
