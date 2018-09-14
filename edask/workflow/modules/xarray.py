@@ -191,7 +191,7 @@ class ArchiveKernel(OpKernel):
         project = node.getParm("proj", DomainManager.randomId(6) )
         experiment = node.getParm("exp", request.name  + "." + datetime.datetime.now().strftime("%m-%d-%y.%H-%M-%S") )
         resultPath = Archive.getExperimentPath( project, experiment )
-        result: EDASDataset = OpKernel.buildWorkflow( request, wnode, inputs, products )
+        result: EDASDataset = OpKernel.buildWorkflow( self, request, wnode, inputs, products )
         renameMap = { id:array.product for id,array in result.arrayMap.items() }
         result.xr.rename(renameMap).to_netcdf( resultPath, mode="w" )
         self.logger.info( "Archived results {} to {}".format( result.id, resultPath ) )
