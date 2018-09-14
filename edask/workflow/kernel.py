@@ -90,8 +90,8 @@ class OpKernel(Kernel):
         for result in results: result.propagateHistory( inputs )
         return results
 
-    @abstractmethod
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]: pass
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]:
+        return [inputs]
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         inputList = list(inputDict.values())
