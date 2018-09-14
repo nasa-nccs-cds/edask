@@ -1,6 +1,7 @@
 from edask.process.test import TestManager
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset
+import xarray as xa
 import logging
 
 class PlotTESTS:
@@ -14,6 +15,13 @@ class PlotTESTS:
             fig, axes = plt.subplots( nrows=2, ncols=2 )
             for iaxis in range(4):
                 results_array.sel(m=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
+
+    def graph(self, dset: EDASDataset ):
+        vars = dset.xr.variables.values()
+        plt.subplots(nrows=1, ncols=len(vars))
+        for var in vars:
+            if isinstance(var,xa.Variable):
+                var.plot()
 
     def print(self, results: EDASDataset):
       for variable in results.inputs:
@@ -109,7 +117,7 @@ class PlotTESTS:
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
                         {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
         results = self.mgr.testExec( domains, variables, operations )
-        self.print( results )
+        results.plot()
 
 if __name__ == '__main__':
     tester = PlotTESTS()
