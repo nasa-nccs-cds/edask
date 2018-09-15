@@ -47,6 +47,13 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
+    def test_subset(self):
+        domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},  "lon": {"start": 100, "end": 100, "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [ {"name": "xarray.subset", "input": "v0"} ]
+        results = self.mgr.testExec(domains, variables, operations)
+        results.plot()
+
     def test_filter0(self):
         from edask.data.sources.timeseries import TimeIndexer
         domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
@@ -155,5 +162,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_detrend()
+    result = tester.test_subset()
     plt.show()

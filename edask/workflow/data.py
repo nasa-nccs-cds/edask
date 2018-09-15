@@ -242,6 +242,10 @@ class EDASDataset:
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
+    @staticmethod
+    def open_dataset( filePath: str ) -> "EDASDataset":
+        return EDASDataset.new(xa.open_dataset(filePath))
+
     @classmethod
     def rename( cls, dataset: xa.Dataset, idMap: Dict[str,str] = {} ) -> xa.Dataset:
         for id,val in idMap.items():
@@ -376,6 +380,7 @@ class EDASDataset:
     def plot(self, idmatch: str = None ):
         nplots = len( self.ids )
         fig, axes = plt.subplots(ncols=nplots)
+        self.logger.info( "Plotting {} plot(s)".format(nplots) )
         if nplots == 1:
             self.xarrays[0].plot(ax=axes)
         else:

@@ -7,7 +7,7 @@ from edask.process.task import Job
 from edask.workflow.data import EDASDataset
 from edask.portal.base import EDASPortal, Message, Response
 from dask.distributed import Client, Future, LocalCluster
-import random, string, os, queue, datetime, atexit
+import random, string, os, queue, datetime, atexit, multiprocessing
 from enum import Enum
 import xarray as xa
 
@@ -92,8 +92,9 @@ class ProcessManager(GenericProcessManager):
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
+      self.nWorkers = int( self.config.get("nWorkers",multiprocessing.cpu_count()) )
       self.logger =  logging.getLogger()
-      self.cluster = LocalCluster()
+      self.cluster = LocalCluster( n_workers=self.nWorkers )
       self.client = Client(self.cluster)
 
   def term(self):
