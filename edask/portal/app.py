@@ -1,49 +1,11 @@
 import zmq, traceback
 from dask.distributed import Future
-from edask.workflow.data import EDASDataset
 import random, string, os, datetime, atexit
 from edask.portal.base import EDASPortal, Message, Response
 from typing import List, Dict, Any, Union, Sequence
 from edask.workflow.module import edasOpManager
-from edask.process.manager import ProcessManager, Job
-
-
-class ExecResultHandler:
-
-    def __init__(self, portal: EDASPortal, clientId: str, jobId: str, **kwargs ):
-        self.clientId = clientId
-        self.jobId = jobId
-        self.cacheDir = kwargs.get( "cache", "/tmp")
-        self.iterations = kwargs.get( "iterations", 1 )
-        self.completed = 0
-        self.portal = portal
-        self.filePath = self.cacheDir + "/" + portal.randomStr(6) + ".nc"
-
-    def successCallback(self, resultFuture: Future):
-      status = resultFuture.status
-      if status == "finished":
-          result: EDASDataset = resultFuture.result()
-          filePath = result.save( self.filePath )
-          self.portal.sendFile( self.clientId, self.jobId, result.id, filePath, True )
-      else:
-          self.failureCallback( "status = " + status )
-      self.portal.removeHandler( self.clientId, self.jobId )
-
-    def failureCallback(self, message: str):
-      self.portal.sendErrorReport( self.clientId, self.jobId, message )
-      self.portal.removeHandler( self.clientId, self.jobId )
-
-    def iterationCallback( self, resultFuture: Future ):
-      status = resultFuture.status
-      if status == "finished":
-          self.completed = self.completed + 1
-          result: EDASDataset = resultFuture.result()
-      else:
-          self.failureCallback( "status = " + status )
-
-      if self.completed == self.iterations:
-        self.successCallback( resultFuture )
-        self.portal.removeHandler( self.clientId, self.jobId )
+from edask.process.task import Job
+from edask.process.manager import ProcessManager, ExecResultHandler
 
 class EDASapp(EDASPortal):
 
@@ -98,13 +60,13 @@ class EDASapp(EDASPortal):
     def execute( self, taskSpec: Sequence[str] )-> Response:
         clientId = self.elem(taskSpec,0)
         runargs = self.getRunArgs( taskSpec )
-        jobId = runargs.get( "jobId",self.randomStr(8) )
+        jobId = runargs.get( "jobId", Job.randomStr(8) )
         process_name = self.elem(taskSpec,2)
         dataInputsSpec = self.elem(taskSpec,3)
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
-          job = Job( jobId, process_name, dataInputsSpec, runargs, 1.0 )
+          job = Job.new( jobId, process_name, dataInputsSpec, runargs, 1.0 )
           resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId, iterations=job.iterations ) )
           self.processManager.executeProcess(jobId, job, resultHandler )
           return Message( clientId, jobId, resultHandler.filePath )
@@ -113,6 +75,16 @@ class EDASapp(EDASPortal):
             traceback.print_exc()
             return Message( clientId, jobId, str(err) )
 
+
+    def runJob( self, job: Job, clientId: str = "local" )-> Response:
+        try:
+          resultHandler: ExecResultHandler = self.addHandler( clientId, job.identifier, ExecResultHandler( self, clientId, job.identifier, iterations=job.iterations ) )
+          self.processManager.executeProcess(job.identifier, job, resultHandler )
+          return Message( clientId, job.identifier, resultHandler.filePath )
+        except Exception as err:
+            self.logger.error( "Caught execution error: " + str(err) )
+            traceback.print_exc()
+            return Message( clientId, job.identifier, str(err) )
 
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):

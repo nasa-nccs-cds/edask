@@ -20,25 +20,32 @@ def dl2s(items: List[Dict[str, str]]) -> str:
 def d2s(dict: Dict[str, str]) -> str:
   return "{ " + ", ".join([q(k) + ":" + q(v) for (k, v) in dict.items()]) + " }"
 
+class TestDataManager:
+  addresses = {
+    "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
+    "merra": CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
+    "ecmwf": CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
+    "cfsr": CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",
+    "20crv": CreateIPServer + "/reanalysis/20CRv2c/mon/atmos/{}.ncml",
+    "jra": CreateIPServer + "/reanalysis/JMA/JRA-55/mon/atmos/{}.ncml",
+  }
+
+  @classmethod
+  def getAddress( cls, model: str, varName: str) -> str:
+    return cls.addresses[model.lower()].format(varName)
+
+
 class TestManager:
 
   def __init__(self):
     self.logger = logging.getLogger()
-    self.addresses = {
-      "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
-      "merra": CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
-      "ecmwf": CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
-      "cfsr": CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",
-      "20crv": CreateIPServer + "/reanalysis/20CRv2c/mon/atmos/{}.ncml",
-      "jra": CreateIPServer + "/reanalysis/JMA/JRA-55/mon/atmos/{}.ncml",
-    }
 
   def getAddress(self, model: str, varName: str) -> str:
-    return self.addresses[model.lower()].format(varName)
+    return TestDataManager.getAddress(model,varName)
 
   def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> EDASDataset:
     testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
-    job = Job( "requestId", "jobId", testRequest )
+    job = Job.new( "requestId", "jobId", testRequest )
     return edasOpManager.buildTask(job)
 
   def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:

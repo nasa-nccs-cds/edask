@@ -155,5 +155,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.compute_pcs_TN()
+    result = tester.test_detrend()
     plt.show()

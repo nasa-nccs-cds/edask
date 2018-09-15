@@ -174,11 +174,6 @@ class EDASPortal:
         except Exception as err:
             self.logger.error( "Error initializing request socket on port {}: {}".format( request_port, err ) )
 
-    @staticmethod
-    def randomStr( length )-> str:
-        tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
-        return ''.join( random.SystemRandom().choice( tokens ) for _ in range( length ) )
-
     def sendErrorReport( self, clientId: str, responseId: str, msg: str ):
         self.logger.info("-----> SendErrorReport[" + clientId +":" + responseId + "]" )
         self.responder.sendResponse( ErrorReport(clientId,responseId,msg) )

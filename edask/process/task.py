@@ -24,13 +24,27 @@ class UID:
     def __str__(self): return self.uid
 
 class Job:
-  def __init__( self, requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    self.requestId = requestId
-    self.identifier = identifier
-    self.dataInputs = WpsCwtParser.parseDatainputs( datainputs )
-    self.runargs = runargs
-    self.priority = priority
-    self.workerIndex = 0
+
+  def __init__(self, requestId: str, identifier: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
+        self.requestId = requestId
+        self.identifier = identifier
+        self.dataInputs = datainputs
+        self.runargs = runargs
+        self.priority = priority
+        self.workerIndex = 0
+
+  @staticmethod
+  def new( requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
+    return Job( requestId, identifier, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
+
+  @staticmethod
+  def randomStr(length) -> str:
+      tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
+      return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
+
+  @classmethod
+  def init( cls, identifier: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]],  runargs: Dict[str,str]={}, priority: float=0.0 ):
+    return Job( cls.randomStr(6), identifier, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
 
   def copy( self, workerIndex: int ) -> "Job":
       newjob = copy.deepcopy( self )
