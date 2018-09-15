@@ -71,10 +71,8 @@ class AppTests:
         except Exception as err:
             self.logger.error( "Error Plotting: {} ".format(str(err)) )
 
-
-
     def test_detrend(self):
-        domains = [ {"name": "d0", "lat": {"start": 0, "end": 50, "system": "values"}, "lon": {"start": 0, "end": 50, "system": "values"}, "time": { "start": '1900-01-01', "end": '1920-01-01', "system":"values" }  },
+        domains = [ {"name": "d0", "lat": {"start": 0, "end": 50, "system": "values"}, "lon": {"start": 0, "end": 50, "system": "values"}, "time": { "start": '1990-01-01', "end": '2000-01-01', "system":"values" }  },
                     {"name": "d1", "lat": {"start": 20, "end": 20, "system": "values"}, "lon": {"start": 20, "end": 20, "system": "values"}}]
         variables = [{"uri":  TestDataManager.getAddress("merra2", "tas"), "name": "tas:v0", "domain":"d0"}]
         operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
@@ -82,16 +80,15 @@ class AppTests:
                         {"name": "xarray.subset", "input": "dt", "domain":"d1"} ]
         return self.exec( "test_detrend", domains, variables, operations )
 
-    def test_subset(self):
-        domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
-                    "lon": {"start": 100, "end": 100, "system": "values"}}]
+    def test_norm(self):
+        domains = [{"name": "d0", "lat": {"start": 20, "end": 40, "system": "values"}, "lon": {"start": 60, "end": 100, "system": "values"}}]
         variables = [{"uri": TestDataManager.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [{"name": "xarray.subset", "input": "v0"}]
+        operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
 if __name__ == '__main__':
     tester = AppTests( {"nWorkers":"2"} )
-    result: Response = tester.test_subset()
+    result: Response = tester.test_detrend()
     print( result )
 
 
