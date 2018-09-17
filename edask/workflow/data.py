@@ -164,7 +164,7 @@ class EDASArray:
     def shapes( inputs: List["EDASArray"] ) -> Set[Tuple[int]]:
         return { tuple(var.xr.shape) for var in inputs }
 
-    def axis(self, axis: Axis ):
+    def coord(self, axis: Axis):
         return self.xr.coords.get( axis.name.lower() )
 
     def max( self, axes: List[str] ) -> "EDASArray":
@@ -190,7 +190,7 @@ class EDASArray:
 
     def getWeights(self, axes: List[str]  ) -> Optional[xa.Dataset]:
         if 'y' in axes:
-            ycoordaxis =  self.axis( Axis.Y )
+            ycoordaxis =  self.coord(Axis.Y)
             assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( self.xr.axes() )
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None

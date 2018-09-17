@@ -17,6 +17,7 @@ To install:
     > conda install -c anaconda zeromq pyzmq
     > conda install -c conda-forge libnetcdf nco eofs
     > conda install  pillow scikit-learn tensorflow keras
+    > pip install pydap
     
     > git clone https://github.com/nasa-nccs-cds/edask.git
     > cd edask

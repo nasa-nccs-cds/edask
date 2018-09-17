@@ -99,6 +99,31 @@ class AxisBounds:
         self.end = _end
         self.metadata = _metadata
 
+    def crop(self, axis: Axis, minVal: Union[float,int,np.datetime64], maxVal: Union[float,int,np.datetime64] ):
+        if (axis == Axis.T) and self.system.startswith("val"):
+            return self.cropTime( minVal, maxVal )
+        else:
+            return self.cropValOrIndex( minVal, maxVal )
+
+    def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
+        from dateutil.parser import parse
+        assert self.system.startswith("val"), "AxisBounds must have value='system' in order to cropTimes: " + self.name
+        assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
+        minTime: datetime = datetime.utcfromtimestamp( minVal.astype(int) * 1e-9 )
+        maxTime: datetime = datetime.utcfromtimestamp( maxVal.astype(int) * 1e-9 )
+        startTime: datetime = parse( self.start )
+        endTime: datetime   = parse( self.end )
+        if (maxTime < startTime) or (minTime > endTime): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
+        newStart = minTime if minTime > startTime else startTime
+        newEnd =   maxTime if maxTime < endTime else endTime
+        return AxisBounds( self.name, str(newStart), str(newEnd), self.system, self.metadata, self._timeDelta )
+
+    def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
+        if (maxVal < self.start) or (minVal > self.end): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
+        newStart = max( minVal, self.start )
+        newEnd =   min( maxVal, self.end )
+        return AxisBounds( self.name, newStart, newEnd, self.system, self.metadata, self._timeDelta )
+
     def offset( self, offsetStr: str ):
         timeDelta = self.getRelativeDelta( offsetStr )
         return AxisBounds( self.name, self.start, self.end, self.system, self.metadata, timeDelta )
@@ -183,6 +208,12 @@ class Domain:
     def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
         self.axisBounds: Dict[Axis,AxisBounds] = _axisBounds
+
+    def addBounds(self, axis: Axis, bounds: AxisBounds ):
+        self.axisBounds[axis] = bounds
+
+    def getBounds(self, axis: Axis) -> Optional[AxisBounds]:
+        return self.axisBounds.get(axis,None)
 
     def offset(self, offset: str ):
         if offset == None: return self

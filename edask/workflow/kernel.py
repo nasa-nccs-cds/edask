@@ -1,16 +1,16 @@
 from abc import ABCMeta, abstractmethod
 import logging, random, string, os, datetime
 from edask.process.task import TaskRequest
-from typing import List, Dict, Set, Any, Optional, Tuple
+from typing import List, Dict, Set, Any, Optional, Tuple, Iterable
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.collections.agg import Archive
 import xarray as xa
-from .data import KernelSpec, EDASDataset, EDASArray
+from edask.workflow.data import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType
 from edask.process.source import DataSource
-from edask.process.domain import Axis
 from edask.collections.agg import Collection
 from edask.portal.parameters import ParmMgr
+from edask.process.domain import Domain, Axis
 from itertools import chain
 
 class Kernel:
@@ -98,15 +98,16 @@ class OpKernel(Kernel):
         domains: Set[str] = EDASArray.domains( inputList, op.domain )
         shapes: Set[Tuple[int]] = EDASArray.shapes( inputList )
         interp_na = bool(op.getParm("interp_na", False))
-        if interp_na:   inputs = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
-        else:           inputs = { id: input for (id, input) in inputDict.items() }
+        if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
+        else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDict.items() }
         if op.isSimple(self._minInputs):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
             merged_domain: str  = request.intersectDomains( domains, False )
+            processed_domain: Domain  = request.cropDomain( merged_domain, inputs.values() )
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
-                sub_array = input.subset( request.domain( merged_domain, None ) )
+                sub_array = input.subset( processed_domain )
                 result.addArray( sub_array.name, sub_array, atts )
             result.align( op.getParm("align","lowest") )
         return result.groupby( op.grouping ).resample( op.resampling )
@@ -167,4 +168,5 @@ class InputKernel(Kernel):
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
         edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
-        return edset.subset( request.domain( snode.domain, snode.offset ) ) if snode.domain else edset
+        processed_domain: Domain  = request.cropDomain( snode.domain, edset.inputs, snode.offset )
+        return edset.subset( processed_domain ) if snode.domain else edset

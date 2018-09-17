@@ -1,11 +1,12 @@
-from typing import Dict, Any, Union, Sequence, List, Set
+from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
 import logging, random, string
-from edask.process.domain import DomainManager, Domain
+import xarray as xa
+from edask.process.domain import DomainManager, Domain, AxisBounds, Axis
 import copy
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
-from edask.workflow.data import EDASDataset
 from edask.portal.parsers import WpsCwtParser
+from edask.workflow.data import EDASDataset, EDASArray
 
 class UID:
     ndigits = 6
@@ -106,11 +107,29 @@ class TaskRequest:
   def intersectDomains(self, domainIds = Set[str], allow_broadcast: bool = True  ) -> str:
       return self.operationManager.domains.intersectDomains( domainIds, allow_broadcast )
 
+  def cropDomain( self, domainId: str, inputs: Iterable[EDASArray], offset: Optional[str] = None ) -> Domain:
+      dom: Domain = self.operationManager.getDomain( domainId )
+      domain = dom if offset is None else dom.offset( offset )
+      new_domain = Domain( domain.name, {} )
+      for axis,bound in domain.axisBounds.items():
+          new_domain.addBounds( axis, self.cropBounds(axis,bound,inputs) )
+      return new_domain
+
+  def cropBounds( self, axis: Axis, bound: AxisBounds, inputs: Iterable[EDASArray] ) -> AxisBounds:
+      new_bounds: AxisBounds = bound
+      for input in inputs:
+        coord: xa.DataArray = input.coord(axis)
+        if coord is not None:
+            assert len( coord.shape ) == 1, "Not currently supporting multi-dimensional axes: " + coord.name
+            values = coord.values
+            new_bounds = new_bounds.crop( axis, values[0], values[-1] )
+      return new_bounds
+
   def linkWorkflow(self) -> List[WorkflowNode]:
       self.operationManager.createWorkflow()
       return self.operationManager.getOperations()
 
-  def domain(self, domId: str, offset: str ) -> Domain:
+  def domain(self, domId: str, offset: Optional[str] ) -> Domain:
       dom = self.operationManager.getDomain(domId)
       return dom.offset( offset )
 
