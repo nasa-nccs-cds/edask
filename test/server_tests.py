@@ -91,6 +91,8 @@ if __name__ == '__main__':
     result: Response = tester.test_detrend()
     print( result )
 
+#  TODO:  Throw exception when request bounds do not intersect with dataset
+
 
 
 

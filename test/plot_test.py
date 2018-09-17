@@ -93,6 +93,18 @@ class PlotTESTS:
         print( results.xr )
         results.plot()
 
+    def test_intersect_error(self):
+        domains = [ {"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "time": { "start": '1851-01-01', "end": '1860-01-01', "system":"values" }  },
+                    {"name": "d1", "lat": {"start": 50, "end": 50, "system": "values"}, "lon": {"start": 100, "end": 100, "system": "values"}}]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain":"d0"}]
+        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.subset", "input": "dt", "domain":"d1"} ]
+        results = self.mgr.testExec(domains, variables, operations)
+        print( results.xr )
+        results.plot()
+
+
     def compute_pcs_SN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
@@ -162,5 +174,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_subset()
+    result = tester.test_intersect_error()
     plt.show()
