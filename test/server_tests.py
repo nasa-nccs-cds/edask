@@ -14,26 +14,41 @@ class AppTestsResultHandler(ResultHandler):
 
     def __init__(self, clientId: str, jobId: str, **kwargs ):
         super(AppTestsResultHandler,self).__init__(clientId,jobId,**kwargs)
+        self.results: List[EDASDataset] = []
 
     def successCallback(self, resultFuture: Future):
         status = resultFuture.status
+        print("SUCCESS")
         if status == "finished":
-            result: EDASDataset = resultFuture.result()
-            filePath = result.save(self.filePath)
-            print( "SUCCESS: wrote result to " + filePath )
-            self.printResult(filePath)
+            self.processFinalResult( resultFuture.result() )
         else:
-            self.failureCallback("status = " + status)
+            self.failureCallback( Exception("status = " + status) )
 
-    def failureCallback(self, message: str):
-        print("ERROR: "+ message)
+    def processFinalResult(self, result: EDASDataset ):
+        filePath = result.save(self.filePath)
+        print( "SUCCESS: wrote result to " + filePath )
+        self.printResult(filePath)
 
-    def iterationCallback( self, resultFuture: Future ):
-        print("ITERATE")
+    def failureCallback(self, ex: Exception ):
+        print( "ERROR: "+ str(ex) )
+        print( traceback.format_exc() )
 
     def printResult( self, filePath: str ):
         dset = xa.open_dataset(filePath)
         print( str(dset) )
+
+    def iterationCallback( self, resultFuture: Future ):
+      status = resultFuture.status
+      print( "ITERATE: status = {}, iteration = {}".format( resultFuture.status, self.completed ) )
+      if status == "finished":
+          self.completed = self.completed + 1
+          result: EDASDataset = resultFuture.result()
+          self.results.append(result)
+      else:
+          self.failureCallback( Exception("status = " + status) )
+
+      if self.completed == self.iterations:
+          self.processFinalResult( EDASDataset.merge( self.results ) )
 
 class AppTests:
 
@@ -47,7 +62,7 @@ class AppTests:
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler = AppTestsResultHandler( "local", job.identifier )
+          resultHandler = AppTestsResultHandler( "local", job.identifier, iterations=job.iterations )
           self.processManager.executeProcess( job.identifier, job, resultHandler )
           return Message( clientId, job.identifier, resultHandler.filePath )
         except Exception as err:
@@ -86,14 +101,21 @@ class AppTests:
         operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
-
+    def test_monsoon_learning(self):
+        domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
+        variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "pc:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon","name":"AI:v1","domain":"d0", "offset":"1y"} ]
+        operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
+                        {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
+                        {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
+                        {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
+                        {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":4, "target":"t1" } ]
+        return self.exec( "test_monsoon_learning", domains, variables, operations )
 
 if __name__ == '__main__':
-    tester = AppTests( {"nWorkers":"2"} )
-    result: Response = tester.test_detrend()
+    tester = AppTests( {"nWorkers":"4"} )
+    result: Response = tester.test_monsoon_learning()
     print( result )
-
-#  TODO:  Throw exception when request bounds do not intersect with dataset
 
 
 

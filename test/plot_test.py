@@ -168,11 +168,11 @@ class PlotTESTS:
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":1, "target":"t1" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "scheduler:iterations":4, "target":"t1" } ]
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPerformance( results, "20crv-ts" )
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_intersect_error()
+    result = tester.test_monsoon_learning()
     plt.show()

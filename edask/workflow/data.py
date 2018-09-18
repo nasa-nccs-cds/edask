@@ -274,8 +274,8 @@ class EDASDataset:
         return filePath
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
-
     def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
+    def customArraymap(self, id: str  ) -> Dict[str,EDASArray]: return { (key+"-"+id):item for key,item in self.arrayMap.items() }
 
     @property
     def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }
@@ -393,8 +393,8 @@ class EDASDataset:
         if len( dsets ) == 1: return dsets[0]
         arrayMap: Dict[str,EDASArray] = {}
         attrs: Dict[str,Any] = {}
-        for dset in dsets:
-            arrayMap.update( dset.arrayMap )
+        for idx,dset in enumerate(dsets):
+            arrayMap.update( dset.customArraymap( str(idx) ) )
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
 

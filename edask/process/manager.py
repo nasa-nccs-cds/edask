@@ -26,7 +26,7 @@ class ResultHandler:
     def successCallback(self, resultFuture: Future): pass
 
     @abc.abstractmethod
-    def failureCallback(self, message: str): pass
+    def failureCallback(self, ex: Exception): pass
 
     @abc.abstractmethod
     def iterationCallback( self, resultFuture: Future ): pass
@@ -36,19 +36,22 @@ class ExecResultHandler(ResultHandler):
     def __init__(self, portal: EDASPortal, clientId: str, jobId: str, **kwargs ):
         super(ExecResultHandler,self).__init__( clientId, jobId, **kwargs )
         self.portal = portal
+        self.results: List[EDASDataset] = []
 
     def successCallback(self, resultFuture: Future):
       status = resultFuture.status
       if status == "finished":
-          result: EDASDataset = resultFuture.result()
-          filePath = result.save( self.filePath )
-          self.portal.sendFile( self.clientId, self.jobId, result.id, filePath, True )
+          self.processFinalResult( resultFuture.result() )
       else:
-          self.failureCallback( "status = " + status )
+          self.failureCallback( Exception("status = " + status) )
       self.portal.removeHandler( self.clientId, self.jobId )
 
-    def failureCallback(self, message: str):
-      self.portal.sendErrorReport( self.clientId, self.jobId, message )
+    def processFinalResult(self, result: EDASDataset ):
+        filePath = result.save( self.filePath )
+        self.portal.sendFile( self.clientId, self.jobId, result.id, filePath, True )
+
+    def failureCallback(self, ex: Exception ):
+      self.portal.sendErrorReport( self.clientId, self.jobId, str(ex) )
       self.portal.removeHandler( self.clientId, self.jobId )
 
     def iterationCallback( self, resultFuture: Future ):
@@ -56,11 +59,12 @@ class ExecResultHandler(ResultHandler):
       if status == "finished":
           self.completed = self.completed + 1
           result: EDASDataset = resultFuture.result()
+          self.results.append(result)
       else:
-          self.failureCallback( "status = " + status )
+          self.failureCallback( Exception("status = " + status) )
 
       if self.completed == self.iterations:
-        self.successCallback( resultFuture )
+        self.processFinalResult( EDASDataset.merge( self.results ) )
         self.portal.removeHandler( self.clientId, self.jobId )
 
 class GenericProcessManager:
@@ -96,6 +100,7 @@ class ProcessManager(GenericProcessManager):
       self.logger =  logging.getLogger()
       self.cluster = LocalCluster( n_workers=self.nWorkers )
       self.client = Client(self.cluster)
+      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers )
 
   def term(self):
       self.client.close()
@@ -103,7 +108,7 @@ class ProcessManager(GenericProcessManager):
 
   def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ):
       try:
-        self.logger.info("Defining workflow")
+        self.logger.info( "Defining workflow, nIter = " + str(resultHandler.iterations) )
         if resultHandler.iterations > 1:
             jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.iterations) ]
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
@@ -115,7 +120,7 @@ class ProcessManager(GenericProcessManager):
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
-          resultHandler.failureCallback( str(ex) )
+          resultHandler.failureCallback( ex )
           traceback.print_exc()
 
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )

@@ -134,7 +134,10 @@ class KernelManager:
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op, [] ) for op in resultOps ] )
         return result
 
-    def buildTask(self, job: Job ) -> EDASDataset:
+    def buildIndices( self, size: int ) -> xa.DataArray:
+        return xa.DataArray( range(size), coords=[('node',range(size))] )
+
+    def buildTask( self, job: Job ) -> EDASDataset:
         try:
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
@@ -142,6 +145,17 @@ class KernelManager:
             self.logger.error( "BuildTask Exception: " + str(err) )
             self.logger.info( traceback.format_exc() )
             raise err
+
+    # def buildTasks(self, job: Job ) -> EDASDataset:
+    #     try:
+    #         instances = xa.DataArray( range(job.iterations), coords=[('node',range(job.iterations))] )
+    #         xa.apply_ufunc(instances, self.buildTask, job )
+    #         request: TaskRequest = TaskRequest.new( job )
+    #         return self.buildRequest( request )
+    #     except Exception as err:
+    #         self.logger.error( "BuildTask Exception: " + str(err) )
+    #         self.logger.info( traceback.format_exc() )
+    #         raise err
 
     def createMasterNodes(self, rootNode: WorkflowNode, masterNodeList: Set[MasterNode], currentMasterNode: Optional[MasterNode] = None ):
         if rootNode.proxyProcessed:
