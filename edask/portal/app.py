@@ -67,7 +67,7 @@ class EDASapp(EDASPortal):
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
           job = Job.new( jobId, process_name, dataInputsSpec, runargs, 1.0 )
-          resultHandler: ExecResultHandler = self.addHandler( clientId, jobId, ExecResultHandler( self, clientId, jobId, iterations=job.iterations ) )
+          resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler(self, clientId, jobId, workers=job.workers))
           self.processManager.executeProcess(jobId, job, resultHandler )
           return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:
@@ -78,7 +78,7 @@ class EDASapp(EDASPortal):
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler: ExecResultHandler = self.addHandler( clientId, job.identifier, ExecResultHandler( self, clientId, job.identifier, iterations=job.iterations ) )
+          resultHandler: ExecResultHandler = self.addHandler(clientId, job.identifier, ExecResultHandler(self, clientId, job.identifier, workers=job.workers))
           self.processManager.executeProcess(job.identifier, job, resultHandler )
           return Message( clientId, job.identifier, resultHandler.filePath )
         except Exception as err:

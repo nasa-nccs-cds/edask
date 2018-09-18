@@ -27,21 +27,45 @@ class ModelKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
 
+    # def processInputCrossSection1( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+    #     assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
+    #     masterNode: MasterNode = node
+    #     keras_model = Sequential()
+    #     layerNodes: List[OpNode] = masterNode.getInputProxies()
+    #     assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
+    #     input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
+    #     keras_model.add( input_layer )
+    #     while True:
+    #         layerNodes = layerNodes[0].outputs
+    #         assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
+    #         current_layer: Layer = self.getLayer( layerNodes[0] )
+    #         if current_layer is None: break
+    #         keras_model.add( current_layer )
+    #     masterNode["model"] = keras_model
+    #     return inputDset
+
+    def getModel( self, masterNode: MasterNode ):
+        keras_layers = masterNode["layers"]
+        keras_model = Sequential()
+        for keras_layer in keras_layers:
+            keras_model.add( keras_layer )
+        return keras_model
+
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
-        keras_model = Sequential()
+        keras_layers = []
         layerNodes: List[OpNode] = masterNode.getInputProxies()
         assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
         input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
-        keras_model.add( input_layer )
+        keras_layers.append( input_layer )
         while True:
             layerNodes = layerNodes[0].outputs
             assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
             current_layer: Layer = self.getLayer( layerNodes[0] )
             if current_layer is None: break
-            keras_model.add( current_layer )
-        masterNode["model"] = keras_model
+            keras_layers.append( current_layer )
+        masterNode["layers"] = keras_layers
         return inputDset
 
     def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
@@ -65,14 +89,19 @@ class TrainKernel(OpKernel):
         self.bestFitResult: FitResult = None
         self.tensorboard = TensorBoard( log_dir=Archive.getLogDir(), histogram_freq=0, write_graph=True )
         self.stop_condition = "minValTrain"
-        self.performanceTracker = PerformanceTracker( self.stop_condition )
-        self.reseed()
+
+    def getKerasModel( self, masterNode: MasterNode ) -> Model:
+        keras_layers = masterNode["layers"]
+        keras_model = Sequential()
+        for keras_layer in keras_layers:
+            keras_model.add( copy.deepcopy(keras_layer) )
+        return keras_model
 
     def getModel(self, node: OpNode ) -> Tuple[MasterNode,Model]:
         input_connection: WorkflowConnector = node.inputs[0]
         master_node = input_connection.connection
         assert isinstance( master_node, MasterNode ), "Training Kernel is not connected to a network!"
-        return master_node, master_node.getParm("model")
+        return master_node, self.getKerasModel(master_node)
 
     def buildLearningModel(self, node: MasterNode, model: Model ):
         optArgs = node.getParms( ["lr", "decay", "momentum", "nesterov" ] )
@@ -80,33 +109,61 @@ class TrainKernel(OpKernel):
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
         if self.weights is not None: model.set_weights(self.weights)
 
-    def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset) -> EDASDataset:
+    def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset, performanceTracker: PerformanceTracker) -> FitResult:
         batchSize = master_node.getParm( "batchSize", 200 )
         nEpocs = master_node.getParm( "epochs", 600 )
         validation_fract = master_node.getParm( "valFraction", 0.2 )
-        shuffle = master_node.getParm( "shuffle", True )
+        shuffle = master_node.getParm( "shuffle", False )
         inputData = self.getTrainingData( master_node, inputDset, 1 )
         targetData = self.getTargetData( train_node, inputDset, 1 )
         initial_weights = model.get_weights()
-        history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,self.performanceTracker], verbose=0 )
-        self.updateHistory( history, initial_weights )
-        arrays = { id: self.getDataArray( history, id, nEpocs ) for id in [ "loss", "val_loss" ] }
-        return EDASDataset( arrays, inputDset.attrs )
+        history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,performanceTracker], verbose=0 )
+        return self.updateHistory( history, initial_weights, performanceTracker )
 
-    def updateHistory( self, history: History, initial_weights: List[np.ndarray] ) -> History:
-        if self.performanceTracker.nEpoc > 0:
-            if not self.bestFitResult or ( self.performanceTracker.minValLoss < self.bestFitResult.val_loss ):
-                self.bestFitResult = FitResult.new( history, initial_weights, self.performanceTracker.getWeights(), self.performanceTracker.minTrainLoss, self.performanceTracker.minValLoss, self.performanceTracker.nEpoc )
-        return history
+    def buildResultDataset(self,inputDset: EDASDataset)-> EDASDataset:
+        result = self.bestFitResult
+        arrays = {}
+        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss", [ "epochs" ] )
+        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss", [ "epochs" ] )
+        attrs = copy.deepcopy(inputDset.attrs)
+        attrs["loss"] = result.train_loss
+        attrs["val_loss"] = result.val_loss
+        attrs["nEpocs"] = result.nEpocs
+        attrs["nInstances"] = result.nInstances
+        attrs["merge"] = "min:val_loss"
+        return EDASDataset( arrays, attrs )
 
-    def getDataArray(self, history: History, id: str, nEpochs: int, transforms = [] )-> EDASArray:
+ #       arrays = { id: self.getDataArray( history, id, nEpocs ) for id in [ "loss", "val_loss" ] }
+ #       return EDASDataset( arrays, inputDset.attrs )
+
+    def updateHistory( self, history: History, initial_weights: List[np.ndarray], performanceTracker: PerformanceTracker ) -> FitResult:
+        if performanceTracker.nEpoc > 0:
+            if not self.bestFitResult or ( performanceTracker.minValLoss < self.bestFitResult.val_loss ):
+                self.bestFitResult = FitResult.new( history, initial_weights, performanceTracker.getWeights(), performanceTracker.minTrainLoss, performanceTracker.minValLoss, performanceTracker.nEpoc )
+        return self.bestFitResult
+
+    def getHistoryDataArray(self, history: History, id: str, nEpochs: int, transforms = [] )-> EDASArray:
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
         return EDASArray( id, None, data, transforms )
 
+    def getDataArray(self, array: np.ndarray, id: str, dims: List[str], transforms = [] )-> EDASArray:
+        nEpochs: int = array.shape[0]
+        data = xa.DataArray( array, coords=[ range( nEpochs ) ], dims=dims )
+        return EDASArray( id, None, data, transforms )
+
     def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
-        master_node, model = self.getModel( train_node )
-        self.buildLearningModel( master_node, model )
-        return self.fitModel( master_node, train_node, model, inputDset )
+        self.reseed()
+        nIterations = train_node.getParm( "iterations", 1 )
+        self.logger.info( "Executing fit-model {} times".format(nIterations) )
+        val_loss_values = []
+        for idx in range( nIterations ):
+            performanceTracker = PerformanceTracker( self.stop_condition )
+            master_node, model = self.getModel( train_node )
+            self.buildLearningModel( master_node, model )
+            self.fitModel( master_node, train_node, model, inputDset, performanceTracker )
+            val_loss_values.append( performanceTracker.minValLoss )
+        self.logger.info( "Worker training results: val losses = " + str(val_loss_values) )
+        return self.buildResultDataset(inputDset)
 
     def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
         train_input_ids = [ inp.name for inp in model_node.inputs ]

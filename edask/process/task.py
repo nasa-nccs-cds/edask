@@ -63,9 +63,9 @@ class Job:
       return sParms
 
   @property
-  def iterations(self):
+  def workers(self):
       sParms = self.getSchedulerParameters()
-      return int( sParms.get("iterations",1) )
+      return int( sParms.get("workers",1) )
 
 class TaskRequest:
     

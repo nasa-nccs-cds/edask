@@ -49,7 +49,7 @@ class Transformation:
         self.parms = kwargs
 
 class EDASArray:
-    def __init__(self, name: str, _domId: str, data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
+    def __init__(self, name: str, _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
         self.domId = _domId
         self._data = data
         self.name = name

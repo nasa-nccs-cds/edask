@@ -75,8 +75,7 @@ class PerformanceTracker(Callback):
 class FitResult(object):
 
     @staticmethod
-    def getCombinedAverages( results ):
-        # type: (list[FitResult]) -> ( np.ndarray, np.ndarray, int )
+    def getCombinedAverages( results: List["FitResult"] ) -> ( np.ndarray, np.ndarray, int ):
         ave_train_loss_sum = None
         ave_val_loss_sum = None
         nInstances = 0

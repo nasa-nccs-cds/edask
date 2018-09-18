@@ -18,7 +18,7 @@ class ResultHandler:
         self.clientId = clientId
         self.jobId = jobId
         self.cacheDir = kwargs.get( "cache", "/tmp")
-        self.iterations = kwargs.get( "iterations", 1 )
+        self.workers = kwargs.get( "workers", 1 )
         self.completed = 0
         self.filePath = self.cacheDir + "/" + Job.randomStr(6) + ".nc"
 
@@ -63,7 +63,7 @@ class ExecResultHandler(ResultHandler):
       else:
           self.failureCallback( Exception("status = " + status) )
 
-      if self.completed == self.iterations:
+      if self.completed == self.workers:
         self.processFinalResult( EDASDataset.merge( self.results ) )
         self.portal.removeHandler( self.clientId, self.jobId )
 
@@ -100,7 +100,7 @@ class ProcessManager(GenericProcessManager):
       self.logger =  logging.getLogger()
       self.cluster = LocalCluster( n_workers=self.nWorkers )
       self.client = Client(self.cluster)
-      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers )
+      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers, asynchronous=True )
 
   def term(self):
       self.client.close()
@@ -108,13 +108,13 @@ class ProcessManager(GenericProcessManager):
 
   def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ):
       try:
-        self.logger.info( "Defining workflow, nIter = " + str(resultHandler.iterations) )
-        if resultHandler.iterations > 1:
-            jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.iterations) ]
+        self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
+        if resultHandler.workers > 1:
+            jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.workers) ]
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
             for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
         else:
-            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
+            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job, asynchronous=True )
             result_future.add_done_callback( resultHandler.successCallback )
         self.logger.info("Submitted computation")
 
