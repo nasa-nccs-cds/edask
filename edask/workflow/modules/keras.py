@@ -14,6 +14,7 @@ from edask.process.operation import WorkflowConnector
 from edask.collections.agg import Archive
 from keras.optimizers import SGD
 from keras.callbacks import TensorBoard, History, Callback
+from edask.workflow.learning import FitResult, PerformanceTracker
 
 def notNone( x ): return x is not None
 
@@ -61,6 +62,7 @@ class TrainKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("train", "Train Kernel","Train a neural network model." ) )
         self.weights = None
+        self.bestFitResult: FitResult = None
         self.tensorboard = TensorBoard( log_dir=Archive.getLogDir(), histogram_freq=0, write_graph=True )
         self.stop_condition = "minValTrain"
         self.performanceTracker = PerformanceTracker( self.stop_condition )
@@ -85,9 +87,17 @@ class TrainKernel(OpKernel):
         shuffle = master_node.getParm( "shuffle", True )
         inputData = self.getTrainingData( master_node, inputDset, 1 )
         targetData = self.getTargetData( train_node, inputDset, 1 )
+        initial_weights = model.get_weights()
         history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,self.performanceTracker], verbose=0 )
+        self.updateHistory( history, initial_weights )
         arrays = { id: self.getDataArray( history, id, nEpocs ) for id in [ "loss", "val_loss" ] }
         return EDASDataset( arrays, inputDset.attrs )
+
+    def updateHistory( self, history: History, initial_weights: List[np.ndarray] ) -> History:
+        if self.performanceTracker.nEpoc > 0:
+            if not self.bestFitResult or ( self.performanceTracker.minValLoss < self.bestFitResult.val_loss ):
+                self.bestFitResult = FitResult.new( history, initial_weights, self.performanceTracker.getWeights(), self.performanceTracker.minTrainLoss, self.performanceTracker.minValLoss, self.performanceTracker.nEpoc )
+        return history
 
     def getDataArray(self, history: History, id: str, nEpochs: int, transforms = [] )-> EDASArray:
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
@@ -154,74 +164,5 @@ class TrainKernel(OpKernel):
     #     model.compile(loss=self.lossFunction, optimizer=sgd, metrics=['accuracy'])
     #     if self.weights is not None: model.set_weights(self.weights)
     #     return model
-
-
-class PerformanceTracker(Callback):
-    def __init__( self, _stopCond, **kwargs ):
-        super(PerformanceTracker,self).__init__()
-        self.logger = logging.getLogger()
-        self.stopCond = _stopCond
-        self.val_loss_history = None
-        self.training_loss_history = None
-        self.nIters = 0
-        self.verbose = kwargs.get( "verbose", False )
-        self.termIters = kwargs.get('earlyTermIndex', -1 )
-
-    def on_train_begin(self, logs=None):
-        self.minValLoss = sys.float_info.max
-        self.minTrainLoss = sys.float_info.max
-        self.nSteps = 0
-        self.nEpoc = 0
-        self.epochCount = 0
-        self.best_weights = None
-        self.nUphillIters = -1
-
-    def on_train_end(self, logs=None):
-        self.nIters += 1
-        val_loss = np.array(self.model.history.history['val_loss'])
-        training_loss = np.array(self.model.history.history['loss'])
-        self.val_loss_history = self.intersect_add( self.val_loss_history, val_loss )
-        self.training_loss_history = self.intersect_add(self.training_loss_history, training_loss)
-
-    @staticmethod
-    def intersect_add( data0, data1 ):
-        # type: (np.ndarray,np.ndarray) -> np.ndarray
-        if data1 is None: return data0
-        if data0 is None: return data1
-        len = min( data0.shape[0], data1.shape[0] )
-        return data0[0:len] + data1[0:len]
-
-    def on_epoch_end(self, epoch, logs=None):
-        val_loss = self.model.history.history.get('val_loss',None)
-        training_loss = self.model.history.history.get('loss',None)
-        if self.verbose:
-            tloss = training_loss[-1] if training_loss else "UNDEF"
-            vloss = val_loss[-1] if val_loss else "UNDEF"
-            self.logger.info( "* I[{0}]-E[{1}]-> training_loss: {2}, val_loss: {3}".format( self.nIters, self.epochCount, tloss, vloss ) )
-        if val_loss and training_loss:
-            vloss, tloss = val_loss[-1], training_loss[-1]
-            self._processIter( vloss, tloss )
-        if ( self.termIters > 0 ) and ( self.nUphillIters >= self.termIters ):
-            self.logger.info( "Stopping training at iteration: " + str( self.nIters ) )
-            self.model.stop_training = True
-        self.epochCount = self.epochCount + 1
-
-    def _processIter(self, valLoss, trainLoss ):
-        self.nSteps += 1
-        if (valLoss < self.minValLoss) :
-            if (self.stopCond == "minVal") or ((self.stopCond == "minValTrain") and (trainLoss <= valLoss)):
-                self.minValLoss = valLoss
-                self.minTrainLoss = trainLoss
-                self.nEpoc = self.nSteps
-                self.nUphillIters = 0
-                self.best_weights = copy.deepcopy(self.model.get_weights())
-        elif self.nUphillIters >= 0:
-            self.nUphillIters += 1
-
-    def getHistory(self):
-        return (self.training_loss_history / self.nIters, self.val_loss_history / self.nIters)
-
-    def getWeights(self):
-        return self.best_weights
 
 
