@@ -1,4 +1,4 @@
-import sys, inspect, logging, os
+import sys, inspect, logging, os, traceback
 from abc import ABCMeta, abstractmethod
 from edask.workflow.kernel import Kernel, InputKernel, EDASDataset
 from os import listdir
@@ -135,8 +135,13 @@ class KernelManager:
         return result
 
     def buildTask(self, job: Job ) -> EDASDataset:
-        request: TaskRequest = TaskRequest.new( job )
-        return self.buildRequest( request )
+        try:
+            request: TaskRequest = TaskRequest.new( job )
+            return self.buildRequest( request )
+        except Exception as err:
+            self.logger.error( "BuildTask Exception: " + str(err) )
+            self.logger.info( traceback.format_exc() )
+            raise err
 
     def createMasterNodes(self, rootNode: WorkflowNode, masterNodeList: Set[MasterNode], currentMasterNode: Optional[MasterNode] = None ):
         if rootNode.proxyProcessed:

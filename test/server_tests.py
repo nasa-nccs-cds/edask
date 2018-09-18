@@ -86,6 +86,8 @@ class AppTests:
         operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
+
+
 if __name__ == '__main__':
     tester = AppTests( {"nWorkers":"2"} )
     result: Response = tester.test_detrend()
