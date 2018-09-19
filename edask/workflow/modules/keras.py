@@ -142,7 +142,6 @@ class TrainKernel(OpKernel):
     def appendWeights(self, id: str, arrays: Dict[str,EDASArray], wts: List[np.ndarray]):
         for index,warray in enumerate(wts):
             idx = id + "-" + str(index)
-            print( idx + ": " + str(warray.shape) )
             arrays[idx] = self.getWtsArray(warray, idx )
 
     def updateHistory( self, history: History, initial_weights: List[np.ndarray], performanceTracker: PerformanceTracker ) -> FitResult:

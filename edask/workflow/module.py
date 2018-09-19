@@ -118,7 +118,6 @@ class KernelManager:
         return module.describeProcess( op )
 
     def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode, products: List[str] ) -> EDASDataset:
-        print( "buildSubWorkflow: " + op.name )
         inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
         for input in op.inputs:

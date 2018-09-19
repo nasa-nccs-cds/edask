@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
 import string, random, os, re, copy
+import abc
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
@@ -401,5 +402,18 @@ class EDASDataset:
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
 
+    def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)
     def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )
     def __setitem__(self, key: str, value: Any ): self.attrs[key] = value
+
+
+class MergeHandler:
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def mergeResults(self, results: List[EDASDataset] ) -> EDASDataset: pass
+
+class StandardMergeHandler(MergeHandler):
+
+    def mergeResults(self, results: List[EDASDataset] ) -> EDASDataset:
+        return EDASDataset.merge( results )
