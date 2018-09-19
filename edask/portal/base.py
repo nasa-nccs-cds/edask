@@ -22,7 +22,7 @@ class Response:
     def id(self) -> str:
         return self.clientId + ":" + self.responseId
 
-    def message(self) -> str: return self._body;
+    def message(self) -> str: return self._body.strip()
 
     def __str__(self) -> str: return self.__class__.__name__ + "[" + self.id() + "]: " + str(self._body)
 

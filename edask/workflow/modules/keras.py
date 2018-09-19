@@ -123,15 +123,16 @@ class TrainKernel(OpKernel):
     def buildResultDataset(self,inputDset: EDASDataset)-> EDASDataset:
         result = self.bestFitResult
         arrays = {}
-        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss", [ "epochs" ] )
-        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss", [ "epochs" ] )
+        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss", "epochs" )
+        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss", "epochs" )
         attrs = copy.deepcopy(inputDset.attrs)
         attrs["loss"] = result.train_loss
         attrs["val_loss"] = result.val_loss
         attrs["nEpocs"] = result.nEpocs
         attrs["nInstances"] = result.nInstances
         attrs["merge"] = "min:val_loss"
-        return EDASDataset( arrays, attrs )
+        rv = EDASDataset( arrays, attrs )
+        return rv
 
  #       arrays = { id: self.getDataArray( history, id, nEpocs ) for id in [ "loss", "val_loss" ] }
  #       return EDASDataset( arrays, inputDset.attrs )
@@ -146,9 +147,8 @@ class TrainKernel(OpKernel):
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
         return EDASArray( id, None, data, transforms )
 
-    def getDataArray(self, array: np.ndarray, id: str, dims: List[str], transforms = [] )-> EDASArray:
-        nEpochs: int = array.shape[0]
-        data = xa.DataArray( array, coords=[ range( nEpochs ) ], dims=dims )
+    def getDataArray(self, array: np.ndarray, id: str, dim: str, transforms = [] )-> EDASArray:
+        data = xa.DataArray( array, coords=[(dim,range(array.shape[0]))] )
         return EDASArray( id, None, data, transforms )
 
     def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:

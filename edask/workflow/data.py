@@ -270,7 +270,10 @@ class EDASDataset:
         return self
 
     def save( self, filePath  ):
-        self.xr.to_netcdf( path=filePath )
+        dset = self.xr
+        vars: List[xa.DataArray] = dset.data_vars.values()
+        dset.to_netcdf( path=filePath )
+        self.logger.info( " SAVE: " + str([ x.name + ":" + str(x.shape) for x in vars ]) + " to file " + filePath )
         return filePath
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]

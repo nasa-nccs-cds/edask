@@ -8,7 +8,7 @@ from edask.portal.plotters import plotter
 from edask.process.task import Job
 from edask.process.test import TestDataManager
 import xarray as xa
-import logging, traceback
+import logging, traceback, time, os
 
 class AppTestsResultHandler(ResultHandler):
 
@@ -54,7 +54,6 @@ class AppTestsResultHandler(ResultHandler):
     def processFinalResult(self):
         result: EDASDataset = self.getMergedResult()
         filePath = result.save(self.filePath)
-        print( "SUCCESS: wrote result to " + filePath )
         self.printResult(filePath)
 
     def failureCallback(self, ex: Exception ):
@@ -129,9 +128,21 @@ class AppTests:
         operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
+    def plotPerformanceXa(self, filePath: str):
+        while True:
+            if os.path.isfile(filePath):
+                dset = xa.open_dataset( filePath, autoclose=True )
+                plotter.plotPerformanceXa(dset, "20crv-ts")
+                print("EXITING PLOT LOOP")
+                return
+            else:
+                time.sleep(0.5)
+                print( "." , end='' )
+
+
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
-        variables = [{"uri": "archive:globalPCs/20crv-ts", "name": "pc:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon","name":"AI:v1","domain":"d0", "offset":"1y"} ]
+        variables = [{"uri": "archive:globalPCs/20crv-ts-TN", "name": "pc:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
                         {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
@@ -143,7 +154,7 @@ class AppTests:
 if __name__ == '__main__':
     tester = AppTests( {"nWorkers":"4"} )
     result: Response = tester.test_monsoon_learning()
-    print( result )
+    tester.plotPerformanceXa( result.message() )
 
 
 

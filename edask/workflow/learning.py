@@ -91,6 +91,7 @@ class FitResult(object):
         return FitResult( history.history['val_loss'], history.history['loss'], initial_weights, final_weights,  training_loss, val_loss, nEpocs )
 
     def __init__( self, _val_loss_history: Iterable[float], _train_loss_history: Iterable[float], _initial_weights: List[np.ndarray], _final_weights: List[np.ndarray], _training_loss: float,  _val_loss: float, _nEpocs: int ):
+        self.logger = logging.getLogger()
         self.val_loss_history = np.array( _val_loss_history )
         self.train_loss_history = np.array( _train_loss_history )
         self.initial_weights = _initial_weights
