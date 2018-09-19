@@ -7,7 +7,7 @@ from edask.process.task import Job
 from edask.workflow.data import EDASDataset
 from edask.portal.base import EDASPortal, Message, Response
 from dask.distributed import Client, Future, LocalCluster
-import random, string, os, queue, datetime, atexit, multiprocessing
+import random, string, os, queue, datetime, atexit, multiprocessing, errno
 from enum import Enum
 import xarray as xa
 
@@ -22,6 +22,14 @@ class ResultHandler:
         self.completed = 0
         self.filePath = self.cacheDir + "/" + Job.randomStr(6) + ".nc"
 
+    def getExpDir(self, proj: str, exp: str ) -> str:
+        expDir =  self.cacheDir + "/experiments/" + proj + "/" + exp
+        return self.mkDir( expDir )
+
+    def getExpFile(self, proj: str, exp: str, name: str, type: str = "nc" ) -> str:
+        expDir =  self.getExpDir( proj, exp )
+        return expDir + "/" + name + "-" + Job.randomStr(6) + "." + type
+
     @abc.abstractmethod
     def successCallback(self, resultFuture: Future): pass
 
@@ -30,6 +38,13 @@ class ResultHandler:
 
     @abc.abstractmethod
     def iterationCallback( self, resultFuture: Future ): pass
+
+    def mkDir(self, dir: str ) -> str:
+        try:
+            os.makedirs(dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST: raise
+        return dir
 
 class ExecResultHandler(ResultHandler):
 

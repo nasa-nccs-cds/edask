@@ -3,7 +3,7 @@ import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode, MasterNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from operator import mul
 from functools import reduce
 import copy, sys, logging, random, numpy as np
@@ -120,22 +120,30 @@ class TrainKernel(OpKernel):
         history: History = model.fit( inputData[0], targetData[0], batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,performanceTracker], verbose=0 )
         return self.updateHistory( history, initial_weights, performanceTracker )
 
-    def buildResultDataset(self,inputDset: EDASDataset)-> EDASDataset:
+    def buildResultDataset(self, inputDset: EDASDataset, train_node: OpNode )-> EDASDataset:
         result = self.bestFitResult
+        master_node, model = self.getModel(train_node)
         arrays = {}
-        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss", "epochs" )
-        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss", "epochs" )
+        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss" )
+        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss" )
         attrs = copy.deepcopy(inputDset.attrs)
         attrs["loss"] = result.train_loss
         attrs["val_loss"] = result.val_loss
         attrs["nEpocs"] = result.nEpocs
         attrs["nInstances"] = result.nInstances
         attrs["merge"] = "min:val_loss"
+        attrs["layers"] = ";".join( [ op.serialize() for op in master_node.proxies ] )
+        attrs["archive"] = train_node.getParm("archive",None)
+        self.appendWeights( "initWts", arrays, result.initial_weights )
+        self.appendWeights( "finalWts", arrays, result.final_weights )
         rv = EDASDataset( arrays, attrs )
         return rv
 
- #       arrays = { id: self.getDataArray( history, id, nEpocs ) for id in [ "loss", "val_loss" ] }
- #       return EDASDataset( arrays, inputDset.attrs )
+    def appendWeights(self, id: str, arrays: Dict[str,EDASArray], wts: List[np.ndarray]):
+        for index,warray in enumerate(wts):
+            idx = id + "-" + str(index)
+            print( idx + ": " + str(warray.shape) )
+            arrays[idx] = self.getWtsArray(warray, idx )
 
     def updateHistory( self, history: History, initial_weights: List[np.ndarray], performanceTracker: PerformanceTracker ) -> FitResult:
         if performanceTracker.nEpoc > 0:
@@ -147,9 +155,12 @@ class TrainKernel(OpKernel):
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
         return EDASArray( id, None, data, transforms )
 
-    def getDataArray(self, array: np.ndarray, id: str, dim: str, transforms = [] )-> EDASArray:
-        data = xa.DataArray( array, coords=[(dim,range(array.shape[0]))] )
-        return EDASArray( id, None, data, transforms )
+    def getDataArray(self, array: np.ndarray, id: str, transforms = [] )-> EDASArray:
+        return EDASArray( id, None, xa.DataArray( array ), transforms )
+
+    def getWtsArray(self, array: np.ndarray, id: str, transforms = [] )-> EDASArray:
+        coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
+        return EDASArray( id, None, xa.DataArray( array, coords=coords ), transforms )
 
     def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         self.reseed()
@@ -163,7 +174,7 @@ class TrainKernel(OpKernel):
             self.fitModel( master_node, train_node, model, inputDset, performanceTracker )
             val_loss_values.append( performanceTracker.minValLoss )
         self.logger.info( "Worker training results: val losses = " + str(val_loss_values) )
-        return self.buildResultDataset(inputDset)
+        return self.buildResultDataset(inputDset, train_node)
 
     def getTrainingData(self, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[np.ndarray]:
         train_input_ids = [ inp.name for inp in model_node.inputs ]

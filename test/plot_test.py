@@ -168,7 +168,7 @@ class PlotTESTS:
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1", "archive":"monsoon-IITM:20crv-ts" } ]
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPerformance( results, "20crv-ts" )
 

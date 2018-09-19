@@ -2,6 +2,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 from edask.process.source import VariableManager, VariableSource
 from edask.process.domain import DomainManager, Domain, Axis
 from edask.process.node import Node
+from edask.data.processing import Analytics, Parser
 import abc, re
 
 
@@ -93,7 +94,7 @@ class WorkflowNode(Node):
         self._outputs.append( output )
 
     @property
-    def domset(self) -> Set[str]: return set() if self.domain is None else { self.domain }
+    def domset(self) -> Set[str]: return set() if not self.domain else { self.domain }
 
     @property
     def ensDim(self) -> Optional[str]:
@@ -125,7 +126,7 @@ class WorkflowNode(Node):
         return axis + "." + freq
 
     def isSimple( self, minInputs: int ) -> bool:
-        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2) and (self.domain is None)
+        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2) and not self.domain
 
     @abc.abstractmethod
     def getId(self): pass
@@ -183,12 +184,12 @@ class OpNode(WorkflowNode):
 
     @classmethod
     def new(cls, operationSpec: Dict[str, Any] ):
-        name = operationSpec.get("name",None)
-        domain = operationSpec.get("domain",None)
-        rid: str = operationSpec.get("result",None)
+        name = operationSpec.get("name","")
+        domain = operationSpec.get("domain","")
+        rid: str = operationSpec.get("result","")
         return OpNode(name, domain, rid, operationSpec)
 
-    def __init__(self, name: str, domain: Optional[str], _rid: str, metadata: Dict[str,Any] ):
+    def __init__(self, name: str, domain: str, _rid: str, metadata: Dict[str,Any] ):
         super( OpNode, self ).__init__( name, domain, metadata)
         self.rid = _rid
 
@@ -199,19 +200,26 @@ class OpNode(WorkflowNode):
         return self.rid == inputId
 
     def isResult(self):
-        return self.rid is None
+        return not self.rid
 
     def getResultId(self, varName: str ) -> str:
         nodeName = self.rid if self.rid else self.name
         return "-".join( [ nodeName, varName ] )
 
+    def serialize(self) -> str:
+        return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )
+
+    def deserialize(self, spec: str) -> "OpNode":
+        toks = spec.split('|')
+        return OpNode( toks[0], toks[1], "", Parser.rdict(toks[3]) )
+
 class MasterNode(OpNode):
 
     def __init__(self, name: str, metadata: Dict[str,Any] = {}   ):
-        super(MasterNode, self).__init__( name, None, "", metadata )
-        self.proxies: Set[WorkflowNode] = set()
+        super(MasterNode, self).__init__( name, "", "", metadata )
+        self.proxies: Set[OpNode] = set()
         self.master_inputs: Set[WorkflowNode] = set()
-        self.master_outputs: Set[WorkflowNode] = set()
+        self.master_outputs: Set[OpNode] = set()
 
     def getMasterInputConnectiouns(self) -> Set[WorkflowConnector]:
         connections: Set[WorkflowConnector] = set()

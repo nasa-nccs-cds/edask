@@ -4,6 +4,7 @@ from dask.distributed import Future
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset
+from edask.collections.agg import Archive
 from edask.portal.plotters import plotter
 from edask.process.task import Job
 from edask.process.test import TestDataManager
@@ -53,12 +54,19 @@ class AppTestsResultHandler(ResultHandler):
 
     def processFinalResult(self):
         result: EDASDataset = self.getMergedResult()
-        filePath = result.save(self.filePath)
-        self.printResult(filePath)
+        savePath = result.save( self.archivePath( result["archive"] ) )
+        self.printResult(savePath)
 
     def failureCallback(self, ex: Exception ):
         print( "ERROR: "+ str(ex) )
         print( traceback.format_exc() )
+
+    def archivePath(self, archivePath: str  ) -> str:
+        if not archivePath: return self.filePath
+        toks = archivePath.split(":")
+        proj =  toks[0]
+        exp = toks[1] if len(toks) > 1 else Job.randomStr(6)
+        return Archive.getExperimentPath( proj, exp )
 
     def printResult( self, filePath: str ):
         dset = xa.open_dataset(filePath)
@@ -148,7 +156,7 @@ class AppTests:
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "scheduler:workers":4, "iterations":10, "target":"t1" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "scheduler:workers":4, "iterations":10, "target":"t1", "archive":"monsoon-IITM:20crv-ts" } ]
         return self.exec( "test_monsoon_learning", domains, variables, operations )
 
 if __name__ == '__main__':
