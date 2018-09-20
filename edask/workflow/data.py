@@ -263,7 +263,8 @@ class EDASDataset:
     @classmethod
     def new( cls, dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
         cls.rename( dataset, idMap )
-        arrayMap = { vid: EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
+        if varMap:  arrayMap = { vid: EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
+        else:       arrayMap = { vid: EDASArray( vid, None, dataset[vid], [] ) for ( vid ) in dataset.variables.keys() }
         return EDASDataset( arrayMap, dataset.attrs )
 
     def addArrays(self, arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":

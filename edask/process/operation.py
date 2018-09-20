@@ -213,9 +213,10 @@ class OpNode(WorkflowNode):
     def serialize(self) -> str:
         return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )
 
-    def deserialize(self, spec: str) -> "OpNode":
+    @staticmethod
+    def deserialize( spec: str ) -> "OpNode":
         toks = spec.split('|')
-        return OpNode( toks[0], toks[1], "", Parser.rdict(toks[3]) )
+        return OpNode( toks[0], toks[1], "", Parser.rdict(toks[2]) )
 
 class MasterNode(OpNode):
 

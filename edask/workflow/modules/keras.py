@@ -75,6 +75,9 @@ class ModelKernel(OpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         modelPath = Archive.getFilePath(node.getParm('proj'), node.getParm("exp"), "model" )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
+        layersSpec = modelData["layers"]
+        assert layersSpec, "Missing levels spec in model data"
+        layerNodes = [ OpNode.deserialize(spec) for spec in layersSpec.split(";") ]
         return inputDset
 
 class TrainKernel(OpKernel):
