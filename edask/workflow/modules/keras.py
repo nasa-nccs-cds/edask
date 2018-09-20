@@ -21,28 +21,13 @@ def notNone( x ): return x is not None
 class LayerKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("layer", "Layer Kernel","Represents a layer in a neural network." ) )
-        self.parent = "keras.model"
+        self.parent = "keras.network"
 
-class ModelKernel(OpKernel):
+class NetworkKernel(OpKernel):
+    # Parent of (proxy) LayerKernel
+
     def __init__( self ):
-        Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a neural network model." ) )
-
-    # def processInputCrossSection1( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
-    #     assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
-    #     masterNode: MasterNode = node
-    #     keras_model = Sequential()
-    #     layerNodes: List[OpNode] = masterNode.getInputProxies()
-    #     assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
-    #     input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
-    #     keras_model.add( input_layer )
-    #     while True:
-    #         layerNodes = layerNodes[0].outputs
-    #         assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
-    #         current_layer: Layer = self.getLayer( layerNodes[0] )
-    #         if current_layer is None: break
-    #         keras_model.add( current_layer )
-    #     masterNode["model"] = keras_model
-    #     return inputDset
+        Kernel.__init__( self, KernelSpec("network", "Network Kernel","Represents a neural network architecture." ) )
 
     def getModel( self, masterNode: MasterNode ):
         keras_layers = masterNode["layers"]
@@ -81,6 +66,16 @@ class ModelKernel(OpKernel):
             return Dense( **args )
         else:
             raise Exception( "Unrecognized layer type: " + type )
+
+class ModelKernel(OpKernel):
+
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
+
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+        modelPath = Archive.getFilePath(node.getParm('proj'), node.getParm("exp"), "model" )
+        modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
+        return inputDset
 
 class TrainKernel(OpKernel):
     def __init__( self ):
@@ -124,8 +119,9 @@ class TrainKernel(OpKernel):
         result = self.bestFitResult
         master_node, model = self.getModel(train_node)
         arrays = {}
-        arrays["loss"] = self.getDataArray( result.train_loss_history, "loss" )
-        arrays["val_loss"] = self.getDataArray( result.val_loss_history, "val_loss" )
+        loss_coord = ( "steps", range(result.train_loss_history.shape[0]) )
+        arrays["loss"] =     EDASArray( "loss" ,     None, xa.DataArray( result.train_loss_history, coords=( loss_coord, ) ), [] )
+        arrays["val_loss"] = EDASArray( "val_loss" , None, xa.DataArray( result.val_loss_history,   coords=( loss_coord, ) ), [] )
         attrs = copy.deepcopy(inputDset.attrs)
         attrs["loss"] = result.train_loss
         attrs["val_loss"] = result.val_loss
@@ -133,16 +129,22 @@ class TrainKernel(OpKernel):
         attrs["nInstances"] = result.nInstances
         attrs["merge"] = "min:val_loss"
         attrs["layers"] = ";".join( [ op.serialize() for op in master_node.proxies ] )
-        attrs["archive"] = train_node.getParm("archive",None)
         self.appendWeights( "initWts", arrays, result.initial_weights )
         self.appendWeights( "finalWts", arrays, result.final_weights )
         rv = EDASDataset( arrays, attrs )
         return rv
 
     def appendWeights(self, id: str, arrays: Dict[str,EDASArray], wts: List[np.ndarray]):
-        for index,warray in enumerate(wts):
-            idx = id + "-" + str(index)
-            arrays[idx] = self.getWtsArray(warray, idx )
+        nLayers = int( len(wts)/2 )
+        for iLayer in range(nLayers):
+            wts_array = wts[2*iLayer]
+            bias_array = wts[2*iLayer+1]
+            inputDim =  ( 'n'+str(iLayer),   range(wts_array.shape[0]) )
+            nodeDim  =  ( 'n'+str(iLayer+1), range(wts_array.shape[1]) )
+            wtsId = id+"-wts"+str(iLayer)
+            arrays[wtsId] = EDASArray( wtsId, None, xa.DataArray( wts_array, coords=( inputDim, nodeDim )  ), [] )
+            biasId = id+"-bias"+str(iLayer)
+            arrays[biasId] = EDASArray( biasId, None, xa.DataArray( bias_array, coords=( nodeDim, ) ), [] )
 
     def updateHistory( self, history: History, initial_weights: List[np.ndarray], performanceTracker: PerformanceTracker ) -> FitResult:
         if performanceTracker.nEpoc > 0:
@@ -153,9 +155,6 @@ class TrainKernel(OpKernel):
     def getHistoryDataArray(self, history: History, id: str, nEpochs: int, transforms = [] )-> EDASArray:
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
         return EDASArray( id, None, data, transforms )
-
-    def getDataArray(self, array: np.ndarray, id: str, transforms = [] )-> EDASArray:
-        return EDASArray( id, None, xa.DataArray( array ), transforms )
 
     def getWtsArray(self, array: np.ndarray, id: str, transforms = [] )-> EDASArray:
         coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
@@ -202,34 +201,3 @@ class TrainKernel(OpKernel):
     def reseed(self):
         seed = random.randint(0, 2 ** 32 - 2)
         np.random.seed(seed)
-
-    # def createSequentialModel( self ):
-    #     # type: () -> Sequential
-    #     model = Sequential()
-    #     nInputs = self.inputs.getInputDimension()
-    #
-    #     if self.layers is not None:
-    #         for iLayer, layer in enumerate(self.layers):
-    #             kwargs = { "input_dim": nInputs } if iLayer == 0 else {}
-    #             instance = layer.instance(**kwargs)
-    #             self.layer_instances.append( instance )
-    #             model.add( instance )
-    #
-    #     elif self.hidden is not None:
-    #         nHidden = len(self.hidden)
-    #         nOutputs = self.outputs.getOutputSize()
-    #         for hIndex in range(nHidden):
-    #             if hIndex == 0:
-    #                 if self.eager:  model.add(Dense(units=self.hidden[hIndex], activation=self.activation, input_tensor=self.inputData))
-    #                 else:           model.add(Dense(units=self.hidden[hIndex], activation=self.activation, input_dim=nInputs))
-    #             else:
-    #                 model.add(Dense(units=self.hidden[hIndex], activation=self.activation))
-    #         output_layer = Dense(units=nOutputs) if nHidden else Dense(units=nOutputs, input_dim=nInputs)
-    #         model.add( output_layer )
-    #
-    #     sgd = SGD( lr=self.lr, decay=self.decay, momentum=self.momentum, nesterov=self.nesterov )
-    #     model.compile(loss=self.lossFunction, optimizer=sgd, metrics=['accuracy'])
-    #     if self.weights is not None: model.set_weights(self.weights)
-    #     return model
-
-

@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
 import string, random, os, re, copy
+from edask.collections.agg import Archive
 import abc
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
@@ -247,6 +248,11 @@ class EDASDataset:
     def open_dataset( filePath: str ) -> "EDASDataset":
         return EDASDataset.new(xa.open_dataset(filePath))
 
+    @staticmethod
+    def open_archive( project: str, experiment: str, type: str  ) -> "EDASDataset":
+        filePath = Archive.getFilePath(project, experiment, type)
+        return EDASDataset.open_dataset( filePath )
+
     @classmethod
     def rename( cls, dataset: xa.Dataset, idMap: Dict[str,str] = {} ) -> xa.Dataset:
         for id,val in idMap.items():
@@ -276,6 +282,12 @@ class EDASDataset:
         dset.to_netcdf( path=filePath )
         self.logger.info( " SAVE: " + str([ x.name + ":" + str(x.shape) for x in vars ]) + " to file " + filePath )
         return filePath
+
+    @property
+    def product(self):
+        for array in self.arrayMap.values():
+            if array.product: return array.product
+        return self.attrs.get("product",None)
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
     def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)

@@ -69,6 +69,7 @@ class OpKernel(Kernel):
             inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
             product = self.processInputCrossSection( request, op, inputCrossSection, products )
+            for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
             product.name = op.getResultId( inputVars.id )
             result += product
         return result
@@ -81,7 +82,7 @@ class OpKernel(Kernel):
         resultMap: Dict[str,EDASArray] = {}
         for result in results:
             result.name = node.getResultId(result.name)
-            key = result.product if len( results ) > 1 else node.rid
+            key = node.rid if node.rid else result.product if result.product else result.name
             resultMap[key] = result
         return resultMap
 
@@ -156,7 +157,7 @@ class InputKernel(Kernel):
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.archive:
             self.logger.info( "Reading data from archive: " + dataSource.address )
-            dataPath = Archive.getExperimentPath( *dataSource.address.split("/") )
+            dataPath = Archive.getFilePath(*dataSource.address.split("/"))
             dset = xa.open_dataset( dataPath, autoclose=True )
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:

@@ -128,10 +128,10 @@ class EofKernel(TimeOpKernel):
         input = variable.xr.rename( {"t":"time"} )
         solver = Eof( input, center = center )
         results = []
-        if (len(products) == 0) or ( "eof" in products):
-            results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eof", { "mode": "m" }, "eof" ) )
-        if (len(products) == 0) or ( "pc" in products):
-            results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pc", { "mode": "m" }, "pc"  ) )
+        if (len(products) == 0) or ( "eofs" in products):
+            results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eofs", { "mode": "m" }, "eofs" ) )
+        if (len(products) == 0) or ( "pcs" in products):
+            results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs", { "mode": "m" }, "pcs"  ) )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         for result in results: result["pves"] = str(pves)
@@ -180,21 +180,3 @@ class NoOp(OpKernel):
 
     def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]) -> EDASDataset:
         return inputDset
-
-class ArchiveKernel(OpKernel):
-    def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("archive", "Archive Result Data","Save request result data onto cluster for use by subsequest requests" ) )
-        self.removeRequiredOptions(["ax.s"])
-
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
-        node: OpNode = wnode
-        project = node.getParm("proj", DomainManager.randomId(6) )
-        experiment = node.getParm("exp", request.name  + "." + datetime.datetime.now().strftime("%m-%d-%y.%H-%M-%S") )
-        resultPath = Archive.getExperimentPath( project, experiment )
-        result: EDASDataset = OpKernel.buildWorkflow( self, request, wnode, inputs, products )
-        renameMap = { id:array.product for id,array in result.arrayMap.items() }
-        result.xr.rename(renameMap).to_netcdf( resultPath, mode="w" )
-        self.logger.info( "Archived results {} to {}".format( result.id, resultPath ) )
-        result["archive"] = resultPath
-        return result
-

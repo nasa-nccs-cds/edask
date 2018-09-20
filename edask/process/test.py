@@ -1,9 +1,11 @@
 from typing import List, Dict, Sequence, Mapping, Any
 import logging
+from dask.distributed import Future
 import numpy.ma as ma
 from edask.process.task import Job
 from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
+from edask.process.manager import ExecResultHandler
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
@@ -49,9 +51,12 @@ class TestManager:
     return edasOpManager.buildTask(job)
 
   def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
-    datainputs = {"domain": domains, "variable": variables, "operation": operations}
+    datainputs = { "domain": domains, "variable": variables, "operation": operations }
+    resultHandler = ExecResultHandler( "testJob", "local")
     request: TaskRequest = TaskRequest.init( "requestId", "jobId", datainputs )
-    return edasOpManager.buildRequest(request)
+    result = edasOpManager.buildRequest(request)
+    resultHandler.processResult( result )
+    return result
 
   def print(self, results: EDASDataset):
       for variable in results.inputs:

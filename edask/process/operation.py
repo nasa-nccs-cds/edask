@@ -196,6 +196,10 @@ class OpNode(WorkflowNode):
     def getId(self):
         return self.rid
 
+    @property
+    def product(self):
+        return self.getParm("product")
+
     def suppliesDownstreamInput(self, inputId ):
         return self.rid == inputId
 
@@ -203,7 +207,7 @@ class OpNode(WorkflowNode):
         return not self.rid
 
     def getResultId(self, varName: str ) -> str:
-        nodeName = self.rid if self.rid else self.name
+        nodeName = self.rid if self.rid else self.product if self.product else self.name
         return "-".join( [ nodeName, varName ] )
 
     def serialize(self) -> str:

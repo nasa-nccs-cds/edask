@@ -21,14 +21,24 @@ class Archive:
 
     @classmethod
     def getProjectPath( cls, project: str ):
+        assert project, "Missing project parameter!"
         path = os.path.join( Archive.baseDir, project )
         os.makedirs( path, mode=0o777, exist_ok=True )
         return path
 
     @classmethod
     def getExperimentPath( cls, project: str, experiment: str ):
-        projPath = cls.getProjectPath( project )
-        return os.path.join( projPath, experiment + ".nc")
+        assert project, "Missing project parameter!"
+        assert experiment, "Missing experiment parameter!"
+        path = os.path.join( Archive.baseDir, project, experiment )
+        os.makedirs( path, mode=0o777, exist_ok=True )
+        return path
+
+    @classmethod
+    def getFilePath(cls, project: str, experiment: str, type: str):
+        expPath = cls.getExperimentPath( project, experiment )
+        assert experiment, "Missing experiment parameter!"
+        return os.path.join( expPath, type + ".nc")
 
     @classmethod
     def getLogDir( cls ):

@@ -33,7 +33,7 @@ class TimeseriesData(object):
         return xa.Dataset( arrays, coords=coords )
 
     def archive( self, project: str, experiment: str, merge_series=True ):
-        path = Archive.getExperimentPath( project, experiment )
+        path = Archive.getFilePath(project, experiment, "timeseries" )
         if merge_series:    self.xr.to_netcdf( path=path, mode='w' )
         else:               self.ds.to_netcdf( path=path, mode='w' )
 

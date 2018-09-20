@@ -100,7 +100,7 @@ class IITMDataSource(DataSource):
             xarray = td.getTimeseries().xr
             arrays[id] = xarray
         dset = xa.Dataset( arrays )
-        path = Archive.getExperimentPath( "IITM", name )
+        path = Archive.getFilePath("IITM", name, "timeseries")
         dset.to_netcdf( path, mode="w" )
         print( "Archived IITM data to " + path )
         print( dset )
