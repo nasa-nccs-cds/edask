@@ -141,7 +141,6 @@ class ModelKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any], products: List[str]) -> List[EDASArray]:
-        assert len(node.axes), "Must specify axis parameter for model kernel"
         modelPath = Archive.getFilePath(node.getParm('proj'), node.getParm("exp"), "model" )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
         layersSpec = modelData["layers"]
@@ -151,8 +150,18 @@ class ModelKernel(OpKernel):
         model = KerasModel.getModel( layers )
         weights = KerasModel.packWeights( "finalWts", modelData )
         model.set_weights( weights )
-        input = variable.transpose() if node.axes[0] == variable.dims[0] else variable
+        input_size = weights[0].shape[0]
+        input = self.getNetworkInput( node, variable, input_size )
         return [ KerasModel.map( "predict", model, input ) ]
+
+    def getNetworkInput(self, node: OpNode, variable: EDASArray, input_size: int ):
+        if len( node.axes ):
+            return variable.transpose() if node.axes[0] == variable.dims[0] else variable
+        else:
+            candidates = [i for i, aval in enumerate(variable.xr.shape) if aval == input_size ]
+            assert len(candidates) < 2, "Can't infer axis for input to model, must use 'axis' parameter"
+            assert len(candidates) > 0, "Network input is of improper shape: " + str(variable.xr.shape)
+            return variable.transpose() if candidates[0] == 0 else variable
 
 class TrainKernel(OpKernel):
     def __init__( self ):

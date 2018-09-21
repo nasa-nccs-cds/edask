@@ -175,7 +175,7 @@ class PlotTESTS:
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
         variables = [ {"uri": "archive:globalPCs/20crv-ts-TN/pcs", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
-                        { "name": "keras.model", "input": "v0f", "axis":"m", "proj":"monsoon-IITM", "exp":"20crv-ts" } ]
+                        { "name": "keras.model", "input": "v0f", "proj":"monsoon-IITM", "exp":"20crv-ts" } ]
         results = self.mgr.testExec( domains, variables, operations )
 
 if __name__ == '__main__':
