@@ -169,14 +169,18 @@ class PlotTESTS:
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
                         {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1", "archive":"monsoon-IITM/20crv-ts/model" } ]
         results = self.mgr.testExec( domains, variables, operations )
-        plotter.plotPerformance( results, "20crv-ts" )
+        plotter.plotPerformance(results, "20crv-ts")
+        plotter.plotPrediction( results, "20crv-ts" )
 
     def test_network_model(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
         variables = [ {"uri": "archive:globalPCs/20crv-ts-TN/pcs", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
-                        { "name": "keras.model", "input": "v0f", "proj":"monsoon-IITM", "exp":"20crv-ts" } ]
+                        {"name": "xarray.norm", "input": "v1", "axis": "t", "result": "dc"},
+                        {"name": "xarray.detrend", "input": "dc", "axis": "t", "wsize": 50, "product":"target"},
+                        { "name": "keras.model", "input": "v0f", "proj":"monsoon-IITM", "exp":"20crv-ts", "product":"prediction" } ]
         results = self.mgr.testExec( domains, variables, operations )
+        plotter.plotPrediction(results, "20crv-ts")
 
 if __name__ == '__main__':
     tester = PlotTESTS()

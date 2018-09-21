@@ -26,5 +26,16 @@ class ResultsPlotter:
         plt.legend()
         plt.show()
 
+    def plotPrediction( self, results: EDASDataset, title, **kwargs ):
+        plt.title(title)
+        print( "Plotting: " + ",".join( list(results.ids) ) )
+        prediction: np.ndarray = results.getArray("prediction").xr.values
+        target: np.ndarray = results.getArray("target").xr.values
+        x = range( prediction.shape[0] )
+        plt.plot( x, prediction, "r-", label="prediction" )
+        plt.plot( x, target, "b--", label="target" )
+        plt.legend()
+        plt.show()
+
 
 plotter = ResultsPlotter()

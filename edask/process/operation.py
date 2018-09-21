@@ -207,8 +207,7 @@ class OpNode(WorkflowNode):
         return not self.rid
 
     def getResultId(self, varName: str ) -> str:
-        nodeName = self.rid if self.rid else self.product if self.product else self.name
-        return "-".join( [ nodeName, varName ] )
+        return self.rid if self.rid else self.product if self.product else  "-".join( [ self.name, varName ] )
 
     def serialize(self) -> str:
         return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )

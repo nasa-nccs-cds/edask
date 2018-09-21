@@ -408,13 +408,27 @@ class EDASDataset:
             for iaxis, result in enumerate( xarrays ):
                 result.plot(ax=axes[iaxis])
 
-    @staticmethod
-    def merge(dsets: List["EDASDataset"]):
+    @classmethod
+    def mergeArrayMaps( cls, amap0: Dict[str,EDASArray], amap1: Dict[str,EDASArray] )-> Dict[str,EDASArray]:
+        result: Dict[str, EDASArray] = {}
+        for key in amap0.keys():
+            if key in amap1:
+                result[ key + "-0" ] = amap0[key]
+                result[ key + "-1"] =  amap1[key]
+            else:
+                result[key] = amap0[key]
+        for key in amap1.keys():
+            if key not in amap0:
+                result[key] = amap1[key]
+        return result
+
+    @classmethod
+    def merge(cls, dsets: List["EDASDataset"]):
         if len( dsets ) == 1: return dsets[0]
         arrayMap: Dict[str,EDASArray] = {}
         attrs: Dict[str,Any] = {}
         for idx,dset in enumerate(dsets):
-            arrayMap.update( dset.customArraymap( str(idx) ) )
+            arrayMap = cls.mergeArrayMaps(  arrayMap, dset.arrayMap )
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
 

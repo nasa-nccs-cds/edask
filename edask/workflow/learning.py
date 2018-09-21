@@ -2,7 +2,20 @@ from edask.data.processing import Analytics, Parser
 from typing import List, Dict, Sequence, Set, Iterable
 import numpy as np
 import sys, copy, logging
+from .kernel import Kernel, KernelSpec, EDASDataset, OpKernel
+import xarray as xa
+from edask.process.operation import WorkflowNode, OpNode, MasterNode
+from edask.workflow.data import EDASArray
+from typing import List, Optional, Tuple, Dict, Any
+from operator import mul
+from functools import reduce
+import copy, sys, logging, random, numpy as np
+from keras.models import Sequential, Model
+from keras.layers import Dense, Activation
+from keras.engine.base_layer import Layer
 from keras.callbacks import History, Callback
+
+def notNone( x ): return x is not None
 
 class PerformanceTracker(Callback):
     def __init__( self, _stopCond, **kwargs ):
@@ -197,3 +210,133 @@ class FitResult(object):
                 if bestResult is None or result < bestResult:
                     bestResult = result
         return bestResult.setPerformance( results )
+
+
+class KerasModel:
+
+    @classmethod
+    def getLayer( cls, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
+        if layerNode.name != "keras.layer": return None
+        args: Dict[str,Any] = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
+        type = args.get("type","dense")
+        if inputDset is not None:
+            axes = layerNode.axes
+            assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
+            sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
+            args["input_dim"] = reduce(mul, sizes, 1)
+        if type == "dense":
+            return Dense( **cls.parseArgs( args ) )
+        else:
+            raise Exception( "Unrecognized layer type: " + type )
+
+    @classmethod
+    def parseArgs(cls, args: Dict[str,Any] ) -> Dict[str,Any]: return { key: cls.parseValue( value ) for key,value in args.items() }
+
+    @classmethod
+    def parseValue(cls, value: Any ) -> Any:
+        try: return int( value )
+        except:
+            try: return float( value )
+            except:
+                return value
+
+    @classmethod
+    def getLayers( cls, inputLayerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Tuple[List[Layer],List[OpNode]] :
+        keras_layers: List[Layer] = []
+        input_layer: Layer = KerasModel.getLayer( inputLayerNode, inputDset )
+        keras_layers.append( input_layer )
+        orderedOpNodes = [ inputLayerNode ]
+        layerNode = inputLayerNode
+        while len(layerNode.outputs):
+            current_layer: Layer = KerasModel.getLayer( layerNode.outputs[0] )
+            if current_layer is None: break
+            assert len(layerNode.outputs) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNode.outputs) )
+            keras_layers.append( current_layer )
+            layerNode = layerNode.outputs[0]
+            orderedOpNodes.append( layerNode )
+        return ( keras_layers, orderedOpNodes )
+
+    @classmethod
+    def instantiateLayers( cls, layers: List[OpNode], inputDset: Optional[EDASDataset] = None, **kwargs ) -> List[Layer]:
+        keras_layers: List[Layer] = [ KerasModel.getLayer( layers[0], inputDset ) ]
+        for layer in layers[1:]: keras_layers.append( KerasModel.getLayer( layer ) )
+        return keras_layers
+
+    @classmethod
+    def getModel( cls, keras_layers: List[Layer] ) -> Model:
+        keras_model = Sequential()
+        for keras_layer in keras_layers:
+            keras_model.add( copy.deepcopy(keras_layer) )
+        return keras_model
+
+    @classmethod
+    def unpackWeights( cls, id: str, wts: List[np.ndarray] )-> Dict[str,EDASArray]:
+        arrays: Dict[str,EDASArray] = {}
+        nLayers = int( len(wts)/2 )
+        for iLayer in range(nLayers):
+            wts_array = wts[2*iLayer]
+            bias_array = wts[2*iLayer+1]
+            inputDim =  ( 'n'+str(iLayer),   range(wts_array.shape[0]) )
+            nodeDim  =  ( 'n'+str(iLayer+1), range(wts_array.shape[1]) )
+            wtsId = id+"-wts"+str(iLayer)
+            arrays[wtsId] = EDASArray( wtsId, None, xa.DataArray( wts_array, coords=( inputDim, nodeDim )  ), [] )
+            biasId = id+"-bias"+str(iLayer)
+            arrays[biasId] = EDASArray( biasId, None, xa.DataArray( bias_array, coords=( nodeDim, ) ), [] )
+        return arrays
+
+    @classmethod
+    def packWeights( cls, id: str, modelData: EDASDataset )-> List[np.ndarray]:
+        nLayers = modelData["nlayers"]
+        weights: List[np.ndarray] = []
+        for iLayer in range(nLayers):
+            weights.append(modelData.getArray( id+"-wts"+str(iLayer) ).nd)
+            weights.append(modelData.getArray(id + "-bias" + str(iLayer) ).nd)
+        return weights
+
+    @classmethod
+    def map(cls, id: str, model: Model, variable: EDASArray) -> EDASArray:
+        xarray = variable.xr
+        result =  model.predict( xarray.values )
+        coord =  xarray.coords[ xarray.dims[0] ]
+        xresult = xa.DataArray( result, coords=( (xarray.dims[0],coord), ("nodes", range( result.shape[1] )) ) )
+        return variable.updateXa( xresult, id )
+
+    @classmethod
+    def getNetworkInput( cls, node: OpNode, variable: EDASArray, input_size: int ):
+        if len( node.axes ):
+            return variable.transpose() if node.axes[0] == variable.dims[0] else variable
+        else:
+            candidates = [i for i, aval in enumerate(variable.xr.shape) if aval == input_size ]
+            assert len(candidates) < 2, "Can't infer axis for input to model, must use 'axis' parameter"
+            assert len(candidates) > 0, "Network input is of improper shape: " + str(variable.xr.shape)
+            return variable.transpose() if candidates[0] == 0 else variable
+
+    @classmethod
+    def getTrainingData(cls, model_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[EDASArray]:
+        train_input_ids = [ inp.name for inp in model_node.inputs ]
+        assert (required_size == None) or (len( train_input_ids ) == required_size), "Train Kernel expects exactly {} input(s): got {}".format( required_size, len( train_input_ids ) )
+        return cls.getInputData( train_input_ids, inputDset, model_node.axes[0], 1 )
+
+    @classmethod
+    def getTargetData(cls, train_node: WorkflowNode, inputDset: EDASDataset, required_size = None ) -> List[EDASArray]:
+        target_input_ids = train_node.getParm("target","").split(",")
+        assert (required_size == None) or (len( target_input_ids ) == required_size), "Train Kernel expects exactly {} target(s): got {}".format( required_size, len( target_input_ids ) )
+        return cls.getInputData( target_input_ids, inputDset, train_node.axes[0], 0 )
+
+    @classmethod
+    def getInputData( cls, ids: List[str], inputDset: EDASDataset, dim: str, expectedDimIndex: int ) -> List[EDASArray]:
+        train_inputs = list( filter( notNone, [ inputDset.getArray(id) for id in ids ] ) )
+        assert len( train_inputs ), "Can't find input data for training, looking for {}, found {}".format( ids, inputDset.ids )
+        return cls.getAlignedArrays( train_inputs, dim, expectedDimIndex )
+
+    @classmethod
+    def getAlignedArrays( cls, inputs: List[EDASArray], dim: str, expectedDimIndex: int ) -> List[EDASArray]:
+        results: List[EDASArray] = []
+        for array in inputs:
+            try:
+                dimIndex = array.dims.index( dim )
+                array = array.T if dimIndex != expectedDimIndex else array
+                results.append( array )
+            except ValueError: raise Exception( "Can't find dim {} in network input dimensions: {}".format(dim,array.dims) )
+        return results
+
