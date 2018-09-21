@@ -67,6 +67,9 @@ class EDASArray:
         else: return self._data
 
     @property
+    def nd(self) -> np.ndarray: return self.xr.values
+
+    @property
     def T(self) -> "EDASArray":
         return EDASArray( self.name, self.domId,  self.xr.T, self.transforms )
 

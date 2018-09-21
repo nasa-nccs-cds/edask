@@ -61,7 +61,7 @@ class WorkflowNode(Node):
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
         self._inputs: List[OperationConnector] = []
-        self._outputs: List[WorkflowNode] = []
+        self._outputs: List[OpNode] = []
         self._masterNode: MasterNodeWrapper = None
         self._addWorkflowInputs()
 
@@ -75,7 +75,7 @@ class WorkflowNode(Node):
     def inputs(self)-> List[OperationConnector]: return self._inputs
 
     @property
-    def outputs(self)-> List["WorkflowNode"]: return self._outputs
+    def outputs(self)-> List["OpNode"]: return self._outputs
 
     @masterNode.setter
     def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
@@ -90,7 +90,7 @@ class WorkflowNode(Node):
     def addInput(self, input: OperationConnector):
         self._inputs.append( input )
 
-    def addOutput(self, output: "WorkflowNode"):
+    def addOutput(self, output: "OpNode"):
         self._outputs.append( output )
 
     @property

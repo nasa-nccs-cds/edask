@@ -3,7 +3,7 @@ import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode, MasterNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 from operator import mul
 from functools import reduce
 import copy, sys, logging, random, numpy as np
@@ -23,6 +23,95 @@ class LayerKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("layer", "Layer Kernel","Represents a layer in a neural network." ) )
         self.parent = "keras.network"
 
+class KerasModel:
+
+    @classmethod
+    def getLayer( cls, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
+        if layerNode.name != "keras.layer": return None
+        args: Dict[str,Any] = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
+        type = args.get("type","dense")
+        if inputDset is not None:
+            axes = layerNode.axes
+            assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
+            sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
+            args["input_dim"] = reduce(mul, sizes, 1)
+        if type == "dense":
+            return Dense( **cls.parseArgs( args ) )
+        else:
+            raise Exception( "Unrecognized layer type: " + type )
+
+    @classmethod
+    def parseArgs(cls, args: Dict[str,Any] ) -> Dict[str,Any]: return { key: cls.parseValue( value ) for key,value in args.items() }
+
+    @classmethod
+    def parseValue(cls, value: Any ) -> Any:
+        try: return int( value )
+        except:
+            try: return float( value )
+            except:
+                return value
+
+    @classmethod
+    def getLayers( cls, inputLayerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Tuple[List[Layer],List[OpNode]] :
+        keras_layers: List[Layer] = []
+        input_layer: Layer = KerasModel.getLayer( inputLayerNode, inputDset )
+        keras_layers.append( input_layer )
+        orderedOpNodes = [ inputLayerNode ]
+        layerNode = inputLayerNode
+        while len(layerNode.outputs):
+            current_layer: Layer = KerasModel.getLayer( layerNode.outputs[0] )
+            if current_layer is None: break
+            assert len(layerNode.outputs) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNode.outputs) )
+            keras_layers.append( current_layer )
+            layerNode = layerNode.outputs[0]
+            orderedOpNodes.append( layerNode )
+        return ( keras_layers, orderedOpNodes )
+
+    @classmethod
+    def instantiateLayers( cls, layers: List[OpNode], inputDset: Optional[EDASDataset] = None, **kwargs ) -> List[Layer]:
+        keras_layers: List[Layer] = [ KerasModel.getLayer( layers[0], inputDset ) ]
+        for layer in layers[1:]: keras_layers.append( KerasModel.getLayer( layer ) )
+        return keras_layers
+
+    @classmethod
+    def getModel( cls, keras_layers: List[Layer] ) -> Model:
+        keras_model = Sequential()
+        for keras_layer in keras_layers:
+            keras_model.add( copy.deepcopy(keras_layer) )
+        return keras_model
+
+    @classmethod
+    def unpackWeights( cls, id: str, wts: List[np.ndarray] )-> Dict[str,EDASArray]:
+        arrays: Dict[str,EDASArray] = {}
+        nLayers = int( len(wts)/2 )
+        for iLayer in range(nLayers):
+            wts_array = wts[2*iLayer]
+            bias_array = wts[2*iLayer+1]
+            inputDim =  ( 'n'+str(iLayer),   range(wts_array.shape[0]) )
+            nodeDim  =  ( 'n'+str(iLayer+1), range(wts_array.shape[1]) )
+            wtsId = id+"-wts"+str(iLayer)
+            arrays[wtsId] = EDASArray( wtsId, None, xa.DataArray( wts_array, coords=( inputDim, nodeDim )  ), [] )
+            biasId = id+"-bias"+str(iLayer)
+            arrays[biasId] = EDASArray( biasId, None, xa.DataArray( bias_array, coords=( nodeDim, ) ), [] )
+        return arrays
+
+    @classmethod
+    def packWeights( cls, id: str, modelData: EDASDataset )-> List[np.ndarray]:
+        nLayers = modelData["nlayers"]
+        weights: List[np.ndarray] = []
+        for iLayer in range(nLayers):
+            weights.append(modelData.getArray( id+"-wts"+str(iLayer) ).nd)
+            weights.append(modelData.getArray(id + "-bias" + str(iLayer) ).nd)
+        return weights
+
+    @classmethod
+    def map(cls, id: str, model: Model, variable: EDASArray) -> EDASArray:
+        xarray = variable.xr
+        result =  model.predict( xarray.values )
+        coord =  xarray.coords[ xarray.dims[0] ]
+        xresult = xa.DataArray( result, coords=( (xarray.dims[0],coord), ("nodes", range( result.shape[1] )) ) )
+        return variable.updateXa( xresult, id )
+
 class NetworkKernel(OpKernel):
     # Parent of (proxy) LayerKernel
 
@@ -39,46 +128,31 @@ class NetworkKernel(OpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
-        keras_layers = []
         layerNodes: List[OpNode] = masterNode.getInputProxies()
         assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
-        input_layer: Layer = self.getLayer( layerNodes[0], inputDset )
-        keras_layers.append( input_layer )
-        while True:
-            layerNodes = layerNodes[0].outputs
-            assert len(layerNodes) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNodes) )
-            current_layer: Layer = self.getLayer( layerNodes[0] )
-            if current_layer is None: break
-            keras_layers.append( current_layer )
-        masterNode["layers"] = keras_layers
+        layers, orderedLayerNodes = KerasModel.getLayers( layerNodes[0], inputDset )
+        masterNode["layers"] = layers
+        masterNode["layerNodes"] = orderedLayerNodes
         return inputDset
-
-    def getLayer(self, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
-        if layerNode.name != "keras.layer": return None
-        args = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
-        type = args.get("type","dense")
-        if inputDset is not None:
-            axes = layerNode.axes
-            assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
-            sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
-            args["input_dim"] = reduce(mul, sizes, 1)
-        if type == "dense":
-            return Dense( **args )
-        else:
-            raise Exception( "Unrecognized layer type: " + type )
 
 class ModelKernel(OpKernel):
 
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any], products: List[str]) -> List[EDASArray]:
+        assert len(node.axes), "Must specify axis parameter for model kernel"
         modelPath = Archive.getFilePath(node.getParm('proj'), node.getParm("exp"), "model" )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
         layersSpec = modelData["layers"]
         assert layersSpec, "Missing levels spec in model data"
         layerNodes = [ OpNode.deserialize(spec) for spec in layersSpec.split(";") ]
-        return inputDset
+        layers = KerasModel.instantiateLayers( layerNodes )
+        model = KerasModel.getModel( layers )
+        weights = KerasModel.packWeights( "finalWts", modelData )
+        model.set_weights( weights )
+        input = variable.transpose() if node.axes[0] == variable.dims[0] else variable
+        return [ KerasModel.map( "predict", model, input ) ]
 
 class TrainKernel(OpKernel):
     def __init__( self ):
@@ -88,18 +162,11 @@ class TrainKernel(OpKernel):
         self.tensorboard = TensorBoard( log_dir=Archive.getLogDir(), histogram_freq=0, write_graph=True )
         self.stop_condition = "minValTrain"
 
-    def getKerasModel( self, masterNode: MasterNode ) -> Model:
-        keras_layers = masterNode["layers"]
-        keras_model = Sequential()
-        for keras_layer in keras_layers:
-            keras_model.add( copy.deepcopy(keras_layer) )
-        return keras_model
-
     def getModel(self, node: OpNode ) -> Tuple[MasterNode,Model]:
         input_connection: WorkflowConnector = node.inputs[0]
         master_node = input_connection.connection
         assert isinstance( master_node, MasterNode ), "Training Kernel is not connected to a network!"
-        return master_node, self.getKerasModel(master_node)
+        return master_node, KerasModel.getModel( master_node["layers"] )
 
     def buildLearningModel(self, node: MasterNode, model: Model ):
         optArgs = node.getParms( ["lr", "decay", "momentum", "nesterov" ] )
@@ -131,23 +198,12 @@ class TrainKernel(OpKernel):
         attrs["nEpocs"] = result.nEpocs
         attrs["nInstances"] = result.nInstances
         attrs["merge"] = "min:val_loss"
-        attrs["layers"] = ";".join( [ op.serialize() for op in master_node.proxies ] )
-        self.appendWeights( "initWts", arrays, result.initial_weights )
-        self.appendWeights( "finalWts", arrays, result.final_weights )
+        attrs["layers"] = ";".join( [ op.serialize() for op in master_node["layerNodes"] ] )
+        arrays.update( KerasModel.unpackWeights( "initWts", result.initial_weights ) )
+        arrays.update( KerasModel.unpackWeights( "finalWts", result.final_weights ) )
+        attrs["nlayers"] = int( len(result.final_weights)/2 )
         rv = EDASDataset( arrays, attrs )
         return rv
-
-    def appendWeights(self, id: str, arrays: Dict[str,EDASArray], wts: List[np.ndarray]):
-        nLayers = int( len(wts)/2 )
-        for iLayer in range(nLayers):
-            wts_array = wts[2*iLayer]
-            bias_array = wts[2*iLayer+1]
-            inputDim =  ( 'n'+str(iLayer),   range(wts_array.shape[0]) )
-            nodeDim  =  ( 'n'+str(iLayer+1), range(wts_array.shape[1]) )
-            wtsId = id+"-wts"+str(iLayer)
-            arrays[wtsId] = EDASArray( wtsId, None, xa.DataArray( wts_array, coords=( inputDim, nodeDim )  ), [] )
-            biasId = id+"-bias"+str(iLayer)
-            arrays[biasId] = EDASArray( biasId, None, xa.DataArray( bias_array, coords=( nodeDim, ) ), [] )
 
     def updateHistory( self, history: History, initial_weights: List[np.ndarray], performanceTracker: PerformanceTracker ) -> FitResult:
         if performanceTracker.nEpoc > 0:

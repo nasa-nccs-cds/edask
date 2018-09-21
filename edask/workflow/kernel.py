@@ -75,7 +75,7 @@ class OpKernel(Kernel):
         return result
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
-        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, products ) for input in inputDset.inputs ]))
+        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs, products ) for input in inputDset.inputs ]))
         return EDASDataset.init( self.renameResults(results,node), inputDset.attrs )
 
     def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
@@ -86,12 +86,12 @@ class OpKernel(Kernel):
             resultMap[key] = result
         return resultMap
 
-    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]:
-        results = self.processVariable( request, node, inputs, products )
+    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        results = self.processVariable( request, node, inputs, attrs, products )
         for result in results: result.propagateHistory( inputs )
         return results
 
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, products: List[str] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
         return [inputs]
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
