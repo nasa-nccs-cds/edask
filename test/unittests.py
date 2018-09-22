@@ -11,7 +11,7 @@ CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-I
 class EDaskTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.mgr = TestManager()
+        self.mgr = TestManager("EDaskTestCase","unittests")
 
 class TestEdask(EDaskTestCase):
 

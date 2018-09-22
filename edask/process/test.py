@@ -39,8 +39,10 @@ class TestDataManager:
 
 class TestManager:
 
-  def __init__(self):
+  def __init__(self, _proj: str, _exp: str ):
     self.logger = logging.getLogger()
+    self.project = _proj
+    self.experiment = _exp
 
   def getAddress(self, model: str, varName: str) -> str:
     return TestDataManager.getAddress(model,varName)
@@ -53,7 +55,7 @@ class TestManager:
   def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
     datainputs = { "domain": domains, "variable": variables, "operation": operations }
     resultHandler = ExecResultHandler( "testJob", "local")
-    request: TaskRequest = TaskRequest.init( "requestId", "jobId", datainputs )
+    request: TaskRequest = TaskRequest.init( self.project, self.experiment, "requestId", "jobId", datainputs )
     result = edasOpManager.buildRequest(request)
     resultHandler.processResult( result )
     return result

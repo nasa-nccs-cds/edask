@@ -61,12 +61,14 @@ class EDASapp(EDASPortal):
         clientId = self.elem(taskSpec,0)
         runargs = self.getRunArgs( taskSpec )
         jobId = runargs.get( "jobId", Job.randomStr(8) )
+        proj = runargs.get("proj", "proj-" + Job.randomStr(4) )
+        exp = runargs.get("exp",  "exp-" + Job.randomStr(4) )
         process_name = self.elem(taskSpec,2)
         dataInputsSpec = self.elem(taskSpec,3)
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
-          job = Job.new( jobId, process_name, dataInputsSpec, runargs, 1.0 )
+          job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
           resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler(self, clientId, jobId, workers=job.workers))
           self.processManager.executeProcess(jobId, job, resultHandler )
           return Message( clientId, jobId, resultHandler.filePath )
@@ -78,13 +80,13 @@ class EDASapp(EDASPortal):
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler: ExecResultHandler = self.addHandler(clientId, job.identifier, ExecResultHandler(self, clientId, job.identifier, workers=job.workers))
-          self.processManager.executeProcess(job.identifier, job, resultHandler )
-          return Message( clientId, job.identifier, resultHandler.filePath )
+          resultHandler: ExecResultHandler = self.addHandler(clientId, job.process, ExecResultHandler(self, clientId, job.process, workers=job.workers))
+          self.processManager.executeProcess(job.process, job, resultHandler)
+          return Message(clientId, job.process, resultHandler.filePath)
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return Message( clientId, job.identifier, str(err) )
+            return Message(clientId, job.process, str(err))
 
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):

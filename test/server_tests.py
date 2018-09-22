@@ -88,23 +88,25 @@ import logging, traceback, time, os
 
 class AppTests:
 
-    def __init__( self, appConfiguration: Dict[str,str] ):
+    def __init__( self, _project: str, _experiment: str, appConfiguration: Dict[str,str] ):
         self.logger =  logging.getLogger()
+        self.project = _project
+        self.experiment = _experiment
         self.processManager = ProcessManager(appConfiguration)
 
     def exec( self, name, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]] )-> Response:
-        job = Job.init( name, domains, variables, operations)
+        job = Job.init( self.project, self.experiment, name, domains, variables, operations )
         return self.runJob( job )
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler = ExecResultHandler( "local", job.identifier, workers=job.workers)
-          self.processManager.executeProcess( job.identifier, job, resultHandler )
-          return Message( clientId, job.identifier, resultHandler.filePath )
+          resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
+          self.processManager.executeProcess(job.process, job, resultHandler)
+          return Message(clientId, job.process, resultHandler.filePath)
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return Message( clientId, job.identifier, str(err) )
+            return Message(clientId, job.process, str(err))
 
     def plot( self, filePath: str ):
         try:
@@ -161,7 +163,7 @@ class AppTests:
         return self.exec( "test_monsoon_learning", domains, variables, operations )
 
 if __name__ == '__main__':
-    tester = AppTests( {"nWorkers":"4"} )
+    tester = AppTests( { "nWorkers":"4" } )
     result: Response = tester.test_monsoon_learning()
     tester.plotPerformanceXa( result.message() )
 

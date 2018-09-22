@@ -26,17 +26,19 @@ class UID:
 
 class Job:
 
-  def __init__(self, requestId: str, identifier: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
+  def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
         self.requestId = requestId
-        self.identifier = identifier
+        self.process = process
+        self.project = project
+        self.experiment = experiment
         self.dataInputs = datainputs
         self.runargs = runargs
         self.priority = priority
         self.workerIndex = 0
 
   @staticmethod
-  def new( requestId: str, identifier: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    return Job( requestId, identifier, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
+  def new( requestId: str, project: str, experiment: str, process: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
 
   @staticmethod
   def randomStr(length) -> str:
@@ -44,8 +46,8 @@ class Job:
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
 
   @classmethod
-  def init( cls, identifier: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]],  runargs: Dict[str,str]={}, priority: float=0.0 ):
-    return Job( cls.randomStr(6), identifier, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
+  def init( cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]],  runargs: Dict[str,str]={}, priority: float=0.0 ):
+    return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
 
   def copy( self, workerIndex: int ) -> "Job":
       newjob = copy.deepcopy( self )
@@ -72,28 +74,30 @@ class TaskRequest:
   @classmethod
   def new( cls, job: Job ):
     logger = logging.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( job.identifier, str( job.dataInputs ) ))
+    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(job.process, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
     variableManager = VariableManager.new( job.dataInputs.get("variable") )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest( uid, job.identifier, operationManager )
+    rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager)
     return rv
 
   @classmethod
-  def init( cls, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
+  def init( cls, project: str, experiment: str, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
     logger = logging.getLogger()
     logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( identifier, str( dataInputs ) ))
     uid = UID( requestId )
     domainManager = DomainManager.new( dataInputs.get("domain") )
     variableManager = VariableManager.new( dataInputs.get("variable") )
     operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest( uid, identifier, operationManager )
+    rv = TaskRequest( uid, project, experiment, identifier, operationManager )
     return rv
 
-  def __init__( self, id: UID, name: str, _operationManager: OperationManager ):
+  def __init__( self, id: UID, project: str, experiment: str, name: str, _operationManager: OperationManager ):
       self.uid = id
       self.name = name
+      self.project = project
+      self.experiment = experiment
       self.operationManager = _operationManager
       self._resultCache: Dict[str, EDASDataset] = {}
 

@@ -9,7 +9,7 @@ class PlotTESTS:
 
     def __init__(self):
         self.logger =  logging.getLogger()
-        self.mgr = TestManager()
+        self.mgr = TestManager("PlotTESTS","demo")
 
     def eof_plot(self, mtype: str, dset: EDASDataset ):
         for results_array in dset.find_arrays( ".*" + mtype + ".*" ):
@@ -104,7 +104,6 @@ class PlotTESTS:
         print( results.xr )
         results.plot()
 
-
     def compute_pcs_SN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
@@ -115,6 +114,36 @@ class PlotTESTS:
                         {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts-SN", "input": "modesn" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pc", results )
+
+    def compute_eofs_SN(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN"  } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "modes", results )
+
+    def compute_eofs_SN_MERRA(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("merra2", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN"  } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "modes", results )
+
+    def compute_eofs_TN(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.eof_plot( "modes", results )
 
     def compute_pcs_TN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
@@ -184,5 +213,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_network_model()
+    result = tester.compute_eofs_SN_MERRA()
     plt.show()
