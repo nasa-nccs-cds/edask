@@ -148,7 +148,11 @@ class TaskRequest:
       return self.operationManager.getResultOperations()
 
   def archivePath(self, id: str = None) -> str:
-      return Archive.getFilePath( self.project, self.experiment, id )
+      toks = id.split("/")
+      if len(toks) == 3: return Archive.getFilePath( toks[0], toks[1], toks[2] )
+      elif len(toks) == 2: return Archive.getFilePath( self.project, toks[0], toks[1] )
+      elif len(toks) == 1: return Archive.getFilePath( self.project, self.experiment, toks[0] )
+      else: raise Exception( "Poorly formed archive id: " + str( id ) )
 
 
       # variableMap: Dict[str, DataContainer], domainMap: Dict[str, DomainContainer],

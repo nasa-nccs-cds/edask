@@ -280,7 +280,7 @@ class EDASDataset:
         self.attrs.update(attrs)
         return self
 
-    def save( self, id: str  ):
+    def save( self, id: str = None  ):
         dset = self.xr
         filePath = self.archivePath( id )
         vars: List[xa.DataArray] = dset.data_vars.values()
@@ -441,6 +441,7 @@ class EDASDataset:
     def archivePath(self, id: str = None  ) -> str:
         proj =  self.attrs.get( "proj", self.randomStr(4) )
         exp =   self.attrs.get( "exp", self.randomStr(4) )
+        id =  self.attrs.get( "archive", self.randomStr(4) )
         return Archive.getFilePath( proj, exp, id )
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)

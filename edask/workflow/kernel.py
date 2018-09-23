@@ -47,10 +47,12 @@ class Kernel:
            request.cacheResult( self._id, result )
         return result
 
-    def signResult(self, result: EDASDataset, request: TaskRequest ) -> EDASDataset:
+    def signResult(self, result: EDASDataset, request: TaskRequest, node: WorkflowNode ) -> EDASDataset:
         result["proj"] = request.project
         result["exp"] = request.experiment
         result["uid"] = str(request.uid)
+        archive = node.getParm("archive")
+        if archive: result["archive"] = archive
         return result
 
     def archivePath(self, id: str, attrs: Dict[str, Any] )-> str:
@@ -81,7 +83,7 @@ class OpKernel(Kernel):
             for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
             product.name = op.getResultId( inputVars.id )
             result += product
-        return self.signResult(result)
+        return self.signResult(result,request,wnode)
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
         results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs, products ) for input in inputDset.inputs ]))
@@ -173,7 +175,7 @@ class InputKernel(Kernel):
             engine = ParmMgr.get("dap.engine","netcdf4")
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
-        return self.signResult(result)
+        return self.signResult( result, request, node )
 
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )

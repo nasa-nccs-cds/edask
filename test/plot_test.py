@@ -110,8 +110,7 @@ class PlotTESTS:
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.norm", "axis":"t", "input":"modes:pc", "result": "modesn"},
-                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts-SN", "input": "modesn" } ]
+                        {"name": "xarray.norm", "axis":"t", "input":"modes:pc", "archive": "pcs-20crv-ts-SN"} ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pc", results )
 
@@ -120,8 +119,7 @@ class PlotTESTS:
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN"  } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "modes", results )
 
@@ -130,8 +128,7 @@ class PlotTESTS:
         variables = [{"uri": self.mgr.getAddress("merra2", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN"  } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-merra2-ts-SN" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "modes", results )
 
@@ -140,8 +137,7 @@ class PlotTESTS:
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.noop", "input":"modes:eofs", "archive":"globalPCs/20crv-ts-TN" } ]
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-TN"  } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "modes", results )
 
@@ -151,7 +147,7 @@ class PlotTESTS:
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.norm", "axis":"t", "input":"modes:pcs", "archive":"globalPCs/20crv-ts-TN" } ]
+                        {"name": "xarray.norm", "axis":"t", "input":"modes:pcs", "archive":"pcs-20crv-ts-TN" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pc", results )
 
@@ -176,42 +172,30 @@ class PlotTESTS:
         self.eof_plot("pc", results)
         self.eof_plot("eof", results)
 
-    def compute_eofs_reduced(self):
-        domains = [{"name": "d0", "lat": {"start": 0, "end": 20, "system": "values"}, "lon": {"start": 0, "end": 20, "system": "values"}, "time": {"start": '1900-01-01T00', "end": '1905-01-01T00', "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
-                        {"name": "xarray.detrend", "axis":"t", "input": "dc", "wsize":50, "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
-                        {"name": "xarray.norm", "axis":"t", "input":"modes:pc", "result": "modesn"},
-                        {"name": "xarray.archive", "proj":"globalPCs", "exp":"20crv-ts", "input": "modesn" } ]
-        results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "pc", results )
-        self.eof_plot( "eof", results )
-
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
-        variables = [{"uri": "archive:globalPCs/20crv-ts-TN/pcs", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
+        variables = [{"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
                         {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1", "archive":"monsoon-IITM/20crv-ts/model" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1", "archive":"model-20crv-ts" } ]
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPerformance(results, "20crv-ts")
         plotter.plotPrediction( results, "20crv-ts" )
 
     def test_network_model(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
-        variables = [ {"uri": "archive:globalPCs/20crv-ts-TN/pcs", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
+        variables = [ {"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
                         {"name": "xarray.norm", "input": "v1", "axis": "t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis": "t", "wsize": 50, "product":"target"},
-                        { "name": "keras.model", "input": "v0f", "proj":"monsoon-IITM", "exp":"20crv-ts", "product":"prediction" } ]
+                        { "name": "keras.model", "input": "v0f", "model":"model-20crv-ts", "product":"prediction" } ]
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPrediction(results, "20crv-ts")
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.compute_eofs_SN_MERRA()
+    result = tester.test_network_model()
     plt.show()

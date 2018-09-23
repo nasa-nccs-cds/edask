@@ -35,10 +35,10 @@ class Archive:
         return path
 
     @classmethod
-    def getFilePath(cls, project: str, experiment: str, type: str):
+    def getFilePath(cls, project: str, experiment: str, id: str):
         expPath = cls.getExperimentPath( project, experiment )
         assert experiment, "Missing experiment parameter!"
-        return os.path.join( expPath, type + ".nc")
+        return os.path.join( expPath, id + ".nc")
 
     @classmethod
     def getLogDir( cls ):
