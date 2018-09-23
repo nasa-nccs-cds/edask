@@ -280,8 +280,9 @@ class EDASDataset:
         self.attrs.update(attrs)
         return self
 
-    def save( self, filePath  ):
+    def save( self, id: str  ):
         dset = self.xr
+        filePath = self.archivePath( id )
         vars: List[xa.DataArray] = dset.data_vars.values()
         dset.to_netcdf( path=filePath )
         self.logger.info( " SAVE: " + str([ x.name + ":" + str(x.shape) for x in vars ]) + " to file " + filePath )
@@ -431,6 +432,16 @@ class EDASDataset:
             arrayMap = cls.mergeArrayMaps(  arrayMap, dset.arrayMap )
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
+
+    @staticmethod
+    def randomStr(length) -> str:
+        tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
+
+    def archivePath(self, id: str = None  ) -> str:
+        proj =  self.attrs.get( "proj", self.randomStr(4) )
+        exp =   self.attrs.get( "exp", self.randomStr(4) )
+        return Archive.getFilePath( proj, exp, id )
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)
     def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )

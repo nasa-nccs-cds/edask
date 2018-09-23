@@ -51,7 +51,7 @@ class ModelKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any], products: List[str]) -> List[EDASArray]:
-        modelPath = Archive.getFilePath(node.getParm('proj'), node.getParm("exp"), "model" )
+        modelPath = self.archivePath( "model" )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
         layersSpec = modelData["layers"]
         assert layersSpec, "Missing levels spec in model data"

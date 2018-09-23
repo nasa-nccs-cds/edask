@@ -7,6 +7,7 @@ from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
 from edask.portal.parsers import WpsCwtParser
 from edask.workflow.data import EDASDataset, EDASArray
+from edask.collections.agg import Archive
 
 class UID:
     ndigits = 6
@@ -145,6 +146,9 @@ class TaskRequest:
 
   def getResultOperations(self) -> List[WorkflowNode]:
       return self.operationManager.getResultOperations()
+
+  def archivePath(self, id: str = None) -> str:
+      return Archive.getFilePath( self.project, self.experiment, id )
 
 
       # variableMap: Dict[str, DataContainer], domainMap: Dict[str, DomainContainer],

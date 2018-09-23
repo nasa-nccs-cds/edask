@@ -47,6 +47,15 @@ class Kernel:
            request.cacheResult( self._id, result )
         return result
 
+    def signResult(self, result: EDASDataset, request: TaskRequest ) -> EDASDataset:
+        result["proj"] = request.project
+        result["exp"] = request.experiment
+        result["uid"] = str(request.uid)
+        return result
+
+    def archivePath(self, id: str, attrs: Dict[str, Any] )-> str:
+        return Archive.getFilePath( attrs["proj"], attrs["exp"], id )
+
     @abstractmethod
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset: pass
 
@@ -72,7 +81,7 @@ class OpKernel(Kernel):
             for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
             product.name = op.getResultId( inputVars.id )
             result += product
-        return result
+        return self.signResult(result)
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
         results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs, products ) for input in inputDset.inputs ]))
@@ -157,14 +166,14 @@ class InputKernel(Kernel):
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.archive:
             self.logger.info( "Reading data from archive: " + dataSource.address )
-            dataPath = Archive.getFilePath(*dataSource.address.split("/"))
+            dataPath =  request.archivePath( dataSource.address )
             dset = xa.open_dataset( dataPath, autoclose=True )
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
             engine = ParmMgr.get("dap.engine","netcdf4")
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
-        return result
+        return self.signResult(result)
 
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
