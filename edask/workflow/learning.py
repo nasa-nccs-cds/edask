@@ -297,9 +297,17 @@ class KerasModel:
     def map(cls, id: str, model: Model, variable: EDASArray) -> EDASArray:
         xarray = variable.xr
         result =  model.predict( xarray.values )
+        print( "PREDICT WEIGHTS: " + str(model.get_weights()))
+        print( "PREDICT INPUT: " + str( list( xarray.values.flat ) ) )
+        print( "PREDICT MODEL: " + cls.describeModel(model) )
+        print( "PREDICT RESULT: " + str( list( result.flat ) ) )
         coord =  xarray.coords[ xarray.dims[0] ]
         xresult = xa.DataArray( result, coords=( (xarray.dims[0],coord), ("nodes", range( result.shape[1] )) ) )
         return variable.updateXa( xresult, id )
+
+    @classmethod
+    def describeModel(cls, model: Model ) -> str:
+        return "Model {}:\n\t{}".format( model.name, "\n\t".join( [ "Layer {}: {}".format( layer.name, str(layer.get_config()) ) for layer in model.layers ] ) )
 
     @classmethod
     def getNetworkInput( cls, node: OpNode, variable: EDASArray, input_size: int ):

@@ -59,7 +59,9 @@ class ModelKernel(OpKernel):
         layerNodes = [ OpNode.deserialize(spec) for spec in layersSpec.split(";") ]
         layers = KerasModel.instantiateLayers( layerNodes )
         model = KerasModel.getModel( layers )
+        model.compile(loss="mse", optimizer=SGD(), metrics=['accuracy'])
         weights = KerasModel.packWeights( "finalWts", modelData )
+        print( "INPUT WEIGHTS: " + str( weights ) )
         model.set_weights( weights )
         input_size = weights[0].shape[0]
         input = KerasModel.getNetworkInput( node, variable, input_size )
@@ -84,7 +86,8 @@ class TrainKernel(OpKernel):
         optArgs = node.getParms( ["lr", "decay", "momentum", "nesterov" ] )
         sgd = SGD( **optArgs )
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
-        if self.weights is not None: model.set_weights(self.weights)
+        if self.weights is not None:
+            model.set_weights(self.weights)
 
     def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset, performanceTracker: PerformanceTracker) -> FitResult:
         batchSize = master_node.getParm( "batchSize", 200 )
