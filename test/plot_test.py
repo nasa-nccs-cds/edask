@@ -142,11 +142,11 @@ class PlotTESTS:
         self.eof_plot( "modes", results )
 
     def compute_pcs_TN(self):
-        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2005-12-31T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "result":"modes" },
+                        {"name": "xarray.eof", "modes": 32, "input": "dt", "result":"modes" },
                         {"name": "xarray.norm", "axis":"t", "input":"modes:pcs", "archive":"pcs-20crv-ts-TN" } ]
         results = self.mgr.testExec(domains, variables, operations)
         self.eof_plot( "pc", results )
@@ -176,11 +176,11 @@ class PlotTESTS:
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
         variables = [{"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
-                        {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
+                        {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":64, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "epochs":100, "iterations":4, "target":"t1", "archive":"model-20crv-ts" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "lr":0.002, "vf":0.2, "decay":0.002, "momentum":0.9, "epochs":1000, "batch":200, "iterations":100, "target":"t1", "archive":"model-20crv-ts" } ]
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPerformance(results, "20crv-ts")
         plotter.plotPrediction( results, "20crv-ts" )
@@ -197,5 +197,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_network_model()
+    result = tester.test_monsoon_learning()
     plt.show()

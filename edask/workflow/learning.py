@@ -219,20 +219,17 @@ class KerasModel:
         if layerNode.name != "keras.layer": return None
         args: Dict[str,Any] = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name", "inputSize"] ), **kwargs }
         type = args.get("type","dense")
-        inputDim = int(layerNode["inputSize"])
-        units = int(layerNode["units"])
         if layer_index == 0:
             if inputDset is not None:
                 axes = layerNode.axes
                 assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
                 sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
                 args["input_dim"] = reduce(mul, sizes, 1)
-            else: args["input_dim"] = inputDim
+            else: args["input_dim"] = int(layerNode["inputSize"])
 
         if type == "dense":
             kwargs = cls.parseArgs( args )
             layer =  Dense( **kwargs )
-#            layer.build( (inputDim,units) )
             return layer
         else:
             raise Exception( "Unrecognized layer type: " + type )
@@ -250,7 +247,7 @@ class KerasModel:
                 return value
 
     @classmethod
-    def getLayers( cls, inputLayerNode: OpNode, inputDset: EDASDataset, **kwargs ) -> Tuple[List[Layer],List[OpNode]] :
+    def getLayers( cls, inputLayerNode: OpNode, inputDset: EDASDataset, **kwargs ) -> Tuple[List[Layer],List[OpNode]]:
         keras_layers: List[Layer] = []
         layer_index = 0
         input_layer: Layer = KerasModel.getLayer( inputLayerNode, layer_index, inputDset )
@@ -311,7 +308,7 @@ class KerasModel:
     def map(cls, id: str, model: Model, variable: EDASArray) -> EDASArray:
         xarray = variable.xr
         result =  model.predict( xarray.values )
-        print( "PREDICT WEIGHTS: " + str(model.get_weights()))
+#        print( "PREDICT WEIGHTS: " + str(model.get_weights()))
 #        print( "PREDICT INPUT: " + str( list( xarray.values.flat ) ) )
 #        print( "PREDICT MODEL: " + cls.describeModel(model) )
 #        print( "PREDICT RESULT: " + str( list( result.flat ) ) )

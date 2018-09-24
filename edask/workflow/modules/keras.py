@@ -86,21 +86,26 @@ class TrainKernel(OpKernel):
         return master_node, KerasModel.getModel( master_node["layers"] )
 
     def buildLearningModel(self, node: MasterNode, model: Model ):
-        optArgs = node.getParms( ["lr", "decay", "momentum", "nesterov" ] )
-        sgd = SGD( **optArgs )
+        lr = node.getParm( "lr", 0.002 )
+        decay = node.getParm( "decay", 0.002 )
+        momentum = node.getParm( "momentum", 0.9 )
+        nesterov = bool(node.getParm( "nesterov", False ))
+        sgd = SGD( lr=lr, decay=decay, momentum=momentum, nesterov=nesterov )
         model.compile(loss=node.getParm("loss","mse"), optimizer=sgd, metrics=['accuracy'])
         if self.weights is not None:
             model.set_weights(self.weights)
 
     def fitModel(self, master_node: MasterNode, train_node: OpNode, model: Model, inputDset: EDASDataset, performanceTracker: PerformanceTracker) -> FitResult:
-        batchSize = master_node.getParm( "batchSize", 200 )
-        nEpocs = master_node.getParm( "epochs", 600 )
-        validation_fract = master_node.getParm( "valFraction", 0.2 )
-        shuffle = master_node.getParm( "shuffle", False )
+        batch = master_node.getParm( "batch", 200 )
+        epochs = master_node.getParm( "epochs", 600 )
+        vf = master_node.getParm( "vf", 0.2 )
+
+        shuffle = master_node.getParm( "shuffle", True )
         inputData = KerasModel.getTrainingData( master_node, inputDset, 1 )
         targetData = KerasModel.getTargetData( train_node, inputDset, 1 )
         initial_weights = model.get_weights()
-        history: History = model.fit( inputData[0].nd, targetData[0].nd, batch_size=batchSize, epochs=nEpocs, validation_split=validation_fract, shuffle=shuffle, callbacks=[self.tensorboard,performanceTracker], verbose=0 )
+        history: History = model.fit( inputData[0].nd, targetData[0].nd, callbacks=[self.tensorboard,performanceTracker], verbose=0,
+                                      batch_size=batch, epochs=epochs, validation_split=vf, shuffle=shuffle,  )
         return self.updateHistory( history, initial_weights, performanceTracker )
 
     def buildResultDataset(self, inputDset: EDASDataset, train_node: OpNode )-> EDASDataset:
