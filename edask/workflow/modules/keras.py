@@ -59,10 +59,13 @@ class ModelKernel(OpKernel):
         layerNodes = [ OpNode.deserialize(spec) for spec in layersSpec.split(";") ]
         layers = KerasModel.instantiateLayers( layerNodes )
         model = KerasModel.getModel( layers )
+        initial_weights = model.get_weights()
         model.compile(loss="mse", optimizer=SGD(), metrics=['accuracy'])
         weights = KerasModel.packWeights( "finalWts", modelData )
+        print( "INITIAL WEIGHTS: " + str( initial_weights ) )
         print( "INPUT WEIGHTS: " + str( weights ) )
         model.set_weights( weights )
+        print( "MODEL WEIGHTS: " + str(model.get_weights()))
         input_size = weights[0].shape[0]
         input = KerasModel.getNetworkInput( node, variable, input_size )
         if not node.product: node["product"] = "prediction"

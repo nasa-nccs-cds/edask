@@ -215,17 +215,25 @@ class FitResult(object):
 class KerasModel:
 
     @classmethod
-    def getLayer( cls, layerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
+    def getLayer( cls, layerNode: OpNode, layer_index: int, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Optional[Layer]:
         if layerNode.name != "keras.layer": return None
-        args: Dict[str,Any] = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name"] ), **kwargs }
+        args: Dict[str,Any] = { **layerNode.getMetadata( ignore=["input", "result", "axis", "axes", "name", "inputSize"] ), **kwargs }
         type = args.get("type","dense")
-        if inputDset is not None:
-            axes = layerNode.axes
-            assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
-            sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
-            args["input_dim"] = reduce(mul, sizes, 1)
+        inputDim = int(layerNode["inputSize"])
+        units = int(layerNode["units"])
+        if layer_index == 0:
+            if inputDset is not None:
+                axes = layerNode.axes
+                assert axes, "Must use 'axis' parameter in first layer to specify input coordinate"
+                sizes = [ inputDset.getCoord(coord_name).size for coord_name in axes ]
+                args["input_dim"] = reduce(mul, sizes, 1)
+            else: args["input_dim"] = inputDim
+
         if type == "dense":
-            return Dense( **cls.parseArgs( args ) )
+            kwargs = cls.parseArgs( args )
+            layer =  Dense( **kwargs )
+#            layer.build( (inputDim,units) )
+            return layer
         else:
             raise Exception( "Unrecognized layer type: " + type )
 
@@ -234,6 +242,7 @@ class KerasModel:
 
     @classmethod
     def parseValue(cls, value: Any ) -> Any:
+        if isinstance(value,str) and value[0] == "[": return [ cls.parseValue(x) for x in value.strip("[]").split(",") ]
         try: return int( value )
         except:
             try: return float( value )
@@ -241,25 +250,30 @@ class KerasModel:
                 return value
 
     @classmethod
-    def getLayers( cls, inputLayerNode: OpNode, inputDset: Optional[EDASDataset] = None, **kwargs ) -> Tuple[List[Layer],List[OpNode]] :
+    def getLayers( cls, inputLayerNode: OpNode, inputDset: EDASDataset, **kwargs ) -> Tuple[List[Layer],List[OpNode]] :
         keras_layers: List[Layer] = []
-        input_layer: Layer = KerasModel.getLayer( inputLayerNode, inputDset )
+        layer_index = 0
+        input_layer: Layer = KerasModel.getLayer( inputLayerNode, layer_index, inputDset )
+        inputLayerNode["inputSize"] =inputDset.inputs[0].xr.shape[0]
         keras_layers.append( input_layer )
         orderedOpNodes = [ inputLayerNode ]
         layerNode = inputLayerNode
         while len(layerNode.outputs):
-            current_layer: Layer = KerasModel.getLayer( layerNode.outputs[0] )
+            layer_index = layer_index + 1
+            current_layer: Layer = KerasModel.getLayer( layerNode.outputs[0], layer_index )
             if current_layer is None: break
             assert len(layerNode.outputs) == 1, "Currently only support sequential networks (one node per layer), found {}".format( len(layerNode.outputs) )
+            input_shape = layerNode["units"]
             keras_layers.append( current_layer )
             layerNode = layerNode.outputs[0]
+            layerNode["inputSize"] = input_shape
             orderedOpNodes.append( layerNode )
         return ( keras_layers, orderedOpNodes )
 
     @classmethod
-    def instantiateLayers( cls, layers: List[OpNode], inputDset: Optional[EDASDataset] = None, **kwargs ) -> List[Layer]:
-        keras_layers: List[Layer] = [ KerasModel.getLayer( layers[0], inputDset ) ]
-        for layer in layers[1:]: keras_layers.append( KerasModel.getLayer( layer ) )
+    def instantiateLayers( cls, layers: List[OpNode], **kwargs ) -> List[Layer]:
+        keras_layers: List[Layer] = [ KerasModel.getLayer( layers[0], 0 ) ]
+        for idx,layer in enumerate(layers[1:]): keras_layers.append( KerasModel.getLayer( layer, idx+1 ) )
         return keras_layers
 
     @classmethod
@@ -298,9 +312,9 @@ class KerasModel:
         xarray = variable.xr
         result =  model.predict( xarray.values )
         print( "PREDICT WEIGHTS: " + str(model.get_weights()))
-        print( "PREDICT INPUT: " + str( list( xarray.values.flat ) ) )
-        print( "PREDICT MODEL: " + cls.describeModel(model) )
-        print( "PREDICT RESULT: " + str( list( result.flat ) ) )
+#        print( "PREDICT INPUT: " + str( list( xarray.values.flat ) ) )
+#        print( "PREDICT MODEL: " + cls.describeModel(model) )
+#        print( "PREDICT RESULT: " + str( list( result.flat ) ) )
         coord =  xarray.coords[ xarray.dims[0] ]
         xresult = xa.DataArray( result, coords=( (xarray.dims[0],coord), ("nodes", range( result.shape[1] )) ) )
         return variable.updateXa( xresult, id )
