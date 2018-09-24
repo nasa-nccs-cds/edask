@@ -162,7 +162,7 @@ class ProcessManager(GenericProcessManager):
       self.logger =  logging.getLogger()
       self.cluster = LocalCluster( n_workers=self.nWorkers )
       self.client = Client(self.cluster)
-      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers, asynchronous=True )
+      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers )
 
   def term(self):
       self.client.close()
@@ -176,7 +176,7 @@ class ProcessManager(GenericProcessManager):
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
             for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
         else:
-            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job, asynchronous=True )
+            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
             result_future.add_done_callback( resultHandler.successCallback )
         self.logger.info("Submitted computation")
 

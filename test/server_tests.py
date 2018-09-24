@@ -153,17 +153,17 @@ class AppTests:
 
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
-        variables = [{"uri": "archive:globalPCs/20crv-ts-TN", "name": "pc:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon","name":"AI:v1","domain":"d0", "offset":"1y"} ]
+        variables = [{"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
         operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
-                        {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":16, "activation":"relu"},
+                        {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":64, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
                         {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
                         {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
-                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "scheduler:workers":4, "iterations":10, "target":"t1", "archive":"monsoon-IITM:20crv-ts" } ]
+                        {"name": "keras.train",  "axis":"t", "input": "L1,t1", "lr":0.002, "vf":0.2, "decay":0.002, "momentum":0.9, "epochs":1000, "batch":200, "iterations":50, "target":"t1", "archive":"model-20crv-ts" } ]
         return self.exec( "test_monsoon_learning", domains, variables, operations )
 
 if __name__ == '__main__':
-    tester = AppTests( { "nWorkers":"4" } )
+    tester = AppTests( "PlotTESTS", "demo", { "nWorkers":"4" } )
     result: Response = tester.test_monsoon_learning()
     tester.plotPerformanceXa( result.message() )
 
