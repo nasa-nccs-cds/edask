@@ -16,6 +16,7 @@ class WpsCwtParser:
     key = QuotedString('"')
     name = Word(alphanums)
     token = key ^ numval
+    delim = Word(",") ^ Word(";")
 
 
     def __init__(self):
@@ -24,20 +25,38 @@ class WpsCwtParser:
     @classmethod
     def getDatainputsParser(cls):
         dict = cls.keymap( cls.key, cls.token )
-        spec = cls.keymap( cls.key, dict ^ cls.token )
+        spec = cls.keymap( cls.key, dict ^ cls.token ^ cls.list( cls.token ) )
         return cls.keymap( cls.name, cls.list( spec ), "[]", "=" )
 
     @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
         cls.logger.info( "WpsCwtParser-> Parsing: " + datainputs )
-        return cls.getDatainputsParser().parseString(datainputs)[0]
+        return cls.postProcessResult( cls.getDatainputsParser().parseString(datainputs)[0] )
 
-    @staticmethod
-    def keymap( key: Token, value: Token, enclosing: str = "{}", sep=":", delim="," ):
-        elem = ( key + Suppress(sep) + value + Suppress(ZeroOrMore(delim) ) )
+    @classmethod
+    def keymap( cls, key: Token, value: Token, enclosing: str = "{}", sep=":" ):
+        elem = ( key + Suppress(sep) + value + Suppress(ZeroOrMore(cls.delim) ) )
         return ( Suppress(enclosing[0]) + OneOrMore(Group(elem)) + Suppress(enclosing[1]) ).setParseAction( list2dict )
 
-    @staticmethod
-    def list( item, enclosing: str = "[]", delim="," ):
-        elem = item + Suppress( ZeroOrMore(delim) )
+    @classmethod
+    def list( cls, item, enclosing: str = "[]" ):
+        elem = item + Suppress( ZeroOrMore(cls.delim) )
         return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
+
+    @classmethod
+    def postProcessResult( cls, result: Dict[str,List[Dict[str,Any]]] ) ->  Dict[str,List[Dict[str,Any]]]:
+        # for key, decls in result.items():
+        #     for decl in decls:
+        #         print(".")
+        return result
+
+if __name__ == '__main__':
+
+    datainputs0 = """[    
+    variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|19543b"}]; 
+    domain = [{"id": "d0", "time": {"start": "1980-01-01T00:00:00Z", "step": 1, "end": "1980-12-31T23:59:00Z", "crs": "timestamps"}}];
+    operation = [{"input": ["19543b"], "domain": "d0", "axes": "tyx", "name": "CDSpark.ave", "result": "96af34"}]
+                        ]"""
+    result = WpsCwtParser.parseDatainputs( datainputs0 )
+    print( str(result) )
+
