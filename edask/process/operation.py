@@ -81,7 +81,9 @@ class WorkflowNode(Node):
     def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
 
     def _addWorkflowInputs(self):
-        for inputName in self.metadata.get("input","").split(","):
+        ispecs = self.metadata.get("input","")
+        if isinstance(ispecs,str): ispecs = ispecs.split(",")
+        for inputName in ispecs:
             if inputName:
                 inputNameToks = inputName.split(":")
                 products = inputNameToks[1].split(",") if len(inputNameToks) > 1 else []
@@ -204,7 +206,7 @@ class OpNode(WorkflowNode):
         return self.rid == inputId
 
     def isResult(self):
-        return not self.rid
+        return len( self._outputs ) == 0
 
     def getResultId(self, varName: str ) -> str:
         return self.rid if self.rid else self.product if self.product else  "-".join( [ self.name, varName ] )
@@ -324,7 +326,8 @@ class OperationManager:
                     if connection is not None:
                         input.setConnection( connection )
                         connection.addOutput( operation )
-                    else: raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
+                    else:
+                        raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
 
     def getResultOperations(self) -> List[WorkflowNode]:
          return list( filter( lambda x: x.isResult(), self.operations ) )

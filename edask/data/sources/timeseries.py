@@ -3,10 +3,17 @@ import xarray as xa
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from datetime import datetime, timezone
 from edask.collections.agg import Archive
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
 
 import abc
+
+class TimeConversions:
+
+    @staticmethod
+    def toDatetime( dt64: np.datetime64 ) -> datetime:
+        return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
 
 class TimeseriesData(object):
 

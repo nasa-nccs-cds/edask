@@ -1,6 +1,7 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
 from enum import Enum, auto
 from edask.process.node import Node
+from edask.portal.parsers import WpsCwtParser
 
 class SourceType(Enum):
     UNKNOWN = auto()
@@ -65,10 +66,12 @@ class VariableSource(Node):
 
     @classmethod
     def new(cls, variableSpec: Dict[str, Any] ):
-        varnames = variableSpec.get("name").split(",")
+        vids = WpsCwtParser.get( ["name", "id"], variableSpec )
+        assert vids is not None, "Missing 'name' or 'id' parm in variableSpec: " + str(variableSpec)
+        varnames = vids.split(",")
         vars = []
         for varname in varnames:
-            nameToks = varname.split(":")
+            nameToks = WpsCwtParser.split( ["|", ":"], varname )
             name = nameToks[0]
             id = nameToks[-1]
             vars.append(VID(name, id))
@@ -87,16 +90,16 @@ class VariableSource(Node):
         existingMap.update( { v.elem() for v in self.vids if not v.identity() } )
         return existingMap
 
-    def names(self):
+    def names(self) -> List[str]:
         return [ v.name for v in self.vids ]
 
-    def ids(self):
+    def ids(self) -> List[str]:
         return [ v.id for v in self.vids ]
 
-    def providesId(self, vid: str ):
+    def providesId(self, vid: str ) -> bool:
         return vid in self.ids()
 
-    def getId(self):
+    def getId(self) -> str:
         return ":".join(self.ids())
 
     def __str__(self):

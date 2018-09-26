@@ -1,4 +1,5 @@
-import os, datetime
+import os
+from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
 import edask
@@ -134,7 +135,7 @@ class File:
        self.start_time = float(args[0].strip())
        self.size = int(args[1].strip())
        self.relpath = args[2].strip()
-       self.date = datetime.datetime.utcfromtimestamp(self.start_time*60)
+       self.date = datetime.fromtimestamp( self.start_time*60, tz=timezone.utc)
 
     def getPath(self):
         return os.path.join( self.parm("base.path"), self.relpath )

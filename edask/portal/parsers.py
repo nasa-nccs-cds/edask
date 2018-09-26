@@ -18,7 +18,6 @@ class WpsCwtParser:
     token = key ^ numval
     delim = Word(",") ^ Word(";")
 
-
     def __init__(self):
         self.datainputsParser = self.getDatainputsParser()
 
@@ -49,6 +48,20 @@ class WpsCwtParser:
         #     for decl in decls:
         #         print(".")
         return result
+
+    @staticmethod
+    def get( altKeys: List[str], spec: Dict[str,Any] ) -> Any:
+        for key in altKeys:
+            value = spec.get( key, None )
+            if value is not None: return value
+        return None
+
+    @staticmethod
+    def split( sepKeys: List[str], value: str ) -> List[str]:
+        for sep in sepKeys:
+            if sep in value:
+                return value.split(sep)
+        return [ value ]
 
 if __name__ == '__main__':
 

@@ -4,7 +4,9 @@ from enum import Enum, auto
 import xarray as xa
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from edask.data.sources.timeseries import TimeConversions
+from datetime import datetime, timezone
+from edask.portal.parsers import WpsCwtParser
 from dateutil.relativedelta import relativedelta
 import re
 
@@ -80,15 +82,16 @@ class AxisBounds:
         if isinstance( boundsSpec, dict ):
             start = boundsSpec.get("start",None)
             end = boundsSpec.get("end",None)
-            system = boundsSpec.get("system",None)
+            step = boundsSpec.get("step", None)
+            system = WpsCwtParser.get( ["system","crs"], boundsSpec )
             end = end + 1 if system.startswith("ind") else end
-            return AxisBounds( name, start, end, system, boundsSpec )
+            return AxisBounds( name, start, end, step, system, boundsSpec )
         else:
             value = boundsSpec
-            return AxisBounds( name, value, value, "values", {} )
+            return AxisBounds( name, value, value, 1, "values", {} )
 
 
-    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
+    def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _step: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
         self.name = _name
         if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
@@ -97,39 +100,40 @@ class AxisBounds:
         self.start = _start
         self._timeDelta = timeDelta
         self.end = _end
+        self.step = _step
         self.metadata = _metadata
 
     def crop(self, axis: Axis, minVal: Union[float,int,np.datetime64], maxVal: Union[float,int,np.datetime64] ):
-        if (axis == Axis.T) and self.system.startswith("val"):
+        if (axis == Axis.T) and self.system.startswith( ("val","time") ):
             return self.cropTime( minVal, maxVal )
         else:
             return self.cropValOrIndex( minVal, maxVal )
 
     def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
         from dateutil.parser import parse
-        assert self.system.startswith("val"), "AxisBounds must have value='system' in order to cropTimes: " + self.name
+        assert self.system.startswith( ("val","time") ), "AxisBounds must have value='system' in order to cropTimes: " + self.name
         assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
-        minTime: datetime = datetime.utcfromtimestamp( minVal.astype(int) * 1e-9 )
-        maxTime: datetime = datetime.utcfromtimestamp( maxVal.astype(int) * 1e-9 )
+        minTime: datetime = TimeConversions.toDatetime( minVal )
+        maxTime: datetime = TimeConversions.toDatetime( maxVal )
         startTime: datetime = parse( self.start )
         endTime: datetime   = parse( self.end )
         if (maxTime < startTime) or (minTime > endTime): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
         newStart = minTime if minTime > startTime else startTime
         newEnd =   maxTime if maxTime < endTime else endTime
-        return AxisBounds( self.name, str(newStart), str(newEnd), self.system, self.metadata, self._timeDelta )
+        return AxisBounds( self.name, str(newStart), str(newEnd), self.step, self.system, self.metadata, self._timeDelta )
 
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
         if (maxVal < self.start) or (minVal > self.end): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
         newStart = max( minVal, self.start )
         newEnd =   min( maxVal, self.end )
-        return AxisBounds( self.name, newStart, newEnd, self.system, self.metadata, self._timeDelta )
+        return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
 
     def offset( self, offsetStr: str ):
         timeDelta = self.getRelativeDelta( offsetStr )
-        return AxisBounds( self.name, self.start, self.end, self.system, self.metadata, timeDelta )
+        return AxisBounds( self.name, self.start, self.end, self.step, self.system, self.metadata, timeDelta )
 
     def revertByDelta(self, dt64: np.datetime64) -> datetime:
-        return  datetime.utcfromtimestamp( dt64.astype(int) * 1e-9 ) - self._timeDelta
+        return  TimeConversions.toDatetime(dt64) - self._timeDelta
 
     def revertAxis(self, xarray: xa.DataArray) -> xa.DataArray:
         if ( self._timeDelta is not None ) and ( self.type == Axis.T ):
@@ -149,7 +153,7 @@ class AxisBounds:
 
     def offsetBounds( self ) -> (datetime,datetime):
         from dateutil.parser import parse
-        assert self.system.startswith("val"), "Must use 'system=values' with the 'offset' option"
+        assert self.system.startswith( ("val","time") ), "Must use 'system=values' with the 'offset' option"
         return ( parse( self.start ) + self._timeDelta, parse( self.end ) + self._timeDelta )
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
@@ -160,11 +164,11 @@ class AxisBounds:
         if isinstance( self.start, str ):      # TODO: convert time strings to date reps
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata, self._timeDelta )
+            return AxisBounds( self.name, new_start, new_end, self.step, self.system, self.metadata, self._timeDelta )
         else:
             new_start = max( self.start, other.start )
             new_end = min( self.end, other.end )
-            return AxisBounds( self.name, new_start, new_end, self.system, self.metadata, self._timeDelta )
+            return AxisBounds( self.name, new_start, new_end, self.step, self.system, self.metadata, self._timeDelta )
 
     def __str__(self):
         return "B({}:{})[ start: {}, end: {}, system: {}, offset: {} ]".format( self.type.name, self.name, self.start, self.end, self.system, self.offset )

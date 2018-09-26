@@ -104,6 +104,19 @@ class PlotTESTS:
         print( results.xr )
         results.plot()
 
+    def cwt_request_test(self):
+        from edask.portal.parsers import WpsCwtParser
+        request = """[  variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|c44a5e"}];
+                        domain = [{"id": "d0", "time": {"start": "1980-01-01T00:00:00Z", "step": 1, "end": "1980-12-31T23:59:00Z","crs": "timestamps"}}];
+                        operation = [{"input": ["c44a5e"], "domain": "d0", "axes": "tyx", "name": "xarray.ave", "result": "bee960"}]
+                     ]"""
+        dataInputs = WpsCwtParser.parseDatainputs(request)
+        domains = dataInputs["domain"]
+        operations = dataInputs["operation"]
+        variables = dataInputs["variable"]
+        results = self.mgr.testExec(domains, variables, operations)
+        print(results.xr)
+
     def compute_pcs_SN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": self.mgr.getAddress("20crv", "ts"), "name": "ts:v0", "domain": "d0"}]
@@ -197,5 +210,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_monsoon_learning()
+    result = tester.cwt_request_test()
     plt.show()
