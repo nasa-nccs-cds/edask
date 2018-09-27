@@ -13,13 +13,26 @@ class EDASapp(EDASPortal):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def __init__( self, client_address: str="127.0.0.1", request_port: int=4556, response_port: int=4557, appConfiguration: Dict[str,str]={} ):
+    def __init__( self, client_address: str="127.0.0.1", request_port: int=4556, response_port: int=4557 ):
         super( EDASapp, self ).__init__( client_address, request_port, response_port )
-        self.processManager = ProcessManager( appConfiguration )
+        self.processManager = ProcessManager( self.getAppConfiguration() )
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
 
     def start( self ): self.run()
+
+    def getAppConfiguration(self) ->  Dict[str,str]:
+        from edask import CONFIG_DIR
+        appConfig = {}
+        try:
+            config_FILE = open( os.path.join( CONFIG_DIR,"app.conf" ) )
+            for line in config_FILE.readlines():
+                toks = line.split("=")
+                if len( toks ) == 2: appConfig[toks[0].strip()] = toks[1].strip()
+        except Exception as err:
+            self.logger.warn( "Can't load app config file 'app.conf' from config dir: " + CONFIG_DIR )
+            self.logger.warn( str(err) )
+        return appConfig
 
     def getCapabilities(self, utilSpec: Sequence[str] ) -> Message:
         capabilities = edasOpManager.getCapabilitiesStr()

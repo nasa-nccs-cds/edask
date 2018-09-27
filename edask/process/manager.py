@@ -4,7 +4,7 @@ from xml.etree.ElementTree import Element, ElementTree
 from threading import Thread
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job
-from edask.workflow.data import EDASDataset, StandardMergeHandler, MergeHandler
+from edask.workflow.data import EDASDataset
 from edask.portal.base import EDASPortal, Message, Response
 from dask.distributed import Client, Future, LocalCluster
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
@@ -158,8 +158,9 @@ class ProcessManager(GenericProcessManager):
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
-      self.nWorkers = int( self.config.get("nWorkers",multiprocessing.cpu_count()) )
+      self.nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
       self.logger =  logging.getLogger()
+      self.logger.info( "Initializing Dask cluster with {} workers".format(self.nWorkers) )
       self.cluster = LocalCluster( n_workers=self.nWorkers )
       self.client = Client(self.cluster)
       self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers )

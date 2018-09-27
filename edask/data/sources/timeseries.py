@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from datetime import datetime, timezone
-from edask.collections.agg import Archive
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
 
 import abc
@@ -39,10 +38,10 @@ class TimeseriesData(object):
         arrays = [ xa.DataArray(series, name=name, coords=coords, dims=['t']) for name, series in self.series.items() ]
         return xa.Dataset( arrays, coords=coords )
 
-    def archive( self, project: str, experiment: str, merge_series=True ):
-        path = Archive.getFilePath(project, experiment, "timeseries" )
-        if merge_series:    self.xr.to_netcdf( path=path, mode='w' )
-        else:               self.ds.to_netcdf( path=path, mode='w' )
+    # def archive( self, project: str, experiment: str, merge_series=True ):
+    #     path = Archive.getFilePath(project, experiment, "timeseries" )
+    #     if merge_series:    self.xr.to_netcdf( path=path, mode='w' )
+    #     else:               self.ds.to_netcdf( path=path, mode='w' )
 
 class DataSource(object):
     __metaclass__ = abc.ABCMeta
