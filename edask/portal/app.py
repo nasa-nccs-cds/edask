@@ -82,7 +82,7 @@ class EDASapp(EDASPortal):
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
-          resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler( clientId, jobId, workers=job.workers) )
+          resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler( clientId, jobId, self, workers=job.workers) )
           self.processManager.executeProcess(jobId, job, resultHandler )
           return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:

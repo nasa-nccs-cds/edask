@@ -441,7 +441,8 @@ class EDASDataset:
     def archivePath(self, id: str = None  ) -> str:
         proj =  self.attrs.get( "proj", self.randomStr(4) )
         exp =   self.attrs.get( "exp", self.randomStr(4) )
-        id =  self.attrs.get( "archive", self.randomStr(4) )
+        id =  self.attrs.get( "archive", "" )
+        if not id: id = "archive-" + self.randomStr(4)
         return Archive.getFilePath( proj, exp, id )
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)

@@ -82,33 +82,36 @@ class Responder:
         self.clients.add(client)
 
     def sendResponse( self, msg: Response ):
-        self.logger.info( "Post Message to response queue: " + str(msg) )
+        self.logger.info( "@@R: Post Message to response queue: " + str(msg) )
         self.doSendResponse(msg)
 
     def sendDataPacket( self, data: DataPacket ):
-        self.logger.info( "Post DataPacket to response queue: " + str(data) )
+        self.logger.info( "@@R: Posting DataPacket to response queue: " + str(data) )
         self.doSendResponse( data )
+        self.logger.info("@@R: POST COMPLETE ")
 
     def doSendResponse( self,  r: Response ):
         if( r.rtype == "message" ):
             packaged_msg: str = self.doSendMessage( r )
             dateTime =  datetime.datetime.now()
-            self.logger.info( " Sent response: " + r.id() + " (" + dateTime.strftime("MM/dd HH:mm:ss") + "), content sample: " + packaged_msg.substring( 0, min( 300, len(packaged_msg) ) ) );
+            self.logger.info( "@@R: Sent response: " + r.id() + " (" + dateTime.strftime("MM/dd HH:mm:ss") + "), content sample: " + packaged_msg.substring( 0, min( 300, len(packaged_msg) ) ) );
         elif( r.rtype == "data" ):
             self.doSendDataPacket( r )
         elif( r.rtype == "error" ):
                 self.doSendErrorReport( r )
         else:
-            self.logger.error( "Error, unrecognized response type: " + r.rtype )
+            self.logger.error( "@@R: Error, unrecognized response type: " + r.rtype )
             self.doSendErrorReport( ErrorReport( r.clientId, r.responseId, "Error, unrecognized response type: " + r.rtype ) )
 
     def doSendMessage(self, msg: Response) -> str:
+        self.logger.info("@@R: Sending MESSAGE: " + str(msg.message()))
         request_args = [ msg.id(), "response", msg.message() ]
         packaged_msg = "!".join( request_args )
         self.socket.send( bytearray( packaged_msg, 'utf-8' ) )
         return packaged_msg
 
     def doSendErrorReport( self, msg: Response  ):
+        self.logger.info("@@R: Sending ERROR report: " + str(msg.message()))
         request_args = [ msg.id(), "error", msg.message() ]
         packaged_msg = "!".join( request_args )
         self.socket.send( bytearray( packaged_msg, 'utf-8' )  )
@@ -117,7 +120,7 @@ class Responder:
     def doSendDataPacket( self, dataPacket: DataPacket ):
         self.socket.send( dataPacket.getTransferHeader() )
         if( dataPacket.hasData() ): self.socket.send( dataPacket.getRawData() )
-        self.logger.info( " Sent data packet " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() )
+        self.logger.info( "@@R: Sent data packet " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() )
 
     def setExeStatus( self, cId: str, rid: str, status: str ):
         self.status_reports[rid] = status
@@ -139,9 +142,9 @@ class Responder:
         self.socket: zmq.Socket   = self.context.socket(zmq.PUSH)
         try:
             self.socket.bind( "tcp://{}:{}".format( self.client_address, self.response_port ) )
-            self.logger.info( " --> Bound response socket to client at {} on port: {}".format( self.client_address, self.response_port ) )
+            self.logger.info( "@@R: --> Bound response socket to client at {} on port: {}".format( self.client_address, self.response_port ) )
         except Exception as err:
-            self.logger.error( "Error initializing response socket on port {}: {}".format( self.response_port, err ) )
+            self.logger.error( "@@R: Error initializing response socket on port {}: {}".format( self.response_port, err ) )
 
     def close_connection( self ):
         try:
@@ -165,17 +168,17 @@ class EDASPortal:
             self.initSocket( client_address, request_port )
 
         except Exception as err:
-            self.logger.error( "\n-------------------------------\nEDAS Init error: {} -------------------------------\n".format( err ) )
+            self.logger.error( "@@Portal:  ------------------------------- EDAS Init error: {} ------------------------------- ".format( err ) )
 
     def initSocket(self, client_address, request_port):
         try:
             self.request_socket.bind( "tcp://{}:{}".format( client_address, request_port ) )
-            self.logger.info( " --> Bound request socket to client at {} on port: {}".format( client_address, request_port ) )
+            self.logger.info( "@@Portal --> Bound request socket to client at {} on port: {}".format( client_address, request_port ) )
         except Exception as err:
-            self.logger.error( "Error initializing request socket on port {}: {}".format( request_port, err ) )
+            self.logger.error( "@@Portal: Error initializing request socket on port {}: {}".format( request_port, err ) )
 
     def sendErrorReport( self, clientId: str, responseId: str, msg: str ):
-        self.logger.info("-----> SendErrorReport[" + clientId +":" + responseId + "]" )
+        self.logger.info("@@Portal-----> SendErrorReport[" + clientId +":" + responseId + "]" )
         self.responder.sendResponse( ErrorReport(clientId,responseId,msg) )
 
     def addHandler(self, clientId, jobId, handler ):
@@ -189,7 +192,7 @@ class EDASPortal:
         self.responder.setExeStatus(clientId,rid,status)
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
-        self.logger.debug( "@@ Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
+        self.logger.debug( "@@Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
@@ -199,7 +202,7 @@ class EDASPortal:
 
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
-        self.logger.debug( "Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
+        self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
         with open(filePath, mode='rb') as file:
             file_header_fields = [ "array", jobId, name, file.name ]
             if not sendData: file_header_fields.append(filePath)
@@ -208,11 +211,11 @@ class EDASPortal:
             header = "!".join(header_fields)
             try:
                 data =  bytes(file.read()) if sendData else None
-                self.logger.debug(" ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
+                self.logger.debug("@@Portal ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath );
                 self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
-                self.logger.debug("Done sending file data packet: " + header)
+                self.logger.debug("@@Portal Done sending file data packet: " + header)
             except Exception as ex:
-                self.logger.info( "Error sending file : " + filePath + ": " + str(ex) )
+                self.logger.info( "@@Portal Error sending file : " + filePath + ": " + str(ex) )
                 traceback.print_exc()
             return file.name
 
@@ -227,7 +230,7 @@ class EDASPortal:
         request_args = [ msg.id(), msg.message() ]
         packaged_msg = "!".join( request_args )
         timeStamp =  datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-        self.logger.info( "@@ Sending response {} on request_socket @({}): {}".format( msg.responseId, timeStamp, str(msg) ) )
+        self.logger.info( "@@Portal: Sending response {} on request_socket @({}): {}".format( msg.responseId, timeStamp, str(msg) ) )
         self.request_socket.send_string( packaged_msg )
         return packaged_msg
 
@@ -251,50 +254,50 @@ class EDASPortal:
 
     def run(self):
         while self.active:
-            self.logger.info(  "Listening for requests on port: {}, host: {}".format( self.request_port, self.getHostInfo() ) )
+            self.logger.info(  "@@Portal:Listening for requests on port: {}, host: {}".format( self.request_port, self.getHostInfo() ) )
             request_header = str( self.request_socket.recv(0) ).strip()
             parts = request_header.split("!")
             self.responder.registerClient( parts[0] )
             try:
                 timeStamp = datetime.datetime.now().strftime("MM/dd HH:mm:ss")
-                self.logger.info( "  ###  Processing {} request: {} @({})".format( parts[1], request_header, timeStamp) )
+                self.logger.info( "@@Portal:  ###  Processing {} request: {} @({})".format( parts[1], request_header, timeStamp) )
                 if parts[1] == "execute":
                     self.sendResponseMessage( self.execute(parts) )
                 elif parts[1] == "util":
                     self.sendResponseMessage( self.execUtility(parts));
                 elif parts[1] == "quit" or parts[1] == "shutdown":
                     self.sendResponseMessage( Message(parts[0], "quit", "Terminating") )
-                    self.logger.info("Received Shutdown Message")
+                    self.logger.info("@@Portal: Received Shutdown Message")
                     exit(0)
                 elif parts[1].lower() == "getcapabilities":
                     self.sendResponseMessage( self.getCapabilities(parts) )
                 elif parts[1].lower() == "describeprocess":
                     self.sendResponseMessage( self.describeProcess(parts) )
                 else:
-                    msg = "Unknown request header type: " + parts[1]
+                    msg = "@@Portal: Unknown request header type: " + parts[1]
                     self.logger.info(msg)
                     self.sendResponseMessage( Message(parts[0], "error", msg) )
             except Exception as ex:
                 # clientId = elem( self.taskSpec, 0 )
                 # runargs = self.getRunArgs( self.taskSpec )
                 # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
-                self.logger.error( "Execution error: " + str(ex) )
+                self.logger.error( "@@Portal: Execution error: " + str(ex) )
                 traceback.print_exc()
                 self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
 
-        self.logger.info( "EXIT EDASPortal");
+        self.logger.info( "@@Portal: EXIT EDASPortal");
 
     def term( self, msg ):
-        self.logger.info( "!!EDAS Shutdown: " + msg )
+        self.logger.info( "@@Portal: !!EDAS Shutdown: " + msg )
         self.active = False
-        self.logger.info( "QUIT PythonWorkerPortal")
+        self.logger.info( "@@Portal: QUIT PythonWorkerPortal")
         try: self.request_socket.close()
         except Exception: pass
-        self.logger.info( "CLOSE request_socket")
+        self.logger.info( "@@Portal: CLOSE request_socket")
         self.responder.close_connection()
-        self.logger.info( "TERM responder")
+        self.logger.info( "@@Portal: TERM responder")
         self.shutdown()
-        self.logger.info( "shutdown complete")
+        self.logger.info( "@@Portal: shutdown complete")
 
     def ia2s( self, array: Sequence[int] ) -> str:
         return str(array).strip("[]")
