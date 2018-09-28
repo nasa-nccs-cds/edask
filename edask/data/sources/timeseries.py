@@ -14,6 +14,11 @@ class TimeConversions:
     def toDatetime( dt64: np.datetime64 ) -> datetime:
         return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
 
+    @staticmethod
+    def parseDate( sdate: str ) -> datetime:
+        from dateutil.parser import parse
+        return parse( sdate ).astimezone(timezone.utc)
+
 class TimeseriesData(object):
 
     def __init__(self, _dates: List[datetime.date], _series: List[Tuple[str,np.ndarray]] ):

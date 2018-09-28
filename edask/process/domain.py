@@ -110,13 +110,13 @@ class AxisBounds:
             return self.cropValOrIndex( minVal, maxVal )
 
     def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
-        from dateutil.parser import parse
+
         assert self.system.startswith( ("val","time") ), "AxisBounds must have value='system' in order to cropTimes: " + self.name
         assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
         minTime: datetime = TimeConversions.toDatetime( minVal )
         maxTime: datetime = TimeConversions.toDatetime( maxVal )
-        startTime: datetime = parse( self.start )
-        endTime: datetime   = parse( self.end )
+        startTime: datetime = TimeConversions.parseDate( self.start )
+        endTime: datetime   = TimeConversions.parseDate( self.end )
         if (maxTime < startTime) or (minTime > endTime): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
         newStart = minTime if minTime > startTime else startTime
         newEnd =   maxTime if maxTime < endTime else endTime
@@ -152,9 +152,8 @@ class AxisBounds:
         return slice( start, end )
 
     def offsetBounds( self ) -> (datetime,datetime):
-        from dateutil.parser import parse
         assert self.system.startswith( ("val","time") ), "Must use 'system=values' with the 'offset' option"
-        return ( parse( self.start ) + self._timeDelta, parse( self.end ) + self._timeDelta )
+        return ( TimeConversions.parseDate( self.start ) + self._timeDelta, TimeConversions.parseDate( self.end ) + self._timeDelta )
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
@@ -208,6 +207,10 @@ class Domain:
                 bounds = AxisBounds.new( key, value )
                 axisBounds[ bounds.type ] = bounds
         return Domain( name,  axisBounds )
+
+    @classmethod
+    def empty(cls ):
+        return Domain( "empty",  {} )
 
     def __init__( self, _name: str, _axisBounds: Dict[Axis,AxisBounds] ):
         self.name = _name
@@ -275,8 +278,11 @@ class DomainManager:
     def __init__(self, _domains: Dict[str,Domain] ):
         self.domains = _domains
 
-    def getDomain( self, name: str ) -> Domain:
-        return self.domains.get( name )
+    def getDomain( self, name: Optional[str] ) -> Domain:
+        if name is None: return Domain.empty()
+        domain = self.domains.get( name )
+        assert domain is not None, "Unrecognized domain: " + str(name)
+        return domain
 
     def intersectDomains(self, domainIds: Set[str], allow_broadcast: bool = True ) -> Optional[str]:
         if len( domainIds ) == 0: return None

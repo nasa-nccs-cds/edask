@@ -4,6 +4,7 @@ import random, string, os, datetime, atexit
 from edask.portal.base import EDASPortal, Message, Response
 from typing import List, Dict, Any, Union, Sequence
 from edask.workflow.module import edasOpManager
+from edask.portal.parsers import WpsCwtParser
 from edask.process.task import Job
 from edask.process.manager import ProcessManager, ExecResultHandler
 
@@ -40,10 +41,9 @@ class EDASapp(EDASPortal):
 
 
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
-        ( module, op ) = utilSpec[1].split(":")
+        ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
         description = edasOpManager.describeProcess( module, op )
         return Message( utilSpec[0], "capabilities", description )
-
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message:
         return Message("","","")
