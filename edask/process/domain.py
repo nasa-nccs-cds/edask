@@ -110,7 +110,6 @@ class AxisBounds:
             return self.cropValOrIndex( minVal, maxVal )
 
     def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
-
         assert self.system.startswith( ("val","time") ), "AxisBounds must have value='system' in order to cropTimes: " + self.name
         assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
         minTime: datetime = TimeConversions.toDatetime( minVal )
