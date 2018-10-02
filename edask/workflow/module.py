@@ -139,7 +139,7 @@ class KernelManager:
     def buildTask( self, job: Job ) -> EDASDataset:
         try:
             request: TaskRequest = TaskRequest.new( job )
-            return self.buildRequest( request )
+            return self.buildRequest( request ).standardize()
         except Exception as err:
             self.logger.error( "BuildTask Exception: " + str(err) )
             self.logger.info( traceback.format_exc() )

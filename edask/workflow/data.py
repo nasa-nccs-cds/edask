@@ -236,6 +236,7 @@ class EDASArray:
     def __setitem__(self, key: str, value: str ): self.xr.attrs[key] = value
 
 class EDASDataset:
+    StandardAxisMap = { "x":"lat", "y":"lon", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
     def __init__( self, _arrayMap: Dict[str,EDASArray], _attrs: Dict[str,Any]  ):
         self.arrayMap: Dict[str,EDASArray] = _arrayMap
@@ -262,6 +263,13 @@ class EDASDataset:
             if val not in dataset and val not in dataset.dims:
                 dataset.rename( {id:val}, True )
         return dataset
+
+    def standardize( self ) -> "EDASDataset":
+        dataset = self.xr
+        for id,val in self.StandardAxisMap.items():
+            if val not in dataset and val not in dataset.dims:
+                dataset.rename( {id:val}, True )
+        return EDASDataset( dataset.variables, self.attrs )
 
     @classmethod
     def new( cls, dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
