@@ -7,6 +7,9 @@ from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.process.task import Job
 from edask.process.manager import ProcessManager, ExecResultHandler
+from edask.portal.parameters import ParmMgr
+
+def get_or_else( value, default_val ): return value if value is not None else default_val
 
 class EDASapp(EDASPortal):
 
@@ -14,26 +17,15 @@ class EDASapp(EDASPortal):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def __init__( self, client_address: str="127.0.0.1", request_port: int=4556, response_port: int=4557 ):
-        super( EDASapp, self ).__init__( client_address, request_port, response_port )
-        self.processManager = ProcessManager( self.getAppConfiguration() )
+    def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
+        super( EDASapp, self ).__init__(  get_or_else( client_address, ParmMgr.get( "client.address", "127.0.0.1") ),
+                                          get_or_else( request_port,   ParmMgr.get( "request.port", 4556 ) ),
+                                          get_or_else( response_port,  ParmMgr.get( "response.port", 4557 ) )  )
+        self.processManager = ProcessManager( ParmMgr.parms )
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
 
     def start( self ): self.run()
-
-    def getAppConfiguration(self) ->  Dict[str,str]:
-        from edask import CONFIG_DIR
-        appConfig = {}
-        try:
-            config_FILE = open( os.path.join( CONFIG_DIR,"app.conf" ) )
-            for line in config_FILE.readlines():
-                toks = line.split("=")
-                if len( toks ) == 2: appConfig[toks[0].strip()] = toks[1].strip()
-        except Exception as err:
-            self.logger.warn( "Can't load app config file 'app.conf' from config dir: " + CONFIG_DIR )
-            self.logger.warn( str(err) )
-        return appConfig
 
     def getCapabilities(self, utilSpec: Sequence[str] ) -> Message:
         capabilities = edasOpManager.getCapabilitiesStr()

@@ -22,4 +22,17 @@ To install:
 
 #### Configuration
 
-The edask configuration files are
+The edask configuration files are found in the edask/resources direcory.
+To set up a cluster, copy the edask/resources/hosts.template file to edask/resources/hosts and edit to enter the names of the workers in your cluster.
+To setup EDASK server configuration, copy the edask/resources/app.conf file to ~/.edask/conf/app.conf and edit.
+Log files will be written to ~/.edask/logs.
+
+#### Startup
+
+The edask/bin directory contains scripts for starting up the EDASK server and a dask cluster.  For example, to start up a dask cluster with 8 worker nodes, one would execute the following:
+
+> startup_cluster.sh 8
+
+Then in a separate shell one would start up the EDAS server by executing:
+
+> startup_server.sh
