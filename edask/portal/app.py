@@ -73,7 +73,7 @@ class EDASapp(EDASPortal):
     def execute( self, taskSpec: Sequence[str] )-> Response:
         clientId = self.elem(taskSpec,0)
         runargs = self.getRunArgs( taskSpec )
-        jobId = runargs.get( "jobId", Job.randomStr(8) )
+        jobId = runargs.get( "jobId", self.elem( taskSpec, 2, Job.randomStr(8) ) )
         proj = runargs.get("proj", "proj-" + Job.randomStr(4) )
         exp = runargs.get("exp",  "exp-" + Job.randomStr(4) )
         process_name = self.elem(taskSpec,2)

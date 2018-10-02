@@ -95,8 +95,8 @@ class AppTests:
         self.processManager = ProcessManager(appConfiguration)
 
     def exec( self, name, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]] )-> Response:
-        job = Job.init( self.project, self.experiment, name, domains, variables, operations )
-        return self.runJob( job )
+        job1 = Job.init( self.project, self.experiment, name, domains, variables, operations )
+        return self.runJob( job1 )
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
@@ -149,7 +149,6 @@ class AppTests:
             else:
                 time.sleep(0.5)
                 print( "." , end='' )
-
 
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
