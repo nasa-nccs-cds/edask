@@ -51,7 +51,7 @@ class Transformation:
         self.parms = kwargs
 
 class EDASArray:
-    def __init__(self, name: str, _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
+    def __init__(self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy], _transforms: List[Transformation], product = None ):
         self.domId = _domId
         self._data = data
         self.name = name
@@ -90,7 +90,8 @@ class EDASArray:
     def rname(self, op: str ) -> str: return op + "[" + self.name + "]"
 
     @name.setter
-    def name(self, value): self.xr.name = value
+    def name(self, value):
+        if value: self.xr.name = value
 
     def xarray(self, id: str ) -> xa.DataArray:
         if isinstance(self._data,DataArrayGroupBy): return self._data._obj
@@ -267,9 +268,14 @@ class EDASDataset:
     def standardize( self ) -> "EDASDataset":
         dataset = self.xr
         for id,val in self.StandardAxisMap.items():
-            if val not in dataset and val not in dataset.dims:
+            if id in dataset.dims and val not in dataset.dims:
                 dataset.rename( {id:val}, True )
-        return EDASDataset( dataset.variables, self.attrs )
+        return self.fromXr( dataset, self.attrs )
+
+    @classmethod
+    def fromXr(cls, dataset: xa.Dataset, attrs: Dict[str,Any] = {} ) -> "EDASDataset":
+        arrayMap = { id:EDASArray( None, None, v, [] ) for id,v in dataset.variables.items() }
+        return EDASDataset( arrayMap, attrs )
 
     @classmethod
     def new( cls, dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):

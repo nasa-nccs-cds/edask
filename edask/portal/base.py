@@ -186,7 +186,11 @@ class EDASPortal:
         return handler
 
     def removeHandler(self, clientId, jobId ):
-        del self.handlers[ clientId + "-" + jobId ]
+        handlerId = clientId + "-" + jobId
+        try:
+            del self.handlers[ handlerId ]
+        except:
+            self.logger.error( "Error removing handler: " + handlerId + ", existing handlers = " + str(self.handlers.keys()))
 
     def setExeStatus( self, clientId: str, rid: str, status: str ):
         self.responder.setExeStatus(clientId,rid,status)

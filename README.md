@@ -19,3 +19,7 @@ To install:
     > python setup.py install
 
 ```
+
+#### Configuration
+
+The edask configuration files are
