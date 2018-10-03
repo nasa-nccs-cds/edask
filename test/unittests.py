@@ -38,7 +38,8 @@ class TestEdask(EDaskTestCase):
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
         operations = [ { "name":"xarray.subset", "input":"v0", "domain":"d0"} ]
         results = self.mgr.testExec( domains, variables, operations )
-        self.assertTrue( self.mgr.equals( results, [ verification_data ] ) )
+        test_result = self.mgr.equals( results, [ verification_data ] )
+        self.assertTrue( test_result )
 
     def test_filter(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
@@ -48,7 +49,8 @@ class TestEdask(EDaskTestCase):
         operations = [ { "name":"xarray.filter", "input":"v0", "domain":"d0", "axis":"t", "sel":"aug"} ]
         results = self.mgr.testExec( domains, variables, operations )
         print( results.xarrays[0].shape )
-        self.assertTrue( results.xarrays[0].shape[0] == 10 )
+        test_result =  results.xarrays[0].shape[0] == 10
+        self.assertTrue( test_result )
 
     def test_ave1(self):
         # Verification data: nco_scripts/ave1.sh
@@ -62,7 +64,8 @@ class TestEdask(EDaskTestCase):
         operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
         results = self.mgr.testExec( domains, variables, operations )
         self.mgr.print(results)
-        self.assertTrue(self.mgr.equals(results, [verification_data]))
+        test_result = self.mgr.equals(results, [verification_data])
+        self.assertTrue(test_result)
 
     def test_max1(self):
         # Verification data: nco_scripts/max1.sh

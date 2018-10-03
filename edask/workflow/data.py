@@ -147,7 +147,7 @@ class EDASArray:
                     for axis,axisBound in domain.axisBounds.items():
                         xarray = axisBound.revertAxis(xarray)
                 else:
-                    xarray.isel( bounds_map )
+                    xarray = xarray.isel( bounds_map )
         return self.updateXa(xarray,"subset")
 
     def filter( self, axis: Axis, condition: str ) -> "EDASArray":

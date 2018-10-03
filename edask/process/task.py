@@ -127,7 +127,7 @@ class TaskRequest:
         if coord is not None:
             assert len( coord.shape ) == 1, "Not currently supporting multi-dimensional axes: " + coord.name
             values = coord.values
-            new_bounds = new_bounds.crop( axis, values[0], values[-1] )
+            new_bounds = new_bounds.crop( axis, 0, len(coord.values)-1 ) if new_bounds.system.startswith("ind") else new_bounds.crop( axis, values[0], values[-1] )
       return new_bounds
 
   def linkWorkflow(self) -> List[WorkflowNode]:

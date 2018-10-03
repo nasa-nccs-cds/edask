@@ -122,10 +122,14 @@ class AxisBounds:
         return AxisBounds( self.name, str(newStart), str(newEnd), self.step, self.system, self.metadata, self._timeDelta )
 
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
-        if (maxVal < self.start) or (minVal > self.end): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
-        newStart = max( minVal, self.start )
-        newEnd =   min( maxVal, self.end )
-        return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
+        try:
+            if (maxVal < self.start) or (minVal > self.end): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
+            newStart = max( minVal, self.start )
+            newEnd =   min( maxVal, self.end )
+            return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
+        except Exception as err:
+            print( "CROP ERROR: " + str(err))
+            return self
 
     def offset( self, offsetStr: str ):
         timeDelta = self.getRelativeDelta( offsetStr )
