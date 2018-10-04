@@ -139,13 +139,13 @@ class TrainKernel(OpKernel):
                 self.bestFitResult = FitResult.new( history, initial_weights, performanceTracker.getWeights(), performanceTracker.minTrainLoss, performanceTracker.minValLoss, performanceTracker.nEpoc )
         return self.bestFitResult
 
-    def getHistoryDataArray(self, history: History, id: str, nEpochs: int, transforms = [] )-> EDASArray:
+    def getHistoryDataArray(self, history: History, id: str, nEpochs: int )-> EDASArray:
         data = xa.DataArray(history.history[id], coords=[ range( nEpochs ) ], dims=["epochs"])
-        return EDASArray( id, None, data, transforms )
+        return EDASArray( id, None, data )
 
-    def getWtsArray(self, array: np.ndarray, id: str, transforms = [] )-> EDASArray:
+    def getWtsArray(self, array: np.ndarray, id: str )-> EDASArray:
         coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
-        return EDASArray( id, None, xa.DataArray( array, coords=coords ), transforms )
+        return EDASArray( id, None, xa.DataArray( array, coords=coords ) )
 
     def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         self.reseed()

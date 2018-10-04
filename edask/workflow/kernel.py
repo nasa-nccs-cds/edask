@@ -107,27 +107,29 @@ class OpKernel(Kernel):
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
         inputList = list(inputDict.values())
-        domains: Set[str] = EDASArray.domains( inputList, op.domain )
-        shapes: Set[Tuple[int]] = EDASArray.shapes( inputList )
         interp_na = bool(op.getParm("interp_na", False))
         if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
         else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDict.items() }
         if op.isSimple(self._minInputs):
             result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
-            merged_domain: str  = request.intersectDomains( domains, False )
-            processed_domain: Domain  = request.cropDomain( merged_domain, inputs.values() )
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
-                sub_array = input.subset( processed_domain )
-                result.addArray( sub_array.name, sub_array, atts )
+                unapplied_domains: Set[str] = input.unapplied_domains(inputList, op.domain)
+                if len( unapplied_domains ):
+                    merged_domain: str = request.intersectDomains(unapplied_domains, False)
+                    processed_domain: Domain = request.cropDomain(merged_domain, inputs.values())
+                    sub_array = input.subset( processed_domain, unapplied_domains )
+                    result.addArray( sub_array.name, sub_array, atts )
+                else:
+                    result.addArray( input.name, input, atts )
             result.align( op.getParm("align","lowest") )
         return result.groupby( op.grouping ).resample( op.resampling )
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
         sarray: xa.DataArray = xa.concat( inputDset.xarrays, dim=op.ensDim )
-        result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray, list(inputDset.groupings) ) }
+        result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray ) }
         return EDASDataset.init( result, inputDset.attrs )
 
 class DualOpKernel(OpKernel):

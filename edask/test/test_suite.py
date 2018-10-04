@@ -41,6 +41,19 @@ def test_ave1():
     results = mgr.testExec( domains, variables, operations )
     assert mgr.equals(results, [verification_data])
 
+def test_ave_op_d0():
+    # Verification data: nco_scripts/ave1.sh
+    verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,
+                                    287.5726, 290.1945, 294.1584, 297.4008, 298.9573, 299.912, 298.9509,
+                                    296.917, 293.4789, 290.42, 287.2475, 285.871, 286.638, 291.0261  ] )
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":50,  "system":"values" },
+                                "lon":  { "start":0, "end":100, "system":"values" },
+                                "time": { "start":30, "end":50, "system":"indices" } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    results = mgr.testExec( domains, variables, operations )
+    assert mgr.equals(results, [verification_data])
+
 def test_ave1_double_d0():
     # Verification data: nco_scripts/ave1.sh
     verification_data = ma.array( [ 299.2513, 298.508, 296.9505, 293.9985, 289.3845, 286.9066, 285.6096,
