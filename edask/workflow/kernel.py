@@ -116,7 +116,7 @@ class OpKernel(Kernel):
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
                 unapplied_domains: Set[str] = input.unapplied_domains(inputList, op.domain)
-                if len( unapplied_domains ):
+                if len( unapplied_domains ) > 0:
                     merged_domain: str = request.intersectDomains(unapplied_domains, False)
                     processed_domain: Domain = request.cropDomain(merged_domain, inputs.values())
                     sub_array = input.subset( processed_domain, unapplied_domains )

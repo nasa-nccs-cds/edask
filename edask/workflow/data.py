@@ -199,7 +199,7 @@ class EDASArray:
     def unapplied_domains( self, inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:
         new_domains = { var.domId for var in inputs }
         if opDomain is not None: new_domains.add( opDomain )
-        return { d for d in new_domains if d not in self.domain_history }
+        return { d for d in new_domains if d and (d not in self.domain_history)  }
 
     @staticmethod
     def shapes( inputs: List["EDASArray"] ) -> Set[Tuple[int]]:
