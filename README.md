@@ -1,4 +1,4 @@
-## EDASK
+### EDASK
 
 ##### Earth Data Analytic Services using the dasK / xarray toolkit.
 
