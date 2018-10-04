@@ -127,3 +127,33 @@ def test_ave2() :
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
+def test_decycle() :
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                "lon":  { "start":100, "end":130, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.decycle", "input":"v0" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
+def test_detrend() :
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                "lon":  { "start":100, "end":130, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
+                    {"name": "xarray.detrend", "input": "dc", "axis":"t"},
+                    {"name": "xarray.noop", "input": "dc"} ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
+def test_ave3() :
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                "lon":  { "start":100, "end":130, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
+
