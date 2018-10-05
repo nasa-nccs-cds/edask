@@ -5,6 +5,7 @@ from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
 from edask.collections.agg import Archive
 from typing import List, Optional, Dict, Any
+from  scipy import stats, signal
 from edask.process.domain import Axis, DomainManager
 from eofs.xarray import Eof
 import datetime, os
@@ -105,6 +106,43 @@ class DetrendKernel(OpKernel):
         trend = variable.xr.rolling(**detrend_args).mean()
         detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
         return [detrend]
+
+class LinearDetrendKernel(OpKernel):
+    def __init__( self ):
+        OpKernel.__init__( self, KernelSpec("lindetr", "Linear Detrend Kernel","Linear detrend over 'nbreaks' evenly spaced segments." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
+        nbreaks = node.getParm("nbreaks", 0 )
+        data = variable.nd
+        segSize = data.shape[0]/(nbreaks + 1.0)
+        breaks = [ round(ix*segSize) for ix in range(nbreaks) ]
+        detrended_data = signal.detrend( data, axis=axisIndex, bp=breaks  )
+        return [ variable.updateNp( detrended_data ) ]
+
+class TeleconnectionKernel(OpKernel):
+    def __init__( self ):
+        OpKernel.__init__( self, KernelSpec("telemap", "Teleconnection Kernel","Produces teleconnection map by computing covariances at each point (in roi) with location specified by 'lat' and 'lon' parameters." ) )
+        self.removeRequiredOptions(["ax.s"])
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        lat = node.getParm("lat", None )
+        assert lat is not None, "Must specify 'lat' parameter for telemap kernel"
+        lon = node.getParm("lon", None )
+        assert lat is not None, "Must specify 'lon' parameter for telemap kernel"
+        data: xa.DataArray = variable.xr
+        center: xa.DataArray = variable.selectPoint( float(lon), float(lat) ).xr
+        tsteps = data.shape[0]
+        cmean = center.mean(axis=0)
+        data_mean = data.mean(axis=0)
+        cstd = center.std(axis=0)
+        data_std = data.std(axis=0)
+        centered_data = (data - data_mean)
+        centered_center = (center - cmean)
+        dp = centered_data  * centered_center
+        cov = np.sum( dp, axis=0 ) / ( tsteps )
+        cor = cov / (cstd * data_std)
+        return [ EDASArray( variable.name, variable.domId, cor ) ]
 
 class LowpassKernel(OpKernel):
     def __init__( self ):

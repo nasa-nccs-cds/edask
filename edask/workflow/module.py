@@ -131,7 +131,7 @@ class KernelManager:
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op, [] ) for op in resultOps ] )
-        return result
+        return result.standardize()
 
     def buildIndices( self, size: int ) -> xa.DataArray:
         return xa.DataArray( range(size), coords=[('node',range(size))] )
@@ -139,7 +139,7 @@ class KernelManager:
     def buildTask( self, job: Job ) -> EDASDataset:
         try:
             request: TaskRequest = TaskRequest.new( job )
-            return self.buildRequest( request ).standardize()
+            return self.buildRequest( request )
         except Exception as err:
             self.logger.error( "BuildTask Exception: " + str(err) )
             self.logger.info( traceback.format_exc() )

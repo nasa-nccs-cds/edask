@@ -113,6 +113,9 @@ class EDASArray:
     def name(self, value):
         if value: self.xr.name = value
 
+    def selectPoint(self, lon: float, lat: float ) -> "EDASArray":
+        return EDASArray( self.name, self.domId, self.xr.sel( x=lon, y=lat, method='nearest') )
+
     def addDomain( self, d: str ):
         domains = self.domain_history
         if d is not None: domains.add( d )
@@ -316,7 +319,7 @@ class EDASDataset:
 
     @classmethod
     def fromXr(cls, dataset: xa.Dataset, attrs: Dict[str,Any] = {} ) -> "EDASDataset":
-        arrayMap = { id:EDASArray( None, None, v ) for id,v in dataset.variables.items() }
+        arrayMap = { id:EDASArray( None, None, v ) for id,v in dataset.data_vars.items() }
         return EDASDataset( arrayMap, attrs )
 
     @classmethod
