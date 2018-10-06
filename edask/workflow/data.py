@@ -10,6 +10,7 @@ from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
 from edask.data.processing import Parser
 import xarray.plot as xrplot
+import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 import numpy as np
@@ -467,15 +468,16 @@ class EDASDataset:
 
     def plot(self, idmatch: str = None ):
         nplots = len( self.ids )
-        fig, axes = plt.subplots(ncols=nplots)
+        fig, axes = plt.subplots( ncols=nplots )
         self.logger.info( "Plotting {} plot(s)".format(nplots) )
         if nplots == 1:
-            self.xarrays[0].plot(ax=axes)
+            self.xarrays[0].plot(ax=axes,cmap='jet',robust=True)
             plt.show()
         else:
             xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
             for iaxis, result in enumerate( xarrays ):
-                result.plot(ax=axes[iaxis])
+                axes[iaxis].coastlines()
+                result.plot(ax=axes[iaxis],cmap='jet',robust=True)
                 plt.show()
 
     @classmethod
