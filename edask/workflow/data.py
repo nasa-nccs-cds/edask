@@ -468,10 +468,11 @@ class EDASDataset:
 
     def plot(self, idmatch: str = None ):
         nplots = len( self.ids )
-        fig, axes = plt.subplots( ncols=nplots )
+        fig, axes = plt.subplots( ncols=nplots, projection=ccrs.PlateCarree() )
         self.logger.info( "Plotting {} plot(s)".format(nplots) )
         if nplots == 1:
             self.xarrays[0].plot(ax=axes,cmap='jet',robust=True)
+            axes.coastlines()
             plt.show()
         else:
             xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
@@ -479,6 +480,12 @@ class EDASDataset:
                 axes[iaxis].coastlines()
                 result.plot(ax=axes[iaxis],cmap='jet',robust=True)
                 plt.show()
+
+    def plotMap(self, index = 0 ):
+        ax = plt.axes( projection=ccrs.PlateCarree() )
+        self.xarrays[index].plot.contourf(ax=ax, cmap='jet',robust=True )
+        ax.coastlines();
+        plt.show()
 
     @classmethod
     def mergeArrayMaps( cls, amap0: Dict[str,EDASArray], amap1: Dict[str,EDASArray] )-> Dict[str,EDASArray]:
