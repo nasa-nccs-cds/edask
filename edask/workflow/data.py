@@ -285,7 +285,7 @@ class EDASArray:
     def __setitem__(self, key: str, value: str ): self.xr.attrs[key] = value
 
 class EDASDataset:
-    StandardAxisMap = { "x":"lat", "y":"lon", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
+    StandardAxisMap = { "x":"lon", "y":"lat", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
     def __init__( self, _arrayMap: Dict[str,EDASArray], _attrs: Dict[str,Any]  ):
         self.arrayMap: Dict[str,EDASArray] = _arrayMap
@@ -471,10 +471,12 @@ class EDASDataset:
         self.logger.info( "Plotting {} plot(s)".format(nplots) )
         if nplots == 1:
             self.xarrays[0].plot(ax=axes)
+            plt.show()
         else:
             xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
             for iaxis, result in enumerate( xarrays ):
                 result.plot(ax=axes[iaxis])
+                plt.show()
 
     @classmethod
     def mergeArrayMaps( cls, amap0: Dict[str,EDASArray], amap1: Dict[str,EDASArray] )-> Dict[str,EDASArray]:

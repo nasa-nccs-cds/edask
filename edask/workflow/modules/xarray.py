@@ -132,15 +132,9 @@ class TeleconnectionKernel(OpKernel):
         assert lat is not None, "Must specify 'lon' parameter for telemap kernel"
         data: xa.DataArray = variable.xr
         center: xa.DataArray = variable.selectPoint( float(lon), float(lat) ).xr
-        tsteps = data.shape[0]
-        cmean = center.mean(axis=0)
-        data_mean = data.mean(axis=0)
-        cstd = center.std(axis=0)
-        data_std = data.std(axis=0)
-        centered_data = (data - data_mean)
-        centered_center = (center - cmean)
-        dp = centered_data  * centered_center
-        cov = np.sum( dp, axis=0 ) / ( tsteps )
+        cmean, data_mean = center.mean(axis=0), data.mean(axis=0)
+        cstd, data_std = center.std(axis=0), data.std(axis=0)
+        cov = np.sum( (data - data_mean)  * (center - cmean), axis=0 ) / ( data.shape[0] )
         cor = cov / (cstd * data_std)
         return [ EDASArray( variable.name, variable.domId, cor ) ]
 
