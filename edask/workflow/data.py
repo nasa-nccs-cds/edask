@@ -174,17 +174,25 @@ class EDASArray:
         xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
         return EDASArray(self.name, self.domId, xrdata  )
 
+    def getSliceMaps(self, domain: Domain ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
+        pointMap: Dict[str,Any] = {}
+        valSliceMap: Dict[str, Any] = {}
+        indexSliceMap: Dict[str, Any] = {}
+        for (axis, bounds) in domain.axisBounds.items():
+            axname, slice = domain.slice(axis, bounds)
+            if bounds.system.startswith("val"):
+                if slice.start == slice.stop: pointMap[axname] = slice.start
+                else: valSliceMap[axname] = slice
+            else: indexSliceMap[axname] = slice
+        return pointMap, valSliceMap, indexSliceMap
+
     def subset( self, domain: Domain, composite_domains: Set[str] ) -> "EDASArray":
         xarray = self.xr
-        for system in [ "val", "ind" ]:
-            bounds_map = dict( [ domain.slice( axis, bounds ) for (axis, bounds) in domain.axisBounds.items() if bounds.system.startswith( system ) ] )
-            if (len(bounds_map)):
-                if system == "val":
-                    xarray = xarray.sel( bounds_map )
-                    for axis,axisBound in domain.axisBounds.items():
-                        xarray = axisBound.revertAxis(xarray)
-                else:
-                    xarray = xarray.isel( bounds_map )
+        pointMap, valSliceMap, indexSliceMap = self.getSliceMaps( domain )
+        if len(pointMap):       xarray = xarray.sel( pointMap, method='nearest')
+        if len(valSliceMap):    xarray = xarray.sel( valSliceMap )
+        if len(indexSliceMap):  xarray = xarray.isel(indexSliceMap )
+        for axis, axisBound in domain.axisBounds.items():  xarray = axisBound.revertAxis(xarray)
         result = self.updateXa(xarray,"subset")
         for d in composite_domains: result.addDomain( d )
         return result
