@@ -175,6 +175,7 @@ class InputKernel(Kernel):
             result += self.processDataset( request, dset, snode )
         elif dataSource.type == SourceType.dap:
             engine = ParmMgr.get("dap.engine","netcdf4")
+            self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
         return self.signResult( result, request, node )

@@ -481,10 +481,22 @@ class EDASDataset:
                 result.plot(ax=axes[iaxis],cmap='jet',robust=True)
                 plt.show()
 
-    def plotMap(self, index = 0 ):
-        ax = plt.axes( projection=ccrs.PlateCarree() )
-        self.xarrays[index].plot.contourf(ax=ax, cmap='jet',robust=True )
-        ax.coastlines();
+    def plotMap(self, index = 0, view = "geo" ):
+        if view.lower().startswith("geo"):
+            ax = plt.axes( projection=ccrs.PlateCarree() )
+        elif view.lower().startswith("polar"):
+            ax = plt.axes( projection=ccrs.NorthPolarStereo( ) )
+        elif view.lower().startswith("epolar"):
+            ax = plt.axes(projection=ccrs.AzimuthalEquidistant( -80, 90 ) )
+        elif view.lower().startswith("mol"):
+            ax = plt.axes(projection=ccrs.Mollweide())
+        elif view.lower().startswith("rob"):
+            ax = plt.axes(projection=ccrs.Robinson())
+        else:
+            raise Exception( "Unrecognized map view: " + view )
+
+        self.xarrays[index].plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
+        ax.coastlines()
         plt.show()
 
     @classmethod
