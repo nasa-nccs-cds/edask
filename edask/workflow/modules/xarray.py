@@ -99,29 +99,27 @@ class DecycleKernel(OpKernel):
 
 class DetrendKernel(OpKernel):
     def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by subtracting the result of applying a 1D convolution (lowpass) filter along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("detrend", "Detrend Kernel","Detrends input arrays by "
+                            "('method'='highapss'): subtracting the result of applying a 1D convolution (lowpass) filter along the given axes, "
+                            "or ('method'='linear'): linear detrend over 'nbreaks' evenly spaced segments." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
         dim = variable.xr.dims[axisIndex]
-        window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
-        detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
-        trend = variable.xr.rolling(**detrend_args).mean()
-        detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
-        return [detrend]
-
-class LinearDetrendKernel(OpKernel):
-    def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("lindetr", "Linear Detrend Kernel","Linear detrend over 'nbreaks' evenly spaced segments." ) )
-
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
-        nbreaks = node.getParm("nbreaks", 0 )
-        data = variable.nd
-        segSize = data.shape[0]/(nbreaks + 1.0)
-        breaks = [ round(ix*segSize) for ix in range(nbreaks) ]
-        detrended_data = signal.detrend( data, axis=axisIndex, bp=breaks  )
-        return [ variable.updateNp( detrended_data ) ]
+        method = node.getParm("method", "highpass")
+        if method == "highpass":
+            window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
+            detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
+            trend = variable.xr.rolling(**detrend_args).mean()
+            detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
+            return [detrend]
+        elif method == "linear":
+            nbreaks = node.getParm("nbreaks", 0 )
+            data = variable.nd
+            segSize = data.shape[0]/(nbreaks + 1.0)
+            breaks = [ round(ix*segSize) for ix in range(nbreaks) ]
+            detrended_data = signal.detrend( data, axis=axisIndex, bp=breaks )
+            return [ variable.updateNp( detrended_data ) ]
 
 class TeleconnectionKernel(OpKernel):
     def __init__( self ):
