@@ -6,8 +6,8 @@ from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.collections.agg import Archive
 import xarray as xa
 from edask.workflow.data import KernelSpec, EDASDataset, EDASArray
-from edask.process.source import SourceType
-from edask.process.source import DataSource
+from edask.process.source import SourceType, DataSource
+from edask.process.node import Param, Node
 from edask.collections.agg import Collection
 from edask.portal.parameters import ParmMgr
 from edask.process.domain import Domain, Axis
@@ -46,6 +46,9 @@ class Kernel:
            result = self.buildWorkflow( request, node, inputs, products )
            request.cacheResult( self._id, result )
         return result
+
+    def getParameters(self, node: Node, parms: List[Param])-> Dict[str,Any]:
+        return { parm.name: node.getParam(parm) for parm in parms }
 
     def signResult(self, result: EDASDataset, request: TaskRequest, node: WorkflowNode ) -> EDASDataset:
         result["proj"] = request.project

@@ -3,6 +3,7 @@ import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode
 from edask.process.task import TaskRequest
 from edask.workflow.data import EDASArray
+from edask.process.node import Param, Node
 from edask.collections.agg import Archive
 from typing import List, Optional, Dict, Any
 from  scipy import stats, signal
@@ -55,9 +56,11 @@ class MedianKernel(OpKernel):
 
 class StdKernel(OpKernel):
     def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel","Computes the standard deviation of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel",
+                "Computes the standard deviation of the array elements along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray,
+                         attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
         return [variable.std( node.axes )]
 
 class NormKernel(OpKernel):
@@ -122,19 +125,19 @@ class LinearDetrendKernel(OpKernel):
 
 class TeleconnectionKernel(OpKernel):
     def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("telemap", "Teleconnection Kernel","Produces teleconnection map by computing covariances at each point (in roi) with location specified by 'lat' and 'lon' parameters." ) )
+        OpKernel.__init__( self, KernelSpec("telemap", "Teleconnection Kernel",
+                            "Produces teleconnection map by computing covariances at each point "
+                            "(in roi) with location specified by 'lat' and 'lon' parameters." ) )
         self.removeRequiredOptions(["ax.s"])
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        lat = node.getParm("lat", None )
-        assert lat is not None, "Must specify 'lat' parameter for telemap kernel"
-        lon = node.getParm("lon", None )
-        assert lat is not None, "Must specify 'lon' parameter for telemap kernel"
-        data: xa.DataArray = variable.xr
-        center: xa.DataArray = variable.selectPoint( float(lon), float(lat) ).xr
-        cmean, data_mean = center.mean(axis=0), data.mean(axis=0)
-        cstd, data_std = center.std(axis=0), data.std(axis=0)
-        cov = np.sum( (data - data_mean)  * (center - cmean), axis=0 ) / ( data.shape[0] )
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray,
+                         attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        parms = self.getParameters( node, [ Param("lat"), Param("lon")])
+        aIndex = variable.xr.get_axis_num('t')
+        center: xa.DataArray = variable.selectPoint( float(parms["lat"]), float(parms["lon"]) ).xr
+        cmean, data_mean = center.mean(axis=aIndex), variable.xr.mean(axis=aIndex)
+        cstd, data_std = center.std(axis=aIndex), variable.xr.std(axis=aIndex)
+        cov = np.sum((variable.xr - data_mean) * (center - cmean), axis=aIndex) / variable.xr.shape[aIndex]
         cor = cov / (cstd * data_std)
         return [ EDASArray( variable.name, variable.domId, cor ) ]
 

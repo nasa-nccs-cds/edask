@@ -1,6 +1,13 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
 import re
 
+class Param:
+
+    def __init__( self, _name: str, _required: bool=True, _default = None ):
+       self.name = _name
+       self.required = _required
+       self.default = _default
+
 class Node:
 
     def __init__( self, name: str, _metadata: Dict[str,Any] = {} ):
@@ -12,6 +19,12 @@ class Node:
 
     def getParm(self, key: str, default: Any = None ) -> Any:
         return self.metadata.get( key, default )
+
+    def getParam(self, param: Param ) -> Any:
+        value = self.getParm(param.name, None)
+        if param.required:
+            assert value is not None, "Must specify '{}' parameter for {} kernel".format(id, self.__class__.__name__)
+        return value if value is not None else param.default
 
     def findParm(self, idmatch: str, default: Any = None ) -> Any:
         found = [value for id, value in self.metadata.items() if re.match(idmatch,id) ]

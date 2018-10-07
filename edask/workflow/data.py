@@ -141,6 +141,9 @@ class EDASArray:
         if len( dims ) <= dimIndex: return default
         return self.xr.get_axis_num( dims[dimIndex] )
 
+    def axisLen( self, dim: str ) -> int:
+        return self.xr.shape[ self.xr.get_axis_num(dim) ]
+
     def transpose(self, *dims: str ) -> "EDASArray":
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
 
