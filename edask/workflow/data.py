@@ -482,7 +482,7 @@ class EDASDataset:
             for iaxis, result in enumerate( xarrays ):
                 axes[iaxis].coastlines()
                 result.plot(ax=axes[iaxis],cmap='jet',robust=True)
-                plt.show()
+        plt.show()
 
     def plotMap(self, index = 0, view = "geo" ):
         if view.lower().startswith("geo"):
@@ -500,6 +500,27 @@ class EDASDataset:
 
         self.xarrays[index].plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
         ax.coastlines()
+        plt.show()
+
+    def plotMaps(self, nCols:int, view = "geo" ):
+        fig = plt.figure()
+        if view.lower().startswith("geo"):
+            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.PlateCarree() } )
+        elif view.lower().startswith("polar"):
+            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.NorthPolarStereo() } )
+        elif view.lower().startswith("epolar"):
+            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.AzimuthalEquidistant( -80, 90 ) } )
+        elif view.lower().startswith("mol"):
+            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.Mollweide() } )
+        elif view.lower().startswith("rob"):
+            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.Robinson() } )
+        else:
+            raise Exception( "Unrecognized map view: " + view )
+
+        for iaxis, xarray in enumerate(self.xarrays):
+            ax = axes[iaxis] if hasattr(axes, '__getitem__') else axes
+            xarray.plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
+            ax.coastlines()
         plt.show()
 
     @classmethod

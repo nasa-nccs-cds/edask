@@ -92,12 +92,19 @@ class OpKernel(Kernel):
         results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs, products ) for input in inputDset.inputs ]))
         return EDASDataset.init( self.renameResults(results,node), inputDset.attrs )
 
-    def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
+    def renameResults1(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
         resultMap: Dict[str,EDASArray] = {}
         for result in results:
             result.name = node.getResultId(result.name)
             key = node.rid if node.rid else result.product if result.product else result.name
             resultMap[key] = result
+        return resultMap
+
+    def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
+        resultMap: Dict[str,EDASArray] = {}
+        for result in results:
+            result["rid"] = node.getResultId(result.name)
+            resultMap[result.name] = result
         return resultMap
 
     def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:

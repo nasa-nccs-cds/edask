@@ -1,4 +1,4 @@
-from typing import List, Dict, Sequence, Mapping, Any
+from typing import List, Dict, Sequence, Mapping, Any, Tuple
 import logging
 from dask.distributed import Future
 import numpy.ma as ma
@@ -46,6 +46,9 @@ class TestManager:
 
   def getAddress(self, model: str, varName: str) -> str:
     return TestDataManager.getAddress(model,varName)
+
+  def getVar(self, collection: str, varName: str, id: str, domain: str ):
+    return {"uri": self.getAddress(collection, varName), "name": varName + ":" + id, "domain": domain }
 
   def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> EDASDataset:
     testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
