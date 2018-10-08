@@ -50,10 +50,11 @@ class Kernel:
     def getParameters(self, node: Node, parms: List[Param])-> Dict[str,Any]:
         return { parm.name: node.getParam(parm) for parm in parms }
 
-    def signResult(self, result: EDASDataset, request: TaskRequest, node: WorkflowNode ) -> EDASDataset:
+    def signResult(self, result: EDASDataset, request: TaskRequest, node: WorkflowNode, **kwargs ) -> EDASDataset:
         result["proj"] = request.project
         result["exp"] = request.experiment
         result["uid"] = str(request.uid)
+        for key,value in kwargs.items(): result[key] = value
         archive = node.getParm("archive")
         if archive: result["archive"] = archive
         return result
@@ -188,7 +189,7 @@ class InputKernel(Kernel):
             self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
             dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
             result  +=  self.processDataset( request, dset, snode )
-        return self.signResult( result, request, node )
+        return self.signResult( result, request, node,  sources = snode.varSource.getId() )
 
     def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
