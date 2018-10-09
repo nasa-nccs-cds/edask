@@ -1,5 +1,5 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Tuple, Set, Iterator
-import string, random
+import string, random, logging
 from enum import Enum, auto
 import xarray as xa
 import pandas as pd
@@ -93,6 +93,7 @@ class AxisBounds:
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _step: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
         self.name = _name
+        self.logger = logging.getLogger()
         if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
@@ -112,6 +113,7 @@ class AxisBounds:
     def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
         assert self.system.startswith( ("val","time") ), "AxisBounds must have value='system' in order to cropTimes: " + self.name
         assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
+        self.logger.info( " cropTime: start = {}, end = {}".format( self.start, self.end ) )
         minTime: datetime = TimeConversions.toDatetime( minVal )
         maxTime: datetime = TimeConversions.toDatetime( maxVal )
         startTime: datetime = TimeConversions.parseDate( self.start )
