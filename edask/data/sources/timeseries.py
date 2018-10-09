@@ -17,7 +17,8 @@ class TimeConversions:
     @staticmethod
     def parseDate( sdate: str ) -> datetime:
         from dateutil.parser import parse
-        return parse( sdate ).astimezone(timezone.utc)
+        value =  parse( sdate )
+        return value.astimezone(timezone.utc)
 
 class TimeseriesData(object):
 
