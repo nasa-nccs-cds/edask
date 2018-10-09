@@ -25,6 +25,15 @@ class CollectionsTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         self.print( results )
 
+    def compute_eofs_SN(self):
+        domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
+        variables = [{"uri": "collection:cip_20crv2c_mth", "name": "ts:v0", "domain": "d0"}]
+        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
+        results = self.mgr.testExec(domains, variables, operations)
+        self.print( results )
+
 if __name__ == '__main__':
     tester = CollectionsTESTS()
-    result = tester.compute_eofs_TN()
+    result = tester.compute_eofs_SN()
