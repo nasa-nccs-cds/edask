@@ -2,7 +2,7 @@ from edask.process.test import TestManager
 from edask.workflow.data import EDASDataset
 import numpy.ma as ma
 import xarray as xa
-import logging
+import logging, time
 
 class CollectionsTESTS:
 
@@ -36,4 +36,6 @@ class CollectionsTESTS:
 
 if __name__ == '__main__':
     tester = CollectionsTESTS()
+    tstart = time.time()
     result = tester.compute_eofs_SN()
+    print( " Completed computation in " + str(time.time() - tstart) + " seconds" )
