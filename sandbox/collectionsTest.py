@@ -8,7 +8,7 @@ class CollectionsTESTS:
 
     def __init__(self):
         self.logger =  logging.getLogger()
-        self.mgr = DistributedTestManager("PlotTESTS","demo")
+        self.mgr = DistributedTestManager( "PlotTESTS", "demo" )
 
     def print(self, results: EDASDataset):
       for variable in results.inputs:

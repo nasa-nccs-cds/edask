@@ -6,6 +6,7 @@ from edask.process.task import Job
 from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.process.manager import ProcessManager, ExecResultHandler
+from edask.portal.parameters import ParmMgr
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
@@ -92,9 +93,9 @@ class LocalTestManager(TestManager):
 
 class DistributedTestManager(TestManager):
 
-    def __init__(self, _proj: str, _exp: str, appConfiguration: Dict[str,str]):
+    def __init__(self, _proj: str, _exp: str, appConfiguration: Dict[str,str]={} ):
         super(DistributedTestManager, self).__init__(_proj, _exp)
-        self.processManager = ProcessManager(appConfiguration)
+        self.processManager = ProcessManager( { **ParmMgr.parms, **appConfiguration } )
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
