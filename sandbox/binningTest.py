@@ -1,8 +1,8 @@
-from edask.process.test import TestManager
+from edask.process.test import LocalTestManager
 import xarray as xr
 from xarray.core.resample import DatasetResample
 
-testMgr = TestManager("TESTS","binning")
+testMgr = LocalTestManager("TESTS","binning")
 
 domains = [{"name": "d0", "lat": {"start": 0, "end": 10, "system": "values"},
             "lon": {"start": 0, "end": 10, "system": "values"},

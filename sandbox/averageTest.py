@@ -1,10 +1,10 @@
 from edask.portal.client import EDASPortalClient
-from edask.process.test import TestManager
+from edask.process.test import LocalTestManager
 
 edas_server: str="127.0.0.1"
 request_port: int=4556
 response_port: int=4557
-testMgr = TestManager("TEST","aveTest")
+testMgr = LocalTestManager("TEST","aveTest")
 
 portal = EDASPortalClient(  edas_server, request_port, response_port )
 

@@ -1,4 +1,4 @@
-from edask.process.test import TestManager
+from edask.process.test import LocalTestManager
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset
 from edask.portal.plotters import plotter
@@ -10,7 +10,7 @@ class PlotTESTS:
 
     def __init__(self):
         self.logger =  logging.getLogger()
-        self.mgr = TestManager("PlotTESTS","demo")
+        self.mgr = LocalTestManager("PlotTESTS","demo")
 
     def eof_plot(self, mtype: str, dset: EDASDataset ):
         for results_array in dset.find_arrays( ".*" + mtype + ".*" ):

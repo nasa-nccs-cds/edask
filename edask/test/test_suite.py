@@ -3,7 +3,7 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging, inspect
 import numpy.ma as ma
-mgr = TestManager( "PyTest", "test_suite" )
+mgr = LocalTestManager( "PyTest", "test_suite" )
 
 def test_subset():
     verification_data = ma.array([271.715, 271.7168, 271.7106, 271.7268, 270.9894, 270.9614, 270.9766, 271.0617,
