@@ -158,12 +158,16 @@ class ProcessManager(GenericProcessManager):
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
-      self.nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
       self.logger =  logging.getLogger()
-      self.logger.info( "Initializing Dask cluster with {} workers".format(self.nWorkers) )
-      self.cluster = LocalCluster( n_workers=self.nWorkers )
-      self.client = Client(self.cluster)
-      self.client.submit( lambda x: edasOpManager.buildIndices( x ), self.nWorkers )
+      scheduler = self.config.get( "dask.scheduler", None )
+      if scheduler is not None:
+          self.logger.info( "Initializing Dask cluster with scheduler {}".format(scheduler) )
+          self.client = Client(scheduler)
+      else:
+          nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
+          self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )
+          self.client = Client( LocalCluster( n_workers=nWorkers ) )
+          self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
 
   def term(self):
       self.client.close()
