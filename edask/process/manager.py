@@ -12,12 +12,11 @@ from edask.collections.agg import Archive
 from enum import Enum
 import xarray as xa
 
-
-
 class ResultHandler:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, clientId: str, jobId: str, **kwargs ):
+        self.logger = logging.getLogger()
         self.clientId = clientId
         self.jobId = jobId
         self.cacheDir = kwargs.get( "cache", "/tmp")
@@ -54,6 +53,7 @@ class ExecResultHandler(ResultHandler):
     def __init__(self, clientId: str, jobId: str, portal: Optional[EDASPortal]=None, **kwargs ):
         super(ExecResultHandler,self).__init__( clientId, jobId, **kwargs )
         self.portal = portal
+        self.start_time = time.time()
         self.results: List[EDASDataset] = []
 
     def processResult( self, result: EDASDataset ):
@@ -65,6 +65,7 @@ class ExecResultHandler(ResultHandler):
       status = resultFuture.status
       if status == "finished":
           self.results.append( resultFuture.result() )
+          self.logger.info( " Completed computation " + self.jobId + " in " + str(time.time() - self.start_time) + " seconds" )
           self._processFinalResult( )
       else:
           self.failureCallback( Exception("status = " + status) )
