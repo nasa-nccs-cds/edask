@@ -221,7 +221,7 @@ class CacheKernel(OpKernel):
         Kernel.__init__( self, KernelSpec("cache", "Cache Kernel","Cache kernel used to cache input rois for low latency access by subsequest requests ." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        cacheId = node.getParm("id", variable.name )
+        cacheId = node.getParm("result", variable.name )
         return EDASKCacheMgr.cache( cacheId, variable )
 
 

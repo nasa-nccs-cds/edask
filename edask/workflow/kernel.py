@@ -161,9 +161,24 @@ class TimeOpKernel(OpKernel):
         super(TimeOpKernel, self).__init__(spec)
         self.removeRequiredOptions( ["ax.s"] )
 
+class CacheStatus:
+    Ignore = 0
+    Option = 1
+    Required = 2
+
+    @classmethod
+    def parse( cls, parm: str ) -> int:
+        if parm is not None:
+            if parm.lower().startswith("opt"): return cls.Option
+            if parm.lower().startswith("req"): return cls.Required
+        return cls.Ignore
+
+
 class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
+
+    def getCacheStatus( self, node: WorkflowNode ):
 
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         snode: SourceNode = node
