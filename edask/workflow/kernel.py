@@ -178,7 +178,8 @@ class InputKernel(Kernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("input", "Data Input","Data input and workflow source node" ) )
 
-    def getCacheStatus( self, node: WorkflowNode ):
+    def getCacheStatus( self, node: WorkflowNode ) -> int:
+        return CacheStatus.parse( node.getParm( "cache" ) )
 
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         snode: SourceNode = node
