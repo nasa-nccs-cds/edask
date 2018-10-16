@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, os, datetime
+import logging, random, string, os, time
 from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional, Tuple, Iterable
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
@@ -197,10 +197,11 @@ class InputKernel(Kernel):
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         snode: SourceNode = node
         result: EDASDataset = EDASDataset.empty()
+        t0 = time.time()
         dset = self.getCachedDataset( snode )
         if dset is not None:
-            self.logger.info( "Accessing data from cache: " + dset.id )
             result += self.processDataset( request, dset.xr, snode )
+            self.logger.info( "Access input data from cache: " + dset.id )
         else:
             dataSource: DataSource = snode.varSource.dataSource
             if dataSource.type == SourceType.collection:
@@ -223,7 +224,9 @@ class InputKernel(Kernel):
                 self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 dset = xr.open_dataset(dataSource.address, engine=engine, autoclose=True)
                 result  +=  self.processDataset( request, dset, snode )
+            self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
         return self.signResult( result, request, node,  sources = snode.varSource.getId() )
+
 
     def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
