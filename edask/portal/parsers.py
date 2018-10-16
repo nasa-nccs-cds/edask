@@ -7,6 +7,17 @@ def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in inpu
 def str2int( input: ParseResults ): return int( sval(input) )
 def str2float( input: ParseResults ): return float( sval(input) )
 
+class SizeParser:
+
+    @classmethod
+    def parse(cls, input: str) -> int:
+        input1 = input.lower().strip()
+        if input1[-1] == 't': return int( input1[:-1] ) * 1000000000000
+        elif input1[-1] == 'g': return int( input1[:-1] ) * 1000000000
+        elif input1[-1] == 'm': return int( input1[:-1] ) * 1000000
+        elif input1[-1] == 'k': return int( input1[:-1] ) * 1000
+        else: return int( input1 )
+
 class WpsCwtParser:
     logger = logging.getLogger()
 
@@ -65,11 +76,13 @@ class WpsCwtParser:
 
 if __name__ == '__main__':
 
-    datainputs0 = """[    
-    variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|19543b"}]; 
-    domain = [{"id": "d0", "time": {"start": "1980-01-01T00:00:00Z", "step": 1, "end": "1980-12-31T23:59:00Z", "crs": "timestamps"}}];
-    operation = [{"input": ["19543b"], "domain": "d0", "axes": "tyx", "name": "CDSpark.ave", "result": "96af34"}]
-                        ]"""
-    result = WpsCwtParser.parseDatainputs( datainputs0 )
-    print( str(result) )
+    # datainputs0 = """[
+    # variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|19543b"}];
+    # domain = [{"id": "d0", "time": {"start": "1980-01-01T00:00:00Z", "step": 1, "end": "1980-12-31T23:59:00Z", "crs": "timestamps"}}];
+    # operation = [{"input": ["19543b"], "domain": "d0", "axes": "tyx", "name": "CDSpark.ave", "result": "96af34"}]
+    #                     ]"""
+    # result = WpsCwtParser.parseDatainputs( datainputs0 )
+    # print( str(result) )
+
+    print( str( SizeParser.parse( "1G") ) )
 

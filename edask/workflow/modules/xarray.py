@@ -8,6 +8,7 @@ from edask.collections.agg import Archive
 from typing import List, Optional, Dict, Any
 from  scipy import stats, signal
 from edask.process.domain import Axis, DomainManager
+from edask.data.cache import EDASKCacheMgr
 from eofs.xarray import Eof
 import datetime, os
 import numpy as np
@@ -214,3 +215,13 @@ class NoOp(OpKernel):
 
     def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]) -> EDASDataset:
         return inputDset
+
+class CacheKernel(OpKernel):
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("cache", "Cache Kernel","Cache kernel used to cache input rois for low latency access by subsequest requests ." ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        cacheId = node.getParm("id", variable.name )
+        return EDASKCacheMgr.cache( cacheId, variable )
+
+

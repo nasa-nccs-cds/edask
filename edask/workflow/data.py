@@ -80,6 +80,9 @@ class EDASArray:
     def size(self) -> int: return self.xr.size
 
     @property
+    def bsize(self) -> int: return self.xr.size * 4
+
+    @property
     def product(self) -> Optional[str]: return self.get("product",None)
 
     @product.setter
