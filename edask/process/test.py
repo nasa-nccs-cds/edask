@@ -83,12 +83,12 @@ class LocalTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str):
         super(LocalTestManager, self).__init__(_proj, _exp)
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
         resultHandler = ExecResultHandler("testJob", "local")
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
         result = edasOpManager.buildRequest(request)
-        resultHandler.processResult(result)
+        if processResult: resultHandler.processResult(result)
         return result
 
 class DistributedTestManager(TestManager):

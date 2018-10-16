@@ -219,9 +219,11 @@ class NoOp(OpKernel):
 class CacheKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("cache", "Cache Kernel","Cache kernel used to cache input rois for low latency access by subsequest requests ." ) )
+        self._maxInputs = 1
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        cacheId = node.getParm("result", variable.name )
-        return EDASKCacheMgr.cache( cacheId, variable )
+        cacheId = node.getParm( "result" )
+        EDASKCacheMgr.cache( cacheId, variable )
+        return [ variable ]
 
 

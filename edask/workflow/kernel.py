@@ -4,12 +4,13 @@ from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional, Tuple, Iterable
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.collections.agg import Archive
-import xarray as xa
+import xarray as xr
 from edask.workflow.data import KernelSpec, EDASDataset, EDASArray
 from edask.process.source import SourceType, DataSource
 from edask.process.node import Param, Node
 from edask.collections.agg import Collection
 from edask.portal.parameters import ParmMgr
+from edask.data.cache import EDASKCacheMgr
 from edask.process.domain import Domain, Axis
 from itertools import chain
 
@@ -139,7 +140,7 @@ class OpKernel(Kernel):
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
-        sarray: xa.DataArray = xa.concat( inputDset.xarrays, dim=op.ensDim )
+        sarray: xr.DataArray = xr.concat(inputDset.xarrays, dim=op.ensDim)
         result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray ) }
         return EDASDataset.init( result, inputDset.attrs )
 
@@ -171,8 +172,9 @@ class CacheStatus:
         if parm is not None:
             if parm.lower().startswith("opt"): return cls.Option
             if parm.lower().startswith("req"): return cls.Required
+            if parm.lower().startswith("ig"): return cls.Ignore
+        assert not parm, "Unrecognized cache status: " + parm
         return cls.Ignore
-
 
 class InputKernel(Kernel):
     def __init__( self ):
@@ -181,33 +183,49 @@ class InputKernel(Kernel):
     def getCacheStatus( self, node: WorkflowNode ) -> int:
         return CacheStatus.parse( node.getParm( "cache" ) )
 
+    def getCachedDataset(self, snode: SourceNode )-> Optional[EDASDataset]:
+        cache_status = self.getCacheStatus( snode )
+        if cache_status != CacheStatus.Ignore:
+            cid = snode.varSource.getId()
+            variable = EDASKCacheMgr[ cid ]
+            if variable is None:
+                assert cache_status == CacheStatus.Option, "Missing cached input: " + cid
+            else:
+                return EDASDataset.init( { cid: variable }, {} )
+        return None
+
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
         snode: SourceNode = node
-        dataSource: DataSource = snode.varSource.dataSource
         result: EDASDataset = EDASDataset.empty()
-        if dataSource.type == SourceType.collection:
-            collection = Collection.new( dataSource.address )
-            aggs = collection.sortVarsByAgg( snode.varSource.vids )
-            for ( aggId, vars ) in aggs.items():
-                dset = xa.open_mfdataset( collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+        dset = self.getCachedDataset( snode )
+        if dset is not None:
+            self.logger.info( "Accessing data from cache: " + dset.id )
+            result += self.processDataset( request, dset.xr, snode )
+        else:
+            dataSource: DataSource = snode.varSource.dataSource
+            if dataSource.type == SourceType.collection:
+                collection = Collection.new( dataSource.address )
+                aggs = collection.sortVarsByAgg( snode.varSource.vids )
+                for ( aggId, vars ) in aggs.items():
+                    dset = xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+                    result += self.processDataset( request, dset, snode )
+            elif dataSource.type == SourceType.file:
+                self.logger.info( "Reading data from address: " + dataSource.address )
+                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
                 result += self.processDataset( request, dset, snode )
-        elif dataSource.type == SourceType.file:
-            self.logger.info( "Reading data from address: " + dataSource.address )
-            dset = xa.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-            result += self.processDataset( request, dset, snode )
-        elif dataSource.type == SourceType.archive:
-            self.logger.info( "Reading data from archive: " + dataSource.address )
-            dataPath =  request.archivePath( dataSource.address )
-            dset = xa.open_dataset( dataPath, autoclose=True )
-            result += self.processDataset( request, dset, snode )
-        elif dataSource.type == SourceType.dap:
-            engine = ParmMgr.get("dap.engine","netcdf4")
-            self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
-            dset = xa.open_dataset( dataSource.address, engine=engine, autoclose=True  )
-            result  +=  self.processDataset( request, dset, snode )
+            elif dataSource.type == SourceType.archive:
+                self.logger.info( "Reading data from archive: " + dataSource.address )
+                dataPath =  request.archivePath( dataSource.address )
+                dset = xr.open_dataset(dataPath, autoclose=True)
+                result += self.processDataset( request, dset, snode )
+            elif dataSource.type == SourceType.dap:
+                engine = ParmMgr.get("dap.engine","netcdf4")
+                self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
+                dset = xr.open_dataset(dataSource.address, engine=engine, autoclose=True)
+                result  +=  self.processDataset( request, dset, snode )
         return self.signResult( result, request, node,  sources = snode.varSource.getId() )
 
-    def processDataset(self, request: TaskRequest, dset: xa.Dataset, snode: SourceNode ) -> EDASDataset:
+    def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
         edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
         processed_domain: Domain  = request.cropDomain( snode.domain, edset.inputs, snode.offset )

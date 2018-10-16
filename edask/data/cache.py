@@ -1,4 +1,4 @@
-from edask.workflow.data import EDASArray
+from edask.workflow.data import EDASArray, EDASDataset
 from typing import List, Dict, Sequence, Set
 from collections import OrderedDict
 from edask.portal.parameters import ParmMgr
@@ -11,7 +11,7 @@ class CacheManager:
         self.maxSize = SizeParser.parse( ParmMgr.get( "cache.size.max", "500M" ) )
         self.currentSize = 0
 
-    def cache(self, id: str, variable: EDASArray):
+    def cache(self, id: str, variable: EDASArray ):
         assert id not in self.arrayCache,  "Error: id {} already exists in cache".format( id )
         input_size = variable.bsize
         assert input_size <= self.maxSize, "Error: array {} is too big for cache".format( id )
