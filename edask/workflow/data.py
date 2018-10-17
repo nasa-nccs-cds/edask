@@ -352,7 +352,7 @@ class EDASDataset:
         return EDASDataset( arrayMap, dataset.attrs )
 
     def addArrays(self, arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
-        self.arrayMap = copy.deepcopy(arrays)
+        self.arrayMap = arrays # copy.deepcopy(arrays)
         self.attrs.update(attrs)
         return self
 
