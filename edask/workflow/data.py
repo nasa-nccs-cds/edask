@@ -188,7 +188,7 @@ class EDASArray:
         indexSliceMap: Dict[str, Any] = {}
         for (axis, bounds) in domain.axisBounds.items():
             axname, slice = domain.slice(axis, bounds)
-            if bounds.system.startswith("val"):
+            if bounds.system.startswith("val") or bounds.system.startswith("time"):
                 if slice.start == slice.stop: pointMap[axname] = slice.start
                 else: valSliceMap[axname] = slice
             else: indexSliceMap[axname] = slice
