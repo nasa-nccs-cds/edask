@@ -63,6 +63,7 @@ class Transformation:
 
 class EDASArray:
     def __init__( self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy] ):
+        self.logger = logging.getLogger()
         self.domId = _domId
         self._data = data
         self.name = name
@@ -196,9 +197,15 @@ class EDASArray:
     def subset( self, domain: Domain, composite_domains: Set[str] ) -> "EDASArray":
         xarray = self.xr
         pointMap, valSliceMap, indexSliceMap = self.getSliceMaps( domain )
-        if len(pointMap):       xarray = xarray.sel( pointMap, method='nearest')
-        if len(valSliceMap):    xarray = xarray.sel( valSliceMap )
-        if len(indexSliceMap):  xarray = xarray.isel(indexSliceMap )
+        if len(pointMap):
+            self.logger.info( "POINT subset: " + str(pointMap))
+            xarray = xarray.sel( pointMap, method='nearest')
+        if len(valSliceMap):
+            self.logger.info( "SLICE subset: " + str(valSliceMap))
+            xarray = xarray.sel( valSliceMap )
+        if len(indexSliceMap):
+            self.logger.info( "INDEX subset: " + str(indexSliceMap))
+            xarray = xarray.isel(indexSliceMap )
         for axis, axisBound in domain.axisBounds.items():  xarray = axisBound.revertAxis(xarray)
         result = self.updateXa(xarray,"subset")
         for d in composite_domains: result.addDomain( d )
