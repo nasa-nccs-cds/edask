@@ -2,7 +2,7 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
-import string, random, os, re, copy
+import string, random, os, re, traceback
 from edask.collections.agg import Archive
 import abc
 import xarray as xa
@@ -67,6 +67,7 @@ class EDASArray:
         self.domId = _domId
         self._data = data
         self.name = name
+#        self.loaded_data = None
         self.addDomain( _domId )
 
     @property
@@ -91,8 +92,19 @@ class EDASArray:
 
     @property
     def xr(self) -> xa.DataArray:
-        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
-        else: return self._data
+        self.logger.info( "XR: " + "".join( traceback.format_stack(limit=3) ) )
+        if self.loaded_data is None:
+            if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj
+            else: self.loaded_data = self._data
+        return self.loaded_data
+
+    @property
+    def xrp(self) -> xa.DataArray:
+        self.logger.info( "XRP: " + "".join( traceback.format_stack(limit=3) ) )
+        if self.loaded_data is None:
+            if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj.persist()
+            else: self.loaded_data = self._data.persist()
+        return self.loaded_data
 
     @property
     def nd(self) -> np.ndarray: return self.xr.values
@@ -240,17 +252,18 @@ class EDASArray:
         return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), "min" )
 
     def mean( self, axes: List[str] ) -> "EDASArray":                          # Unweighted
-        return self.updateXa(self.xr.mean(dim=axes, keep_attrs=True), "mean" )
+        return self.updateXa( self.xr.mean(dim=axes, keep_attrs=True), "mean" )
 
     def ave(self, axes: List[str] ) -> "EDASArray":                           # Weighted
         weights = self.getWeights( axes )
         if weights is None:
             return self.mean(axes)
         else:
-            weighted_var = self.xr * weights
+            data = self.xrp
+            weighted_var = data * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
-            norm = weights * self.xr.count( axes ) if len( axes ) else weights
+            norm = weights * data.count( axes ) if len( axes ) else weights
             new_data =  sum / norm.sum("y")
             return self.updateXa(new_data,"ave")
 
