@@ -63,11 +63,11 @@ class Transformation:
 
 class EDASArray:
     def __init__( self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy] ):
+        self.loaded_data = None
         self.logger = logging.getLogger()
         self.domId = _domId
         self._data = data
         self.name = name
-#        self.loaded_data = None
         self.addDomain( _domId )
 
     @property
@@ -90,8 +90,15 @@ class EDASArray:
     @product.setter
     def product(self, value: str ): self["product"] = value
 
+    def persist(self) -> xa.DataArray:
+        if self.loaded_data is None:
+            self.loaded_data = self.xr.load().persist()
+        return self.loaded_data
+
     @property
     def xr(self) -> xa.DataArray:
+        if self.loaded_data is not None:
+            return self.loaded_data
         if isinstance(self._data,DataArrayGroupBy): return self._data._obj
         else: return self._data
 
@@ -104,7 +111,7 @@ class EDASArray:
     #     return self.loaded_data
 
     @property
-    def xrp(self) -> xa.DataArray: return self.xr.load().persist()
+    def xrp(self) -> xa.DataArray: return self.persist()
 
     @property
     def nd(self) -> np.ndarray: return self.xr.values
@@ -162,8 +169,6 @@ class EDASArray:
 
     def transpose(self, *dims: str ) -> "EDASArray":
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
-
-    def compute(self): self.xr.compute()
 
     def aligned( self, other: "EDASArray" ):
         return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
@@ -224,13 +229,14 @@ class EDASArray:
         return result
 
     def filter( self, axis: Axis, condition: str ) -> "EDASArray":
+        data = self.persist()
         assert axis == Axis.T, "Filter only supported on time axis"
         if "=" in condition:
             period,selector = condition.split("=")
             assert period.strip().lower().startswith("mon"), "Only month filtering currently supported"
         else: selector = condition
-        filter = self.xr.t.dt.month.isin( TimeIndexer.getMonthIndices( selector.strip() ) )
-        new_data = self.xr.sel( t=filter )
+        filter = data.t.dt.month.isin( TimeIndexer.getMonthIndices( selector.strip() ) )
+        new_data = data.sel( t=filter )
         return self.updateXa( new_data, "filter" )
 
     def unapplied_domains( self, inputs: List["EDASArray"], opDomain: Optional[str] ) -> Set[str]:
@@ -259,7 +265,7 @@ class EDASArray:
         if weights is None:
             return self.mean(axes)
         else:
-            data = self.xrp
+            data = self.persist()
             weighted_var = data * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
@@ -434,10 +440,6 @@ class EDASDataset:
     def find_arrays(self, idmatch: str ) -> List[xa.DataArray]:
         return [ array.xr for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None ]
 
-    def compute(self):
-        for ( vid, array ) in self.arrayMap.items(): array.compute()
-        return self
-
     def subset( self, domain: Domain ):
         arrayMap = { vid: array.subset( domain, { domain.name } ) for ( vid, array ) in self.arrayMap.items() }
         return EDASDataset( arrayMap, self.attrs )
@@ -494,17 +496,14 @@ class EDASDataset:
 
     def plot(self, idmatch: str = None ):
         nplots = len( self.ids )
-        fig, axes = plt.subplots( ncols=nplots, projection=ccrs.PlateCarree() )
+        fig, axes = plt.subplots( ncols=nplots )
         self.logger.info( "Plotting {} plot(s)".format(nplots) )
         if nplots == 1:
-            self.xarrays[0].plot(ax=axes,cmap='jet',robust=True)
-            axes.coastlines()
-            plt.show()
+            self.xarrays[0].plot(ax=axes)
         else:
             xarrays = self.xarrays if idmatch is None else self.find_arrays(idmatch)
             for iaxis, result in enumerate( xarrays ):
-                axes[iaxis].coastlines()
-                result.plot(ax=axes[iaxis],cmap='jet',robust=True)
+                result.plot(ax=axes[iaxis])
         plt.show()
 
     def plotMap(self, index = 0, view = "geo" ):

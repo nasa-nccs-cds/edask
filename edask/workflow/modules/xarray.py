@@ -70,6 +70,7 @@ class NormKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("norm", "Normalization Kernel","Normalizes input arrays by centering (computing anomaly) and then dividing by the standard deviation along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        variable.persist()
         centered_result =  variable - variable.ave( node.axes )
         rv = [centered_result / centered_result.std( node.axes )]
         return rv
@@ -91,12 +92,13 @@ class DecycleKernel(OpKernel):
         self.removeRequiredOptions(["ax.s"])
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        data = variable.persist()
         norm = bool(node.getParm("norm", False))
         grouping = node.getParm("groupby", 't.month')
-        climatology = variable.xr.groupby(grouping).mean('t')
-        anomalies = variable.xr.groupby(grouping) - climatology
+        climatology = data.groupby(grouping).mean('t')
+        anomalies = data.groupby(grouping) - climatology
         if norm:
-            anomalies = anomalies.groupby(grouping) / variable.xr.groupby(grouping).std('t')
+            anomalies = anomalies.groupby(grouping) / data.groupby(grouping).std('t')
         return [variable.updateXa( anomalies, "decycle" )]
 
 class DetrendKernel(OpKernel):
@@ -106,13 +108,14 @@ class DetrendKernel(OpKernel):
                             "or ('method'='linear'): linear detrend over 'nbreaks' evenly spaced segments." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        data = variable.persist()
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
-        dim = variable.xr.dims[axisIndex]
+        dim = data.dims[axisIndex]
         method = node.getParm("method", "highpass")
         if method == "highpass":
-            window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
+            window_size = node.getParm("wsize", data.shape[axisIndex]//8 )
             detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
-            trend = variable.xr.rolling(**detrend_args).mean()
+            trend = data.rolling(**detrend_args).mean()
             detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
             return [detrend]
         elif method == "linear":
@@ -132,6 +135,7 @@ class TeleconnectionKernel(OpKernel):
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray,
                          attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        variable.persist()
         parms = self.getParameters( node, [ Param("lat"), Param("lon")])
         aIndex = variable.xr.get_axis_num('t')
         center: xa.DataArray = variable.selectPoint( float(parms["lat"]), float(parms["lon"]) ).xr
@@ -146,6 +150,7 @@ class LowpassKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("lowpass", "Lowpass Kernel","Smooths the input arrays by applying a 1D convolution (lowpass) filter along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        variable.persist()
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
         dim = variable.xr.dims[axisIndex]
         window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
@@ -158,6 +163,7 @@ class EofKernel(TimeOpKernel):
         TimeOpKernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        variable.persist()
         nModes = node.getParm("modes", 16 )
         center = bool( node.getParm("center", "false") )
         input = variable.xr.rename( {"t":"time"} )
@@ -177,6 +183,7 @@ class AnomalyKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("anomaly", "Anomaly Kernel", "Centers the input arrays by subtracting off the mean along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+        variable.persist()
         return  [variable - variable.ave( node.axes )]
 
 class VarKernel(OpKernel):

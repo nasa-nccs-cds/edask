@@ -48,13 +48,6 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
-    def test_ave(self):
-        domains = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy"} ]
-        results = self.mgr.testExec(domains, variables, operations)
-        results.plot()
-
     def test_subset1(self):
         domains = [{"name": "d0",   "lat": {"start": 30, "end": 35, "system": "values"},
                                     "lon": {"start": 100, "end": 105, "system": "values"},
@@ -253,7 +246,14 @@ class PlotTESTS:
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPrediction(results, "20crv-ts")
 
+    def test_dask_workflow(self):
+        domains = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [ {"name": "xarray.max", "input": "v0", "axis": "xy"} ]
+        results = self.mgr.testExec(domains, variables, operations)
+        results.plot()
+
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_ave()
+    result = tester.test_dask_workflow()
     plt.show()
