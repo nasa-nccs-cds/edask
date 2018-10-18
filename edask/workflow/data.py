@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Set, Optional, Tuple, Union
 from edask.process.domain import Domain, Axis
 import string, random, os, re, traceback
 from edask.collections.agg import Archive
-import abc
+import abc, math, time
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
@@ -63,6 +63,7 @@ class Transformation:
 
 class EDASArray:
     def __init__( self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy] ):
+        self.alwaysPersist = False
         self.loaded_data = None
         self.logger = logging.getLogger()
         self.domId = _domId
@@ -99,8 +100,13 @@ class EDASArray:
     def xr(self) -> xa.DataArray:
         if self.loaded_data is not None:
             return self.loaded_data
-        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
-        else: return self._data
+        else:
+            result = self._data._obj if isinstance(self._data,DataArrayGroupBy) else self._data
+            if self.alwaysPersist:
+               self.loaded_data = result.load().persist()
+               return self.loaded_data
+            else:
+                return result
 
     # @property
     # def xr(self) -> xa.DataArray:
@@ -351,6 +357,10 @@ class EDASDataset:
                 dataset.rename( {id:val}, True )
         return dataset
 
+    def subselect(self, idmatch: str ) -> "EDASDataset":
+        newArrayMap = { id:array for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None }
+        return EDASDataset( newArrayMap, self.attrs )
+
     def standardize( self ) -> "EDASDataset":
         dataset = self.xr
         for id,val in self.StandardAxisMap.items():
@@ -524,26 +534,35 @@ class EDASDataset:
         ax.coastlines()
         plt.show()
 
-    def plotMaps(self, nCols:int, view = "geo" ):
-        fig = plt.figure()
+    def plotMaps(self, nrows=2, view = "geo" ):
+        plot_arrays = []
+        for xarray in self.xarrays:
+            if "mode" in xarray.dims:
+                for imode in range( xarray.shape[xarray.get_axis_num("mode")] ):
+                   plot_arrays.append( xarray.isel( { "mode": slice(imode,imode+1) }).squeeze("mode") )
+            else:
+                plot_arrays.append(xarray)
+        nCols = math.ceil( len(plot_arrays)/2 )
         if view.lower().startswith("geo"):
-            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.PlateCarree() } )
+            fig, axes = plt.subplots( nrows=nrows, ncols=nCols, subplot_kw={ "projection": ccrs.PlateCarree() } )
         elif view.lower().startswith("polar"):
-            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.NorthPolarStereo() } )
+            fig, axes = plt.subplots( nrows=nrows, ncols=nCols, subplot_kw={ "projection": ccrs.NorthPolarStereo() } )
         elif view.lower().startswith("epolar"):
-            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.AzimuthalEquidistant( -80, 90 ) } )
+            fig, axes = plt.subplots( nrows=nrows, ncols=nCols, subplot_kw={ "projection": ccrs.AzimuthalEquidistant( -80, 90 ) } )
         elif view.lower().startswith("mol"):
-            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.Mollweide() } )
+            fig, axes = plt.subplots( nrows=nrows, ncols=nCols, subplot_kw={ "projection": ccrs.Mollweide() } )
         elif view.lower().startswith("rob"):
-            axes = fig.subplots( ncols=nCols, subplot_kw={ "projection": ccrs.Robinson() } )
+            fig, axes = plt.subplots( nrows=nrows, ncols=nCols, subplot_kw={ "projection": ccrs.Robinson() } )
         else:
             raise Exception( "Unrecognized map view: " + view )
 
-        for iaxis, xarray in enumerate(self.xarrays):
-            ax = axes[iaxis] if hasattr(axes, '__getitem__') else axes
+        for iaxis, xarray in enumerate(plot_arrays):
+            ix, iy = iaxis%nCols, math.floor(iaxis/nCols)
+            ax = axes[ix,iy] if hasattr(axes, '__getitem__') else axes
             xarray.plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
             ax.coastlines()
         plt.show()
+        while True: time.sleep(0.5)
 
     @classmethod
     def mergeArrayMaps( cls, amap0: Dict[str,EDASArray], amap1: Dict[str,EDASArray] )-> Dict[str,EDASArray]:

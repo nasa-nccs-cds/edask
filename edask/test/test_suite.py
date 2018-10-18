@@ -1,4 +1,4 @@
-from edask.process.test import TestManager
+from edask.process.test import TestManager, LocalTestManager
 from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging, inspect

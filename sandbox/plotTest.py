@@ -4,7 +4,7 @@ from edask.workflow.data import EDASDataset
 from edask.portal.plotters import plotter
 import numpy.ma as ma
 import xarray as xa
-import logging
+import logging, math
 
 class PlotTESTS:
 
@@ -12,11 +12,15 @@ class PlotTESTS:
         self.logger =  logging.getLogger()
         self.mgr = LocalTestManager("PlotTESTS","demo")
 
-    def eof_plot(self, mtype: str, dset: EDASDataset ):
+    def eof_plot1(self, mtype: str, dset: EDASDataset ):
         for results_array in dset.find_arrays( ".*" + mtype + ".*" ):
             fig, axes = plt.subplots( nrows=2, ncols=2 )
             for iaxis in range(4):
                 results_array.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
+
+    def eof_plot(self, mtype: str, dset: EDASDataset ):
+        new_dset: EDASDataset =  dset.subselect( ".*" + mtype + ".*" )
+        new_dset.plotMaps( view = "mol")
 
     def graph(self, dset: EDASDataset ):
         vars = dset.xr.variables.values()
@@ -97,8 +101,7 @@ class PlotTESTS:
         results = self.mgr.testExec( domains, variables, operations )
         xarray = results.xarrays[0]
         print( "Shape = " +  str( xarray.shape ) )
-        print( "Months = " + str( xarray.t.dt.month ) )
-
+        print( "Months = " + str( xarray.time.dt.month ) )
 
     def test_detrend(self):
         domains = [ {"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "time": { "start": '1851-01-01', "end": '2012-01-01', "system":"values" }  },
@@ -255,5 +258,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_dask_workflow()
+    result = tester.compute_eofs_TN()
     plt.show()
