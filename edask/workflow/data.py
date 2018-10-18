@@ -247,10 +247,11 @@ class EDASArray:
         if weights is None:
             return self.mean(axes)
         else:
-            weighted_var = self.xr * weights
+            dataArray = self.xr.load().persist()
+            weighted_var = dataArray * weights
             sum = weighted_var.sum( axes )
             axes.remove("y")
-            norm = weights * self.xr.count( axes ) if len( axes ) else weights
+            norm = weights * dataArray.count( axes ) if len( axes ) else weights
             new_data =  sum / norm.sum("y")
             return self.updateXa(new_data,"ave")
 
