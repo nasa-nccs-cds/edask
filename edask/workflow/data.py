@@ -92,19 +92,19 @@ class EDASArray:
 
     @property
     def xr(self) -> xa.DataArray:
-        self.logger.info( "XR: " + "".join( traceback.format_stack(limit=3) ) )
-        if self.loaded_data is None:
-            if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj
-            else: self.loaded_data = self._data
-        return self.loaded_data
+        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
+        else: return self._data
+
+    # @property
+    # def xr(self) -> xa.DataArray:
+    #     self.logger.info( "XR: " + "".join( traceback.format_stack(limit=3) ) )
+    #     if self.loaded_data is None:
+    #         if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj
+    #         else: self.loaded_data = self._data
+    #     return self.loaded_data
 
     @property
-    def xrp(self) -> xa.DataArray:
-        self.logger.info( "XRP: " + "".join( traceback.format_stack(limit=3) ) )
-        if self.loaded_data is None:
-            if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj.persist()
-            else: self.loaded_data = self._data.persist()
-        return self.loaded_data
+    def xrp(self) -> xa.DataArray: return self.xr.load().persist()
 
     @property
     def nd(self) -> np.ndarray: return self.xr.values

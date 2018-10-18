@@ -48,6 +48,13 @@ class PlotTESTS:
         results = self.mgr.testExec(domains, variables, operations)
         results.plot()
 
+    def test_ave(self):
+        domains = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} }]
+        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+        operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy"} ]
+        results = self.mgr.testExec(domains, variables, operations)
+        results.plot()
+
     def test_subset1(self):
         domains = [{"name": "d0",   "lat": {"start": 30, "end": 35, "system": "values"},
                                     "lon": {"start": 100, "end": 105, "system": "values"},
@@ -248,5 +255,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.plot_telemaps()
+    result = tester.test_ave()
     plt.show()
