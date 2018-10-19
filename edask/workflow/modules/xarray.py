@@ -50,19 +50,18 @@ class MeanKernel(OpKernel):
 
 class MedianKernel(OpKernel):
     def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("median", "Median Kernel","Computes the median of the array elements along the given axes." ) )
+        OpKernel.__init__( self, KernelSpec("med", "Median Kernel","Computes the median of the array elements along the given axes." ) )
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
         return [variable.median( node.axes )]
 
 class StdKernel(OpKernel):
     def __init__( self ):
-        OpKernel.__init__( self, KernelSpec("mean", "Standard Deviation Kernel",
+        OpKernel.__init__( self, KernelSpec("std", "Standard Deviation Kernel",
                 "Computes the standard deviation of the array elements "
                 "along the given axes." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray,
-                         attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
         return [variable.std( node.axes )]
 
 class NormKernel(OpKernel):

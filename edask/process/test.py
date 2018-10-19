@@ -1,5 +1,5 @@
 from typing import List, Dict, Sequence, Mapping, Any, Tuple
-import logging
+import logging, time
 from dask.distributed import Future
 import numpy.ma as ma
 from edask.process.task import Job
@@ -84,11 +84,13 @@ class LocalTestManager(TestManager):
         super(LocalTestManager, self).__init__(_proj, _exp)
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
+        t0 = time.time()
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
         resultHandler = ExecResultHandler("testJob", "local")
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
         result = edasOpManager.buildRequest(request)
         if processResult: resultHandler.processResult(result)
+        self.logger.info( " Completed computation in " + str( time.time() - t0 ) + " seconds")
         return result
 
 class DistributedTestManager(TestManager):

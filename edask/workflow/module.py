@@ -36,8 +36,13 @@ class KernelModule(OperationModule):
 
     def __init__( self, name, kernels: Dict[str,Callable[[],Kernel]] ):
         self.logger =  logging.getLogger()
-        self._kernels: Dict[str,Callable[[],Kernel]] = kernels
+        self._kernels: Dict[str,Callable[[str],Kernel]] = kernels
+        self._instances: Dict[str,Kernel] = {}
         OperationModule.__init__( self, name )
+
+    def clear(self, node: WorkflowNode ):
+        try:    del self._instances[node.instanceId]
+        except: pass
 
     def isLocal( self, obj )-> bool:
         return str(obj).split('\'')[1].split('.')[0] == "__main__"
@@ -52,12 +57,16 @@ class KernelModule(OperationModule):
     #     else: raise Exception( "Unrecognized kernel.py action: " + action )
 
     def getKernel(self, node: WorkflowNode):
-        return self.createKernel( node.op.lower() )
+        return self.createKernel( node.op.lower(), node.instanceId )
 
-    def createKernel(self, name ):
-        constructor = self._kernels.get( name )
-        assert constructor is not None, "Unidentified Kernel: " + name
-        return constructor()
+    def createKernel(self, op: str, instanceName: str ) -> Kernel:
+        instance = self._instances.get( instanceName, None )
+        if instance is None:
+            constructor = self._kernels.get( op )
+            assert constructor is not None, "Unidentified Kernel: " + op
+            instance = constructor()
+            self._instances[instanceName] = instance
+        return instance
 
     def getCapabilities(self): return [ kernel().getCapabilities() for kernel in self._kernels.values() ]
     def getCapabilitiesStr(self): return "~".join([ kernel().getCapabilities() for kernel in self._kernels.values() ])
@@ -97,8 +106,8 @@ class KernelManager:
                 self.logger.debug(  " ----------->> Adding Module: " + str( module_name ) )
             else: self.logger.debug(  " XXXXXXXX-->> Skipping Empty Module: " + str( module_name ) )
 
-    def getModule(self, task: WorkflowNode) -> KernelModule:
-        return self.operation_modules[ task.module ]
+    def getModule(self, op: WorkflowNode) -> KernelModule:
+        return self.operation_modules[ op.module ]
 
     def getKernel(self, node: WorkflowNode):
         module = self.operation_modules[ node.module ]
@@ -131,7 +140,14 @@ class KernelManager:
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
         result = EDASDataset.merge( [ self.buildSubWorkflow( request, op, [] ) for op in resultOps ] )
+        self.cleanup( request )
         return result.standardize()
+
+    def cleanup(self, request: TaskRequest):
+        ops: List[WorkflowNode] = request.getOperations()
+        for op in ops:
+            module: KernelModule = self.getModule( op )
+            module.clear( op )
 
     def buildIndices( self, size: int ) -> xa.DataArray:
         return xa.DataArray( range(size), coords=[('node',range(size))] )

@@ -54,6 +54,7 @@ class WorkflowNode(Node):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, name: str, _domain: str, metadata: Dict[str,Any] ):
+        from edask.process.task import Job
         super(WorkflowNode, self).__init__( name, metadata )
         self.domain: str = _domain
         nameToks = name.split(".")
@@ -64,6 +65,14 @@ class WorkflowNode(Node):
         self._outputs: List[OpNode] = []
         self._masterNode: MasterNodeWrapper = None
         self._addWorkflowInputs()
+        self._instanceId = self.name + "-" + Job.randomStr(6)
+
+    @property
+    def instanceId(self) -> str:
+        return self._instanceId
+
+    @property
+    def isBranch(self)->bool: return len(self._outputs) > 1
 
     @property
     def proxyProcessed(self)->bool: return self._masterNode is not None
@@ -188,6 +197,20 @@ class OpNode(WorkflowNode):
     def new(cls, operationSpec: Dict[str, Any] ):
         name = operationSpec.get("name","")
         domain = operationSpec.get("domain","")
+        rid: str = operationSpec.get( "result", "" )
+        return OpNode(name, domain, rid, operationSpec)
+
+    def __init__(self, name: str, domain: str, _rid: str, metadata: Dict[str,Any] ):
+        super( OpNode, self ).__init__( name, domain, metadata)
+        self.rid = _rid
+
+    def getId(self):
+        return self.rid
+
+    @classmethod
+    def new(cls, operationSpec: Dict[str, Any] ):
+        name = operationSpec.get("name","")
+        domain = operationSpec.get("domain","")
         rid: str = operationSpec.get("result","")
         return OpNode(name, domain, rid, operationSpec)
 
@@ -197,6 +220,27 @@ class OpNode(WorkflowNode):
 
     def getId(self):
         return self.rid
+
+    @property
+    def product(self):
+        return self.getParm("product")
+
+    def suppliesDownstreamInput(self, inputId ):
+        return self.rid == inputId
+
+    def isResult(self):
+        return len( self._outputs ) == 0
+
+    def getResultId(self, varName: str ) -> str:
+        return self.rid if self.rid else self.product if self.product else  "-".join( [ self.name, varName ] )
+
+    def serialize(self) -> str:
+        return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )
+
+    @staticmethod
+    def deserialize( spec: str ) -> "OpNode":
+        toks = spec.split('|')
+        return OpNode( toks[0], toks[1], "", Parser.rdict(toks[2]) )
 
     @property
     def product(self):

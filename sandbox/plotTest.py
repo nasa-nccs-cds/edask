@@ -250,13 +250,20 @@ class PlotTESTS:
         plotter.plotPrediction(results, "20crv-ts")
 
     def test_dask_workflow(self):
-        domains = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} }]
-        variables = [{"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [ {"name": "xarray.max", "input": "v0", "axis": "xy"} ]
+        domains =    [ {"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} } ]
+        variables =  [ {"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"} ]
+        operations = [ {"name": "xarray.max", "input": "v0", "axis": "xy", "result":"v0m"},
+                       {"name": "xarray.var", "input": "v0m", "axis": "t", "product": "tasMaxAve"},
+                       {"name": "xarray.std", "input": "v0m", "axis": "t", "product": "tasMaxStd"} ]
         results = self.mgr.testExec(domains, variables, operations)
-        results.plot()
+
+    def test_dask_workflow1(self):
+        domains =    [ {"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} } ]
+        variables =  [ {"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"} ]
+        operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy" } ]
+        results = self.mgr.testExec(domains, variables, operations)
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.compute_eofs_TN()
+    result = tester.test_dask_workflow()
     plt.show()

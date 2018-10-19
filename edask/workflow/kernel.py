@@ -58,6 +58,8 @@ class Kernel:
         for key,value in kwargs.items(): result[key] = value
         archive = node.getParm("archive")
         if archive: result["archive"] = archive
+        if node.isBranch:
+            result.persist()
         return result
 
     def archivePath(self, id: str, attrs: Dict[str, Any] )-> str:

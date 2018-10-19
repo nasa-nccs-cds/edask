@@ -101,20 +101,7 @@ class EDASArray:
         if self.loaded_data is not None:
             return self.loaded_data
         else:
-            result = self._data._obj if isinstance(self._data,DataArrayGroupBy) else self._data
-            if self.alwaysPersist:
-               self.loaded_data = result.load().persist()
-               return self.loaded_data
-            else:
-                return result
-
-    # @property
-    # def xr(self) -> xa.DataArray:
-    #     self.logger.info( "XR: " + "".join( traceback.format_stack(limit=3) ) )
-    #     if self.loaded_data is None:
-    #         if isinstance(self._data,DataArrayGroupBy): self.loaded_data =  self._data._obj
-    #         else: self.loaded_data = self._data
-    #     return self.loaded_data
+            return self._data._obj if isinstance(self._data,DataArrayGroupBy) else self._data
 
     @property
     def xrp(self) -> xa.DataArray: return self.persist()
@@ -330,6 +317,10 @@ class EDASDataset:
         self.arrayMap: Dict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
         self.logger = logging.getLogger()
+
+    def persist(self) -> "EDASDataset":
+        for array in self.arrayMap.values(): array.persist()
+        return self
 
     def addDomains( self, domains: Set[str] ):
         for domain in domains:
