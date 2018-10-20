@@ -265,5 +265,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_dask_workflow1()
+    result = tester.compute_eofs_TN()
     plt.show()

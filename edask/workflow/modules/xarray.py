@@ -165,19 +165,20 @@ class EofKernel(TimeOpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         nModes = node.getParm("modes", 16)
         center = bool(node.getParm("center", "false"))
-        if len( inputDset.inputs ) == 1:
-            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
-            solver = Eof( variable, center = center )
-        else:
+        multiVariate = len( inputDset.inputs ) > 1
+        if multiVariate:
             cdms_vars = [ input.xr.rename( {"t":"time"} ).to_cdms2() for  input in inputDset.inputs ]
             solver = MultivariateEof(cdms_vars, center=center)
+        else:
+            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
+            solver = Eof( variable, center = center )
         results = []
         if (len(products) == 0) or ( "eofs" in products):
             eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, solver.eofs( neofs=nModes ).rename( { "mode": "m" } )  )
             results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
-            pcs_data = xa.DataArray.from_cdms2( solver.pcs( npcs=nModes ) ).rename( { "mode": "m" } ).transpose()
-            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, pcs_data )
+            pcs_data = xa.DataArray.from_cdms2( solver.pcs( npcs=nModes ) ) if multiVariate else solver.pcs( npcs=nModes )
+            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, pcs_data.rename( { "mode": "m" } ).transpose() )
             results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
