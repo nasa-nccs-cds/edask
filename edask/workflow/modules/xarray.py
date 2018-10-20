@@ -10,6 +10,7 @@ from  scipy import stats, signal
 from edask.process.domain import Axis, DomainManager
 from edask.data.cache import EDASKCacheMgr
 from eofs.xarray import Eof
+from eofs.multivariate.cdms import MultivariateEof
 import datetime, os
 import numpy as np
 
@@ -161,21 +162,43 @@ class EofKernel(TimeOpKernel):
     def __init__( self ):
         TimeOpKernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        variable.persist()
-        nModes = node.getParm("modes", 16 )
-        center = bool( node.getParm("center", "false") )
-        input = variable.xr.rename( {"t":"time"} )
-        solver = Eof( input, center = center )
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+        nModes = node.getParm("modes", 16)
+        center = bool(node.getParm("center", "false"))
+        if len( inputDset.inputs ) == 1:
+            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
+            solver = Eof( variable, center = center )
+        else:
+            cdms_vars = [ input.xr.rename( {"t":"time"} ).to_cdms2() for  input in inputDset.inputs ]
+            solver = MultivariateEof(cdms_vars, center=center)
         results = []
         if (len(products) == 0) or ( "eofs" in products):
-            results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eofs", { "mode": "m" }, "eofs" ) )
+            eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, solver.eofs( neofs=nModes ).rename( { "mode": "m" } )  )
+            results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
-            results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs", { "mode": "m" }, "pcs"  ) )
+            pcs_data = xa.DataArray.from_cdms2( solver.pcs( npcs=nModes ) ).rename( { "mode": "m" } ).transpose()
+            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, pcs_data )
+            results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         for result in results: result["pves"] = str(pves)
-        return results
+        return EDASDataset.init(self.renameResults(results, node), inputDset.attrs)
+
+    # def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+    #     variable.persist()
+    #     nModes = node.getParm("modes", 16 )
+    #     center = bool( node.getParm("center", "false") )
+    #     input = variable.xr.rename( {"t":"time"} )
+    #     solver = Eof( input, center = center )
+    #     results = []
+    #     if (len(products) == 0) or ( "eofs" in products):
+    #         results.append( variable.updateXa( solver.eofs( neofs=nModes ), "eofs", { "mode": "m" }, "eofs" ) )
+    #     if (len(products) == 0) or ( "pcs" in products):
+    #         results.append( variable.updateXa( solver.pcs( npcs=nModes ).rename( {"time":"t"} ).transpose(), "pcs", { "mode": "m" }, "pcs"  ) )
+    #     fracs = solver.varianceFraction( neigs=nModes )
+    #     pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
+    #     for result in results: result["pves"] = str(pves)
+    #     return results
 
 class AnomalyKernel(OpKernel):
     def __init__( self ):

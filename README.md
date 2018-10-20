@@ -13,7 +13,7 @@ To install:
     > conda install xarray matplotlib scipy bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing pillow scikit-learn tensorflow keras zeromq pyzmq pytest cartopy
     > conda install -c conda-forge libnetcdf nco eofs dask distributed
     > pip install pydap
-    y
+
     > git clone https://github.com/nasa-nccs-cds/edask.git
     > cd edask
     > python setup.py install
