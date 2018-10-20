@@ -130,7 +130,7 @@ class AxisBounds:
             newEnd =   min( maxVal, self.end )
             return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
         except Exception as err:
-            print( "CROP ERROR: " + str(err))
+            self.logger.error( "CROP ERROR: " + str(err))
             return self
 
     def offset( self, offsetStr: str ):

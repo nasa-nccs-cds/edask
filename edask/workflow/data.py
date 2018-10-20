@@ -192,21 +192,24 @@ class EDASArray:
         xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
         return EDASArray(self.name, self.domId, xrdata  )
 
-    def getSliceMaps(self, domain: Domain ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
+    def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         pointMap: Dict[str,Any] = {}
         valSliceMap: Dict[str, Any] = {}
         indexSliceMap: Dict[str, Any] = {}
         for (axis, bounds) in domain.axisBounds.items():
             axname, slice = domain.slice(axis, bounds)
-            if bounds.system.startswith("val") or bounds.system.startswith("time"):
-                if slice.start == slice.stop: pointMap[axname] = slice.start
-                else: valSliceMap[axname] = slice
-            else: indexSliceMap[axname] = slice
+            if axname in dims:
+                if bounds.system.startswith("val") or bounds.system.startswith("time"):
+                    if slice.start == slice.stop: pointMap[axname] = slice.start
+                    else: valSliceMap[axname] = slice
+                else: indexSliceMap[axname] = slice
+            else:
+                self.logger.warning( " Domain {} contains axis {} that is not in the variable's dimensions: {}".format( domain.name, axname, str(dims) ) )
         return pointMap, valSliceMap, indexSliceMap
 
     def subset( self, domain: Domain, composite_domains: Set[str] ) -> "EDASArray":
         xarray = self.xr
-        pointMap, valSliceMap, indexSliceMap = self.getSliceMaps( domain )
+        pointMap, valSliceMap, indexSliceMap = self.getSliceMaps( domain, xarray.dims )
         if len(pointMap):
             self.logger.info( "POINT subset: " + str(pointMap))
             xarray = xarray.sel( pointMap, method='nearest')
