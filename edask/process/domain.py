@@ -130,8 +130,8 @@ class AxisBounds:
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
         try:
             self.testBounds( minVal, maxVal )
-            if( self.start <= self.end ):   newStart, newEnd = max( minVal, self.start ), min( maxVal, self.end )
-            else:                           newStart, newEnd = min( minVal, self.start ), max( maxVal, self.end )
+            if( minVal <= maxVal ):   newStart, newEnd = max( minVal, self.start ), min( maxVal, self.end )
+            else:                     newStart, newEnd = min( minVal, self.start ), max( maxVal, self.end )
             return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
         except Exception as err:
             self.logger.error( "CROP ERROR: " + str(err))
