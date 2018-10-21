@@ -550,6 +550,8 @@ class EDASDataset:
         else:
             raise Exception( "Unrecognized map view: " + view )
 
+        self.logger.info( "Plotting {} maps with nCols = {}".format( len(plot_arrays), nCols ) )
+
         for iaxis, xarray in enumerate(plot_arrays):
             ix, iy = iaxis%nCols, math.floor(iaxis/nCols)
             ax = axes[ix,iy] if hasattr(axes, '__getitem__') else axes

@@ -94,8 +94,7 @@ class AxisBounds:
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _step: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
         self.name = _name
         self.logger = logging.getLogger()
-        if isinstance( _start, str ): assert  isinstance( _end, str ), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
-        else: assert  _end >= _start, "Axis {}: Start bound cannot be greater then end bound: start={}, end={}".format( self.name, self.start, self.end)
+        assert type(_start) == type(_end), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
         self.system = _system
         self.start = _start
@@ -123,11 +122,16 @@ class AxisBounds:
         newEnd =   maxTime if maxTime < endTime else endTime
         return AxisBounds( self.name, str(newStart), str(newEnd), self.step, self.system, self.metadata, self._timeDelta )
 
+    def testBounds(self, minVal: Union[float,int], maxVal: Union[float,int] ):
+        coordMin, coordMax = (self.start, self.end) if self.start < self.end else (self.end, self.start)
+        bndsMin, bndsMax = (minVal, maxVal) if minVal < maxVal else (maxVal, minVal)
+        if (bndsMax < coordMin) or (bndsMin > coordMax): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name + ", roi = " + str((bndsMin, bndsMax)) + ", coord range = " + str((coordMin, coordMax)))
+
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
         try:
-            if (maxVal < self.start) or (minVal > self.end): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
-            newStart = max( minVal, self.start )
-            newEnd =   min( maxVal, self.end )
+            self.testBounds( minVal, maxVal )
+            if( self.start <= self.end ):   newStart, newEnd = max( minVal, self.start ), min( maxVal, self.end )
+            else:                           newStart, newEnd = min( minVal, self.start ), max( maxVal, self.end )
             return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
         except Exception as err:
             self.logger.error( "CROP ERROR: " + str(err))
