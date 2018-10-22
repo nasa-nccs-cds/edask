@@ -553,8 +553,8 @@ class EDASDataset:
         self.logger.info( "Plotting {} maps with nCols = {}".format( len(plot_arrays), nCols ) )
 
         for iaxis, xarray in enumerate(plot_arrays):
-            ix, iy = iaxis%nCols, math.floor(iaxis/nCols)
-            ax = axes[ix,iy] if hasattr(axes, '__getitem__') else axes
+            icol, irow = iaxis%nCols, math.floor(iaxis/nCols)
+            ax = axes[irow,icol] if hasattr(axes, '__getitem__') else axes
             xarray.plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
             ax.coastlines()
         plt.show()
