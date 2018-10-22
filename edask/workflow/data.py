@@ -555,7 +555,7 @@ class EDASDataset:
         for iaxis, xarray in enumerate(plot_arrays):
             ix, iy = iaxis%nCols, math.floor(iaxis/nCols)
             ax = axes[ix,iy] if hasattr(axes, '__getitem__') else axes
-            xarray.plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
+            xarray.plot.contourf( ax=ax, levels=12, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
             ax.coastlines()
         plt.show()
         while True: time.sleep(0.5)
