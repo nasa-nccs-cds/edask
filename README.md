@@ -10,7 +10,7 @@ To install:
 ```
     > conda create -n edask -c conda-forge -c cdat python=3.6 cdms2 cdutil cdtime
     > conda activate edask
-    > conda install xarray matplotlib scipy bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing pillow scikit-learn tensorflow keras zeromq pyzmq pytest cartopy
+    > conda install xarray matplotlib scipy bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing pillow scikit-learn tensorflow keras zeromq pyzmq pytest cartopy paramiko
     > conda install -c conda-forge libnetcdf nco eofs dask distributed
     > pip install pydap
 
