@@ -10,7 +10,6 @@ from  scipy import stats, signal
 from edask.process.domain import Axis, DomainManager
 from edask.data.cache import EDASKCacheMgr
 from eofs.xarray import Eof
-from eofs.multivariate.cdms import MultivariateEof
 import datetime, os
 import numpy as np
 
@@ -162,24 +161,56 @@ class EofKernel(TimeOpKernel):
     def __init__( self ):
         TimeOpKernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
 
+    def get_cdms_variables( self, inputDset ):
+        rv = []
+        for  input in inputDset.inputs:
+            tvar = input.xr.rename( {"t":"time"} ).to_cdms2()
+            tvar.id = input.name
+            tvar.standard_name = input.name
+            tvar.long_name = input.name
+            rv.append( tvar )
+        return rv
+
+    def getSolver(self, inputDset: EDASDataset, center: bool, multiVariate_mode ):
+        multiVariate = len( inputDset.inputs ) > 1
+        if multiVariate:
+            if multiVariate_mode == "cdms":
+                from eofs.multivariate.cdms import MultivariateEof
+                cdms_vars = self.get_cdms_variables( inputDset )
+                return multiVariate, MultivariateEof(cdms_vars, center=center)
+            elif multiVariate_mode == "iris":
+                from eofs.multivariate.iris import MultivariateEof
+                iris_vars = [ input.xr.rename( {"t":"time"} ).to_iris() for  input in inputDset.inputs ]
+                return multiVariate, MultivariateEof(iris_vars, center=center)
+            elif multiVariate_mode == "standard":
+                from eofs.multivariate.standard import MultivariateEof
+                np_vars = [ input.xr.rename( {"t":"time"} ).values for  input in inputDset.inputs ]
+                return multiVariate, MultivariateEof(np_vars, center=center)
+        else:
+            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
+            return multiVariate, Eof( variable, center = center )
+
+    def rename(self, data: xa.DataArray, rename_dict: Dict[str,str] ):
+        for item in rename_dict.items():
+            try: data = data.rename({*item})
+            except: self.logger.warning( "Can't execute rename {} on {} with dims {}".format( str(item), data.name, str( data.dims ) ) )
+        return data
+
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         nModes = node.getParm("modes", 16)
         center = bool(node.getParm("center", "false"))
-        multiVariate = len( inputDset.inputs ) > 1
-        if multiVariate:
-            cdms_vars = [ input.xr.rename( {"t":"time"} ).to_cdms2() for  input in inputDset.inputs ]
-            solver = MultivariateEof(cdms_vars, center=center)
-        else:
-            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
-            solver = Eof( variable, center = center )
+        multiVariate, solver = self.getSolver( inputDset, center, "cdms" )
         results = []
         if (len(products) == 0) or ( "eofs" in products):
-            eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, solver.eofs( neofs=nModes ).rename( { "mode": "m" } )  )
-            results.append( eofs )
+            for eofs_result in solver.eofs( neofs=nModes ):
+                eofs_data = xa.DataArray.from_cdms2( eofs_result ) if multiVariate else eofs_result
+                eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( eofs_data, { "mode": "m", "eof": "m" } )  )
+                results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
-            pcs_data = xa.DataArray.from_cdms2( solver.pcs( npcs=nModes ) ) if multiVariate else solver.pcs( npcs=nModes )
-            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, pcs_data.rename( { "mode": "m" } ).transpose() )
-            results.append( pcs )
+            for pcs_result in solver.pcs( npcs=nModes ):
+                pcs_data = xa.DataArray.from_cdms2( pcs_result ) if multiVariate else pcs_result
+                pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_data, { "mode": "m", "pc": "m" } ).transpose() )
+                results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         for result in results: result["pves"] = str(pves)

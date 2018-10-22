@@ -81,9 +81,10 @@ class OpKernel(Kernel):
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
         if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
-        input_vars: List[List[(str,EDASArray)]] = [ dset.arrayMap.items() for dset in inputs ]
+        input_vars: List[List[(str,EDASArray)]] = [ list(dset.arrayMap.items()) for dset in inputs ]
         self.testOptions( wnode )
-        for matched_inputs in zip( *input_vars ):
+        matching_groups = zip( *input_vars ) if len(inputs) > 1 else [ sum( input_vars, [] ) ]
+        for matched_inputs in matching_groups:
             inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
             product = self.processInputCrossSection( request, op, inputCrossSection, products )
