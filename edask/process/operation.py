@@ -136,8 +136,9 @@ class WorkflowNode(Node):
         if freq.startswith( "season" ): freq = 'Q-FEB'
         return axis + "." + freq
 
-    def isSimple( self, minInputs: int ) -> bool:
-        return (self.alignmentStrategy is None) and (self.ensDim is None) and (minInputs < 2) and not self.domain
+    @property
+    def isSimple( self ) -> bool:
+        return (self.alignmentStrategy is None) and (self.ensDim is None) and not self.domain
 
     @abc.abstractmethod
     def getId(self): pass

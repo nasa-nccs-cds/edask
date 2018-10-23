@@ -24,11 +24,15 @@ class Kernel:
         self.parent: Optional[str] = None
         self._minInputs = 1
         self._maxInputs = 100000
+        self._requiresAlignment = False
         self.requiredOptions = []
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     @property
     def name(self): return self._spec.name
+
+    @property
+    def requiresAlignment(self): return self._requiresAlignment or ( self._minInputs > 1 )
 
     def getSpec(self) -> KernelSpec: return self._spec
     def getCapabilities(self) -> str: return self._spec.summary
@@ -125,8 +129,8 @@ class OpKernel(Kernel):
         interp_na = bool(op.getParm("interp_na", False))
         if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
         else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDict.items() }
-        if op.isSimple(self._minInputs):
-            result: EDASDataset = EDASDataset.init( inputs, atts )
+        if op.isSimple and not self.requiresAlignment:
+            preprop_result: EDASDataset = EDASDataset.init( inputs, atts )
         else:
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
@@ -138,8 +142,8 @@ class OpKernel(Kernel):
                     result.addArray( sub_array.name, sub_array, atts )
                 else:
                     result.addArray( input.name, input, atts )
-            result.align( op.getParm("align","lowest") )
-        return result.groupby( op.grouping ).resample( op.resampling )
+            preprop_result = result.align( op.getParm("align","lowest") )
+        return preprop_result.groupby( op.grouping ).resample( op.resampling )
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset

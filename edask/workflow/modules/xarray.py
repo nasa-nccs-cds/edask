@@ -160,6 +160,7 @@ class LowpassKernel(OpKernel):
 class EofKernel(TimeOpKernel):
     def __init__( self ):
         TimeOpKernel.__init__( self, KernelSpec("eof", "Eof Kernel","Computes PCs and EOFs along the time axis." ) )
+        self._requiresAlignment = True
 
     def get_cdms_variables( self, inputDset ):
         rv = []
@@ -171,45 +172,92 @@ class EofKernel(TimeOpKernel):
             rv.append( tvar )
         return rv
 
-    def getSolver(self, inputDset: EDASDataset, center: bool, multiVariate_mode ):
-        multiVariate = len( inputDset.inputs ) > 1
-        if multiVariate:
-            if multiVariate_mode == "cdms":
-                from eofs.multivariate.cdms import MultivariateEof
-                cdms_vars = self.get_cdms_variables( inputDset )
-                return multiVariate, MultivariateEof(cdms_vars, center=center)
-            elif multiVariate_mode == "iris":
-                from eofs.multivariate.iris import MultivariateEof
-                iris_vars = [ input.xr.rename( {"t":"time"} ).to_iris() for  input in inputDset.inputs ]
-                return multiVariate, MultivariateEof(iris_vars, center=center)
-            elif multiVariate_mode == "standard":
-                from eofs.multivariate.standard import MultivariateEof
-                np_vars = [ input.xr.rename( {"t":"time"} ).values for  input in inputDset.inputs ]
-                return multiVariate, MultivariateEof(np_vars, center=center)
-        else:
-            variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
-            return multiVariate, Eof( variable, center = center )
+    def get_input_array(self, inputDset: EDASDataset ):
+        """Merge multiple fields into one field.
+        Flattens each field to (time, space) dimensionality and
+        concatenates to form one field. Returns the merged array
+        and a dictionary {'shapes': [], 'slicers': []} where the entry
+        'shapes' is a list of the input array shapes minus the time
+        dimension ans the entry 'slicers' is a list of `slice` objects
+        that can be used to select each individual field from the merged
+        array.
+        """
+        info = {'shapes': [], 'slicers': []}
+        islice = 0
+        xarrays: List[xa.DataArray] = [ input.xr.rename( {"t":"time"} ) for  input in inputDset.inputs ]
+
+        for xarray in xarrays:
+            info['shapes'].append( xarray.shape[1:] )
+            channels = np.prod(xarray.shape[1:])
+            info['slicers'].append(slice(islice, islice + channels))
+            islice += channels
+
+        try:
+            stacked_arrays = [xarray.stack( z=['x','y'] ) for xarray in xarrays ]
+            merged = xa.concat( stacked_arrays, dim='z' ) if len( stacked_arrays ) > 1 else stacked_arrays[0]
+        except ValueError:
+            raise ValueError('all fields must have the same first dimension')
+        return merged, info
+
+    # def getSolver(self, inputDset: EDASDataset, center: bool, multiVariate_mode: str ):
+    #     multiVariate = len( inputDset.inputs ) > 1
+    #     if multiVariate:
+    #         if multiVariate_mode == "cdms":
+    #             from eofs.multivariate.cdms import MultivariateEof
+    #             cdms_vars = self.get_cdms_variables( inputDset )
+    #             return multiVariate_mode, MultivariateEof(cdms_vars, center=center)
+    #         elif multiVariate_mode == "iris":
+    #             from eofs.multivariate.iris import MultivariateEof
+    #             iris_vars = [ input.xr.rename( {"t":"time"} ).to_iris() for  input in inputDset.inputs ]
+    #             return multiVariate_mode, MultivariateEof(iris_vars, center=center)
+    #         elif multiVariate_mode == "standard":
+    #             from eofs.multivariate.standard import MultivariateEof
+    #             np_vars = [ input.xr.rename( {"t":"time"} ).values for  input in inputDset.inputs ]
+    #             return multiVariate_mode, MultivariateEof( np_vars, center=center )
+    #     else:
+    #         variable: xa.DataArray = inputDset.inputs[0].xr.rename( {"t":"time"} )
+    #         return "none", Eof( variable, center = center )
+    # #
+    # def getResult(self, dataArray, multiVariate_mode: str, dims:List[str] ):
+    #     if multiVariate_mode == "cdms":
+    #         return xa.DataArray.from_cdms2( dataArray )
+    #     elif multiVariate_mode == "iris":
+    #         return xa.DataArray.from_iris( dataArray )
+    #     elif multiVariate_mode == "standard":
+    #         return xa.DataArray( dataArray, dims=dims )
+    #     elif multiVariate_mode == "none":
+    #         return dataArray
+
+
+    def getResults(self, eof_modes, slicers, shapes ):
+        results = [ eof_modes[dict(z=slicer)].unstack('z') for slicer, shape in zip(slicers, shapes)]
+        return results
 
     def rename(self, data: xa.DataArray, rename_dict: Dict[str,str] ):
         for item in rename_dict.items():
-            try: data = data.rename({*item})
-            except: self.logger.warning( "Can't execute rename {} on {} with dims {}".format( str(item), data.name, str( data.dims ) ) )
+            rn = {item[0]:item[1]}
+            try:
+                data = data.rename(rn)
+            except:
+                self.logger.warning( "Can't execute rename {} on {} with dims {}".format( str(item), data.name, str( data.dims ) ) )
         return data
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
         nModes = node.getParm("modes", 16)
         center = bool(node.getParm("center", "false"))
-        multiVariate, solver = self.getSolver( inputDset, center, "cdms" )
+        merged_input_data, info = self.get_input_array( inputDset )
+        shapes = info['shapes']
+        slicers = info['slicers']
+        solver = Eof( merged_input_data, center=center )
         results = []
-        if (len(products) == 0) or ( "eofs" in products):
+        if ( len(products) == 0 ) or ( "eofs" in products ):
             for eofs_result in solver.eofs( neofs=nModes ):
-                eofs_data = xa.DataArray.from_cdms2( eofs_result ) if multiVariate else eofs_result
-                eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( eofs_data, { "mode": "m", "eof": "m" } )  )
-                results.append( eofs )
+                for eofs_data in self.getResults( eofs_result, slicers, shapes ):
+                    eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, eofs_data  )
+                    results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
             for pcs_result in solver.pcs( npcs=nModes ):
-                pcs_data = xa.DataArray.from_cdms2( pcs_result ) if multiVariate else pcs_result
-                pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_data, { "mode": "m", "pc": "m" } ).transpose() )
+                pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )
                 results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
