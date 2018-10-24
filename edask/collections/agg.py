@@ -2,12 +2,10 @@ import os
 from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
-import edask
 from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
-from edask.process.operation import SourceConnector
 from edask.process.source import VID
-from edask import CONFIG_DIR
+from edask import CONFIG_DIR, COLLECTIONS_DIR
 
 def parse_dict( dict_spec ):
     result = {}
@@ -49,7 +47,7 @@ class Archive:
 
 class Collection:
 
-    cacheDir = CONFIG_DIR
+    cacheDir = COLLECTIONS_DIR
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
@@ -88,7 +86,7 @@ class Collection:
 
     def fileList(self, aggId: str ) -> List[BinaryIO]:
         agg = self.getAggregation( aggId )
-        return agg.fileList()
+        return list(agg.fileList())
 
     def sortVarsByAgg(self, vids: List[VID] ) -> Dict[str,List[str]]:
         bins = {}
