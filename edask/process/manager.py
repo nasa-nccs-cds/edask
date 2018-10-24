@@ -172,7 +172,6 @@ class ProcessManager(GenericProcessManager):
 
   def term(self):
       self.client.close()
-      self.cluster.close()
 
   def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ):
       try:
