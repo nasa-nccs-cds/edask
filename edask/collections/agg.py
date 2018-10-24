@@ -178,6 +178,7 @@ class AggProcessing:
 
     @classmethod
     def changeBasePath( cls, aggFile: str, newFile:str, pathmap: Dict[str,str] ):
+        print( "Change Base Path: {} -> {}".format( aggFile, newFile ) )
         with open(newFile, "r") as ofile:
           with open(aggFile, "r") as file:
             for line in file.readlines():
@@ -192,6 +193,7 @@ class AggProcessing:
 
     @classmethod
     def changeBasePaths( cls, aggDir: str, newDir:str, pathmap: Dict[str,str] ):
+        print( "Change Base Paths: {} -> {}".format( aggDir, newDir ) )
         fileMap = [ ( os.path.join(aggDir, f), os.path.join(newDir, f) ) for f in os.listdir(aggDir) if os.path.isfile(os.path.join(aggDir, f) and f.endswith(".ag1") ) ]
         for aggFile,newFile  in fileMap: cls.changeBasePath( aggFile, newFile, pathmap )
 
