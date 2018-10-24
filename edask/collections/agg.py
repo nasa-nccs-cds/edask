@@ -167,6 +167,33 @@ class VarRec:
     def parm(self, key ):
         return self.metadata.get( key )
 
+class AggProcessing:
+
+    @classmethod
+    def mapPath( cls, path: str, pathmap: Dict[str,str] ) -> str:
+        for oldpath,newpath in pathmap.items():
+            if path.startswith(oldpath):
+                return path.replace(oldpath,newpath,1)
+        return path
+
+    @classmethod
+    def changeBasePath( cls, aggFile: str, newFile:str, pathmap: Dict[str,str] ):
+        with open(newFile, "r") as ofile:
+          with open(aggFile, "r") as file:
+            for line in file.readlines():
+                if not line: break
+                if line[1] == ";":
+                    type = line[0]
+                    value = line[2:].split(";")
+                    if type == 'P':
+                        if value[0].strip() == "base.path":
+                            line = "P; base.path; " + cls.mapPath( value[1].strip(), pathmap )
+                    ofile.write( line )
+
+    @classmethod
+    def changeBasePaths( cls, aggDir: str, newDir:str, pathmap: Dict[str,str] ):
+        fileMap = [ ( os.path.join(aggDir, f), os.path.join(newDir, f) ) for f in os.listdir(aggDir) if os.path.isfile(os.path.join(aggDir, f) and f.endswith(".ag1") ) ]
+        for aggFile,newFile  in fileMap: cls.changeBasePath( aggFile, newFile, pathmap )
 
 class Aggregation:
 
@@ -211,3 +238,9 @@ class Aggregation:
 
     def getDataset( self ) -> MFDataset:
         return MFDataset( self.pathList() )
+
+
+if __name__ == "__main__":
+    AggProcessing.changeBasePaths( "/dass/adm/edas/cache/collections/agg",
+                                   "/dass/dassnsd/data01/sys/edas/cache/collections/agg",
+                                   { "/dass/pubrepo": "/dass/dassnsd/data01/cldra/data/pubrepo" }  )
