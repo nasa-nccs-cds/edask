@@ -173,18 +173,14 @@ class EofKernel(TimeOpKernel):
         return rv
 
     def get_input_array(self, inputDset: EDASDataset ):
-        """Merge multiple fields into one field.
-        Flattens each field to (time, space) dimensionality and
-        concatenates to form one field. Returns the merged array
-        and a dictionary {'shapes': [], 'slicers': []} where the entry
-        'shapes' is a list of the input array shapes minus the time
-        dimension ans the entry 'slicers' is a list of `slice` objects
-        that can be used to select each individual field from the merged
-        array.
-        """
-        info = {'shapes': [], 'slicers': []}
+        info = { 'shapes': [], 'slicers': [] }
         islice = 0
-        xarrays: List[xa.DataArray] = [ input.xr.rename( {"t":"time"} ) for  input in inputDset.inputs ]
+        xarrays: List[xa.DataArray] = []
+        for  input in inputDset.inputs:
+            xarray: xa.DataArray = input.xr.rename( {"t":"time"} )
+            for coord in xarray.coords:
+                if coord not in xarray.dims: xarray = xarray.drop(coord)
+            xarrays.append( xarray )
 
         for xarray in xarrays:
             info['shapes'].append( xarray.shape[1:] )
@@ -192,11 +188,8 @@ class EofKernel(TimeOpKernel):
             info['slicers'].append(slice(islice, islice + channels))
             islice += channels
 
-        try:
-            stacked_arrays = [xarray.stack( z=['x','y'] ) for xarray in xarrays ]
-            merged = xa.concat( stacked_arrays, dim='z' ) if len( stacked_arrays ) > 1 else stacked_arrays[0]
-        except ValueError:
-            raise ValueError('all fields must have the same first dimension')
+        stacked_arrays = [ xarray.stack( s=xarray.dims[1:] ) for xarray in xarrays ]
+        merged = xa.concat( stacked_arrays, dim='s' ) if len( stacked_arrays ) > 1 else stacked_arrays[0]
         return merged, info
 
     # def getSolver(self, inputDset: EDASDataset, center: bool, multiVariate_mode: str ):
@@ -230,7 +223,7 @@ class EofKernel(TimeOpKernel):
 
 
     def getResults(self, eof_modes, slicers, shapes ):
-        results = [ eof_modes[dict(z=slicer)].unstack('z') for slicer, shape in zip(slicers, shapes)]
+        results = [ eof_modes[dict(s=slicer)].unstack('s') for slicer, shape in zip(slicers, shapes)]
         return results
 
     def rename(self, data: xa.DataArray, rename_dict: Dict[str,str] ):
