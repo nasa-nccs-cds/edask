@@ -1,6 +1,6 @@
 import logging, os, time
 LOG_DIR = os.path.expanduser("~/.edask/logs")
-CONFIG_DIR = os.path.expanduser("~/.edask/conf")
+CONFIG_DIR = os.environ.get( 'EDASK_CACHE_DIR', os.path.expanduser("~/.edask/conf") )
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 if not os.path.exists(CONFIG_DIR):

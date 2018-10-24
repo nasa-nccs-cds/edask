@@ -1,5 +1,5 @@
 from os.path import dirname, abspath, join
-import logging
+import logging, os
 from typing import Sequence, List, Dict, Mapping, Optional
 
 class ParameterManager:
@@ -21,8 +21,8 @@ class ParameterManager:
                 toks = line.split("=")
                 if len( toks ) == 2: appConfig[toks[0].strip()] = toks[1].strip()
         except Exception as err:
-            self.logger.warn( "Can't load app config file 'app.conf' from config dir: " + self.path )
-            self.logger.warn( str(err) )
+            self.logger.warning( "Can't load app config file 'app.conf' from config dir: " + self.path )
+            self.logger.warning( str(err) )
         return appConfig
 
     def __getitem__( self, key: str ) -> str: return self._parms.get( key )

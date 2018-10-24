@@ -7,7 +7,7 @@ from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.operation import SourceConnector
 from edask.process.source import VID
-
+from edask import CONFIG_DIR
 
 def parse_dict( dict_spec ):
     result = {}
@@ -17,7 +17,7 @@ def parse_dict( dict_spec ):
 
 class Archive:
 
-    cacheDir = os.environ['EDAS_CACHE_DIR']
+    cacheDir = CONFIG_DIR
     baseDir = os.path.join( cacheDir, "results" )
 
     @classmethod
@@ -49,7 +49,7 @@ class Archive:
 
 class Collection:
 
-    cacheDir = os.environ['EDAS_CACHE_DIR']
+    cacheDir = CONFIG_DIR
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
