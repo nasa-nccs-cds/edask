@@ -71,6 +71,15 @@ class EDASArray:
         self.name = name
         self.addDomain( _domId )
 
+    def purge(self, rename_dict: Dict[str,str] = {} ):
+        return EDASArray( self.name, self.domId, self.cleanupCoords( self.xr, rename_dict ) )
+
+    @staticmethod
+    def cleanupCoords( xarray: xa.DataArray, rename_dict: Dict[str,str] = {} ) -> xa.DataArray:
+        for coord in xarray.coords:
+            if coord not in xarray.dims: xarray = xarray.drop(coord)
+        return xarray.rename( rename_dict )
+
     @property
     def domain_history(self) -> Set[str]:
         return { d for d in self.get("domain_history","").split(";") if d }

@@ -175,12 +175,7 @@ class EofKernel(TimeOpKernel):
     def get_input_array(self, inputDset: EDASDataset ):
         info = { 'shapes': [], 'slicers': [] }
         islice = 0
-        xarrays: List[xa.DataArray] = []
-        for  input in inputDset.inputs:
-            xarray: xa.DataArray = input.xr.rename( {"t":"time"} )
-            for coord in xarray.coords:
-                if coord not in xarray.dims: xarray = xarray.drop(coord)
-            xarrays.append( xarray )
+        xarrays: List[xa.DataArray] = [ input.purge( {"t":"time"} ).xr for input in inputDset.inputs ]
 
         for xarray in xarrays:
             info['shapes'].append( xarray.shape[1:] )
@@ -250,7 +245,7 @@ class EofKernel(TimeOpKernel):
                     results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
             pcs_result = solver.pcs( npcs=nModes )
-            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )
+            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, EDASArray.cleanupCoords( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )
             results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
