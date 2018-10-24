@@ -239,10 +239,10 @@ class EofKernel(TimeOpKernel):
         solver = Eof( merged_input_data, center=center )
         results = []
         if ( len(products) == 0 ) or ( "eofs" in products ):
-            for eofs_result in solver.eofs( neofs=nModes ):
-                for eofs_data in self.getResults( eofs_result, slicers, shapes ):
-                    eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, eofs_data  )
-                    results.append( eofs )
+            for iMode, eofs_result in enumerate( solver.eofs( neofs=nModes ) ):
+                for iVar, eofs_data in enumerate( self.getResults( eofs_result, slicers, shapes ) ):
+                    input = inputDset.inputs[iVar]
+                    results.append( EDASArray( "-".join( [ "eof-", str(iMode), input.name ]), input.domId, eofs_data  ) )
         if (len(products) == 0) or ( "pcs" in products):
             pcs_result = solver.pcs( npcs=nModes )
             pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, EDASArray.cleanupCoords( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )

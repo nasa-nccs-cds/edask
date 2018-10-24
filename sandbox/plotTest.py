@@ -1,6 +1,6 @@
 from edask.process.test import LocalTestManager
 import matplotlib.pyplot as plt
-from edask.workflow.data import EDASDataset
+from edask.workflow.data import EDASDataset, PlotType
 from edask.portal.plotters import plotter
 import numpy.ma as ma
 import xarray as xa
@@ -12,15 +12,8 @@ class PlotTESTS:
         self.logger =  logging.getLogger()
         self.mgr = LocalTestManager("PlotTESTS","demo")
 
-    def eof_plot1(self, mtype: str, dset: EDASDataset ):
-        for results_array in dset.find_arrays( ".*" + mtype + ".*" ):
-            fig, axes = plt.subplots( nrows=2, ncols=2 )
-            for iaxis in range(4):
-                results_array.sel(mode=iaxis).plot(ax=axes[iaxis//2,iaxis%2])
-
-    def eof_plot(self, mtype: str, dset: EDASDataset ):
-        new_dset: EDASDataset =  dset.subselect( ".*" + mtype + ".*" )
-        new_dset.plotMaps( view = "mol")
+    def eof_plot(self, mtype: int, dset: EDASDataset ):
+        dset.plotMaps( view = "mol", mtype=mtype )
 
     def graph(self, dset: EDASDataset ):
         vars = dset.xr.variables.values()
@@ -155,7 +148,7 @@ class PlotTESTS:
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "modes", results )
+        self.eof_plot( PlotType.EOF, results )
 
     def compute_eofs_SN_MERRA(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"} }]
@@ -164,7 +157,7 @@ class PlotTESTS:
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-merra2-ts-SN" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "modes", results )
+        self.eof_plot( PlotType.EOF, results )
 
     def compute_eofs_TN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '1890-01-01T00', "system": "values"} }]
@@ -173,7 +166,7 @@ class PlotTESTS:
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-TN"  } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "eofs", results )
+        self.eof_plot( PlotType.EOF, results )
 
     def compute_multivar_eofs_TN_small(self):
         domains = [{"name": "d0", "lat": {"start": -30, "end": 80, "system": "values"}, "lev": {"start": 50000, "end": 50000, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '1885-01-01T00', "system": "values"} }]
@@ -182,7 +175,7 @@ class PlotTESTS:
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-zg500-TN"  } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "eofs", results )
+        self.eof_plot( PlotType.EOF, results )
 
     def compute_multivar_eofs_SN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"}, "lev": {"start": 50000, "end": 50000, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
@@ -191,7 +184,7 @@ class PlotTESTS:
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-zg500-SN"  } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "eofs", results )
+        self.eof_plot( PlotType.EOF, results )
 
     def compute_pcs_TN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1851-01-01T00', "end": '2005-12-31T00', "system": "values"} }]
@@ -201,7 +194,7 @@ class PlotTESTS:
                         {"name": "xarray.eof", "modes": 32, "input": "dt", "result":"modes" },
                         {"name": "xarray.norm", "axis":"t", "input":"modes:pcs", "archive":"pcs-20crv-ts-TN" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "pc", results )
+        self.eof_plot( PlotType.PC, results )
 
     def plot_eofs_spatial_norm(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
@@ -210,8 +203,8 @@ class PlotTESTS:
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt" } ]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot( "pc", results )
-        self.eof_plot( "eof", results )
+        self.eof_plot( PlotType.PC, results )
+        self.eof_plot( PlotType.EOF, results )
 
     def plot_eofs_temporal_norm(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},
@@ -221,8 +214,8 @@ class PlotTESTS:
                       {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
                       {"name": "xarray.eof", "modes": 4, "input": "dt"}]
         results = self.mgr.testExec(domains, variables, operations)
-        self.eof_plot("pc", results)
-        self.eof_plot("eof", results)
+        self.eof_plot( PlotType.PC, results)
+        self.eof_plot( PlotType.EOF, results)
 
     def plot_telemap(self):
         domains = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"}, # "lev": {"start": 50000, "end": 50000, "system": "values"},

@@ -325,6 +325,10 @@ class EDASArray:
     def __getitem__( self, key: str ) -> str: return self.xr.attrs.get( key )
     def __setitem__(self, key: str, value: str ): self.xr.attrs[key] = value
 
+class PlotType:
+    EOF: int = 0
+    PC: int = 1
+
 class EDASDataset:
     StandardAxisMap = { "x":"lon", "y":"lat", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
@@ -332,6 +336,10 @@ class EDASDataset:
         self.arrayMap: Dict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
         self.logger = logging.getLogger()
+
+    def purge(self):
+        purgedArrayMap = { id:array.purge() for id,array in self.arrayMap.items() }
+        return EDASDataset( purgedArrayMap, self.attrs )
 
     def persist(self) -> "EDASDataset":
         for array in self.arrayMap.values(): array.persist()
@@ -368,11 +376,9 @@ class EDASDataset:
         return EDASDataset( newArrayMap, self.attrs )
 
     def standardize( self ) -> "EDASDataset":
-        dataset = self.xr
+        dataset = self.purge().xr
         for id,val in self.StandardAxisMap.items():
             if id in dataset.dims and val not in dataset.dims:
-                try: dataset = dataset.drop( val )
-                except: pass
                 dataset = dataset.rename( {id:val}, True )
         return self.fromXr( dataset, self.attrs )
 
@@ -542,14 +548,28 @@ class EDASDataset:
         ax.coastlines()
         plt.show()
 
-    def plotMaps( self, nrows=2, view = "geo" ):
-        plot_arrays = []
+    def segment_modes(self) ->  List[xa.DataArray]:
+        mode_arrays = []
         for xarray in self.xarrays:
             if "mode" in xarray.dims:
                 for imode in range( xarray.shape[xarray.get_axis_num("mode")] ):
-                   plot_arrays.append( xarray.isel( { "mode": slice(imode,imode+1) }).squeeze("mode") )
+                   mode_arrays.append( xarray.isel( { "mode": slice(imode,imode+1) }).squeeze("mode") )
             else:
-                plot_arrays.append(xarray)
+                mode_arrays.append(xarray)
+        return mode_arrays
+
+    def filterArraysByType(self, arrays: List[xa.DataArray], mtype: int ) ->  List[xa.DataArray]:
+        plot_arrays = []
+        for xarray in arrays:
+            if "time" in xarray.dims:
+                if( mtype == PlotType.PC ):
+                    plot_arrays.append( xarray )
+            elif( mtype == PlotType.EOF ):
+                plot_arrays.append( xarray )
+        return plot_arrays
+
+    def plotMaps( self, nrows=2, view = "geo", mtype = PlotType.EOF ):
+        plot_arrays = self.filterArraysByType( self.segment_modes(), mtype )
         nPlots = len(plot_arrays)
         if nPlots == 1:
             self.plotMap(0,view)
