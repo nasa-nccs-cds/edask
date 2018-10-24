@@ -193,8 +193,9 @@ class AggProcessing:
 
     @classmethod
     def changeBasePaths( cls, aggDir: str, newDir:str, pathmap: Dict[str,str] ):
-        print( "Change Base Paths: {} -> {}".format( aggDir, newDir ) )
-        fileMap = [ ( os.path.join(aggDir, f), os.path.join(newDir, f) ) for f in os.listdir(aggDir) if os.path.isfile(os.path.join(aggDir, f) and f.endswith(".ag1") ) ]
+        target_files = [ f for f in os.listdir(aggDir) if f.endswith(".ag1") ]
+        print( "Change Base Paths: {} -> {}, files = {}".format( aggDir, newDir, str(target_files) ) )
+        fileMap = [ ( os.path.join(aggDir, f), os.path.join(newDir, f) ) for f in target_files ]
         for aggFile,newFile  in fileMap: cls.changeBasePath( aggFile, newFile, pathmap )
 
 class Aggregation:
