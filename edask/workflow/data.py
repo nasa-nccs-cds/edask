@@ -78,7 +78,10 @@ class EDASArray:
     def cleanupCoords( xarray: xa.DataArray, rename_dict: Dict[str,str] = {} ) -> xa.DataArray:
         for coord in xarray.coords:
             if coord not in xarray.dims: xarray = xarray.drop(coord)
-        return xarray.rename( rename_dict )
+        for item in rename_dict.items():
+            try: xarray = xarray.rename( {item[0]:item[1]} )
+            except: pass
+        return xarray
 
     @property
     def domain_history(self) -> Set[str]:
@@ -368,7 +371,9 @@ class EDASDataset:
         dataset = self.xr
         for id,val in self.StandardAxisMap.items():
             if id in dataset.dims and val not in dataset.dims:
-                dataset.rename( {id:val}, True )
+                try: dataset = dataset.drop( val )
+                except: pass
+                dataset = dataset.rename( {id:val}, True )
         return self.fromXr( dataset, self.attrs )
 
     @classmethod
