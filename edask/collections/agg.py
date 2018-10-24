@@ -188,7 +188,7 @@ class AggProcessing:
                     value = line[2:].split(";")
                     if type == 'P':
                         if value[0].strip() == "base.path":
-                            line = "P; base.path; " + cls.mapPath( value[1].strip(), pathmap )
+                            line = "P; base.path; " + cls.mapPath( value[1].strip(), pathmap ) + "\n"
                     ofile.write( line )
 
     @classmethod
