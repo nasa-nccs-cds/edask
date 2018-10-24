@@ -249,9 +249,9 @@ class EofKernel(TimeOpKernel):
                     eofs = EDASArray( "eofs[" + inputDset.id + "]", inputDset.inputs[0].domId, eofs_data  )
                     results.append( eofs )
         if (len(products) == 0) or ( "pcs" in products):
-            for pcs_result in solver.pcs( npcs=nModes ):
-                pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )
-                results.append( pcs )
+            pcs_result = solver.pcs( npcs=nModes )
+            pcs = EDASArray( "pcs[" + inputDset.id + "]", inputDset.inputs[0].domId, self.rename( pcs_result, { "mode": "m", "pc": "m" } ).transpose() )
+            results.append( pcs )
         fracs = solver.varianceFraction( neigs=nModes )
         pves = [ str(round(float(frac*100.),1)) + '%' for frac in fracs ]
         for result in results: result["pves"] = str(pves)
