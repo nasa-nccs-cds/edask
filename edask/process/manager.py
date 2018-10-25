@@ -109,12 +109,12 @@ class ExecResultHandler(ResultHandler):
         raise Exception( "Unknown comparison method: " + method )
 
     def failureCallback(self, ex: Exception ):
+        error_message = str(ex)  if ex.__traceback__  is None else str(ex) + ":\n" +  str(traceback.format_tb( ex.__traceback__ ) )
         if self.portal:
-            self.portal.sendErrorReport( self.clientId, self.jobId, str(ex) + ":\n" +  str(traceback.format_tb( ex.__traceback__ ) )  )
+            self.portal.sendErrorReport( self.clientId, self.jobId, error_message )
             self.portal.removeHandler( self.clientId, self.jobId )
         else:
-            self.logger.error( str(ex) )
-            self.logger.error( str(traceback.format_tb( ex.__traceback__ ) ) )
+            self.logger.error( error_message )
 
     def iterationCallback( self, resultFuture: Future ):
       status = resultFuture.status
