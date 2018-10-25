@@ -68,7 +68,6 @@ class ModelKernel(OpKernel):
         print( "MODEL WEIGHTS: " + str(model.get_weights()))
         input_size = weights[0].shape[0]
         input = KerasModel.getNetworkInput( node, variable, input_size )
-        if not node.product: node["product"] = "prediction"
         return [ KerasModel.map( "predict", model, input ) ]
 
 class TrainKernel(OpKernel):

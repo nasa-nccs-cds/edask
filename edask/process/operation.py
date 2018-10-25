@@ -1,4 +1,4 @@
-from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
+from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set, Tuple
 from edask.process.source import VariableManager, VariableSource
 from edask.process.domain import DomainManager, Domain, Axis
 from edask.process.node import Node
@@ -8,6 +8,35 @@ import abc, re
 
 class OperationConnector(Node):
    __metaclass__ = abc.ABCMeta
+
+   def __init__(self, name: str ):
+       super(OperationConnector, self).__init__(name)
+       self._outputNode: "WorkflowNode" = None
+
+   @property
+   def output(self) -> str: return self.name
+
+   @property
+   def outputNode(self) -> "WorkflowNode":
+       return self._outputNode
+
+   def hasOutput(self, connId: str) -> bool:
+       return self.name == connId
+
+   def setOutput(self, connNode: "WorkflowNode"):
+       self._output = connNode
+
+   @abc.abstractmethod
+   def hasInput(self, connId: str) -> bool: pass
+
+   @abc.abstractmethod
+   def inputs(self)-> List[str]: pass
+
+   @abc.abstractmethod
+   def addInput(self, connNode: "WorkflowNode" ): pass
+
+   @property
+   def isResult(self) -> bool: return self._outputNode is None
 
 
 class SourceConnector(OperationConnector):
@@ -19,13 +48,22 @@ class SourceConnector(OperationConnector):
     def __str__(self):
         return "SI({})[ {} ]".format(self._name, str(self.source))
 
+    def hasInput(self, connId: str) -> bool: return False
+
+    @property
+    def inputs(self)-> List[str]: return []
+
+    def addInput(self, connNode: "WorkflowNode" ):
+        raise Exception( "Can't add input to source node: {} -> {}".format( connNode.name, self.name ) )
+
 
 class WorkflowConnector(OperationConnector):
 
-    def __init__( self, name: str, products: List[str] ):
-        super(WorkflowConnector, self).__init__(name)
-        self._connection: WorkflowNode = None
-        self._products = products
+    def __init__( self, output: str, inputs: List[str] ):
+        super(WorkflowConnector, self).__init__(output)
+        self._inputs = inputs
+
+        self._inputNodes: List[WorkflowNode] = []
 
     def setConnection(self, inputNode: 'WorkflowNode', updateName = False):
         self._connection = inputNode
@@ -33,17 +71,20 @@ class WorkflowConnector(OperationConnector):
             opNode: OpNode = inputNode
             self._name = opNode.rid
 
-    @property
-    def products(self)-> List[str]: return self._products
+    def hasInput(self, connId: str) -> bool:
+        return connId in self._inputs
 
     @property
-    def connection(self) -> "WorkflowNode":
-        return self._connection
+    def inputs(self)-> List[str]: return self._inputs
 
-    def isConnected(self): return self._connection is not None
+    @property
+    def inputNodes(self) -> List["WorkflowNode"]:
+        return self._inputNodes
+
+    def isConnected(self): return (len(self.inputs) > 0)
 
     def __str__(self):
-        return "WI({})[ connection: {} ]".format( self.name, self._connection.getId() if self._connection else "UNDEF" )
+        return "WI({})[ inputs: {} ]".format( self.name, ",".join(self._inputs) )
 
 class MasterNodeWrapper:
 
@@ -61,10 +102,9 @@ class WorkflowNode(Node):
         self.module: str = nameToks[0]
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
-        self._inputs: List[OperationConnector] = []
-        self._outputs: List[OpNode] = []
+        self._connectors: List[OperationConnector] = []
         self._masterNode: MasterNodeWrapper = None
-        self._addWorkflowInputs()
+        self._addWorkflowConnectors()
         self._instanceId = self.name + "-" + Job.randomStr(6)
 
     @property
@@ -81,28 +121,46 @@ class WorkflowNode(Node):
     def masterNode(self)-> "MasterNode": return self._masterNode.node
 
     @property
-    def inputs(self)-> List[OperationConnector]: return self._inputs
+    def connectors(self)-> List[OperationConnector]: return self._connectors
 
-    @property
-    def outputs(self)-> List["OpNode"]: return self._outputs
+    def findOutput( self, connId: str ) -> Optional[OperationConnector]:
+        for conn in self._connectors:
+            if conn.hasOutput( connId ): return conn
+        return None
+
+
+    def findInput( self, connId: str ) -> Optional[OperationConnector]:
+        for conn in self._connectors:
+            if conn.hasInput( connId ): return conn
+        return None
 
     @masterNode.setter
     def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
 
-    def _addWorkflowInputs(self):
-        ispecs = self.metadata.get("input","")
-        if isinstance(ispecs,str): ispecs = ispecs.split(",")
-        for inputName in ispecs:
-            if inputName:
-                inputNameToks = inputName.split(":")
-                products = inputNameToks[1].split(",") if len(inputNameToks) > 1 else []
-                self.addInput(WorkflowConnector(inputNameToks[0],products))
+    def parseInputs(self) -> List[WorkflowConnector]:
+        from edask.process.task import Job
+        connectors = []
+        ioMap = {}
+        defaultOutput =  self.metadata.get( "result", Job.randomStr(6) )
+        ispecs = self.metadata.get( "input", "" )
+        if not isinstance(ispecs,str): return ispecs
+        sep = "|" if "|" in ispecs else ":"
+        for groupSpec in ispecs.split(";"):
+            grpSpecToks = groupSpec.split(sep)
+            inputSpecs = grpSpecToks[0].split(",")
+            for inputSpec in inputSpecs:
+                inputToks = inputSpec.split(sep)
+                output = inputToks[1] if len(inputToks) > 1 else grpSpecToks[1] if len(grpSpecToks) > 1 else defaultOutput
+                ioMap.setdefault(output,set()).add(inputToks[0])
+        for output,inputs in ioMap.items():
+            connectors.append( WorkflowConnector(output,list(inputs)) )
+        return connectors
 
-    def addInput(self, input: OperationConnector):
-        self._inputs.append( input )
+    def _addWorkflowConnectors(self):
+        self._connectors.extend(self.parseInputs())
 
-    def addOutput(self, output: "OpNode"):
-        self._outputs.append( output )
+    def addConnector(self, input: OperationConnector):
+        self._connectors.append(input)
 
     @property
     def domset(self) -> Set[str]: return set() if not self.domain else { self.domain }
@@ -142,9 +200,6 @@ class WorkflowNode(Node):
 
     @abc.abstractmethod
     def getId(self): pass
-
-    @abc.abstractmethod
-    def suppliesDownstreamInput(self, inputId ): pass
 
     @abc.abstractmethod
     def isResult(self): pass
@@ -198,20 +253,6 @@ class OpNode(WorkflowNode):
     def new(cls, operationSpec: Dict[str, Any] ):
         name = operationSpec.get("name","")
         domain = operationSpec.get("domain","")
-        rid: str = operationSpec.get( "result", "" )
-        return OpNode(name, domain, rid, operationSpec)
-
-    def __init__(self, name: str, domain: str, _rid: str, metadata: Dict[str,Any] ):
-        super( OpNode, self ).__init__( name, domain, metadata)
-        self.rid = _rid
-
-    def getId(self):
-        return self.rid
-
-    @classmethod
-    def new(cls, operationSpec: Dict[str, Any] ):
-        name = operationSpec.get("name","")
-        domain = operationSpec.get("domain","")
         rid: str = operationSpec.get("result","")
         return OpNode(name, domain, rid, operationSpec)
 
@@ -222,39 +263,16 @@ class OpNode(WorkflowNode):
     def getId(self):
         return self.rid
 
-    @property
-    def product(self):
-        return self.getParm("product")
-
     def suppliesDownstreamInput(self, inputId ):
         return self.rid == inputId
 
     def isResult(self):
-        return len( self._outputs ) == 0
+        for conn in self.connectors:
+            if conn.isResult: return True
+        return False
 
     def getResultId(self, varName: str ) -> str:
-        return self.rid if self.rid else self.product if self.product else  "-".join( [ self.name, varName ] )
-
-    def serialize(self) -> str:
-        return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )
-
-    @staticmethod
-    def deserialize( spec: str ) -> "OpNode":
-        toks = spec.split('|')
-        return OpNode( toks[0], toks[1], "", Parser.rdict(toks[2]) )
-
-    @property
-    def product(self):
-        return self.getParm("product")
-
-    def suppliesDownstreamInput(self, inputId ):
-        return self.rid == inputId
-
-    def isResult(self):
-        return len( self._outputs ) == 0
-
-    def getResultId(self, varName: str ) -> str:
-        return self.rid if self.rid else self.product if self.product else  "-".join( [ self.name, varName ] )
+        return self.rid if self.rid  else  "-".join( [ self.name, varName ] )
 
     def serialize(self) -> str:
         return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )
@@ -320,7 +338,7 @@ class MasterNode(OpNode):
         outputRids = self.getMasterOutputRids()
         assert len( outputRids ) == 1, "Wrong number of outputs in Master Node {}: {}".format( self.name, len( outputRids ) )
         self.rid =  outputRids[0]
-        for inputConnector in self.getMasterInputConnectiouns():  self.addInput(inputConnector)
+        for inputConnector in self.getMasterInputConnectiouns():  self.addConnector(inputConnector)
         for outputNode in self.getMasterOutputs():
             for connection in outputNode.inputs:
                 if isinstance( connection, WorkflowConnector):
@@ -343,12 +361,6 @@ class OperationManager:
         self.variables = variableManager
         self.addInputOperations()
 
-    # def getModule(self):
-    #     self.module = self.operations[0].module
-    #     for op in self.operations:
-    #         if op.module != self.module:
-    #             raise Exception( "Can't mix modules in a single request: {}, {}".format( op.module, self.module ) )
-
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
             op = SourceNode( "xarray.input", varSource.domain, varSource, {} )
@@ -357,22 +369,25 @@ class OperationManager:
     def getDomain( self, name: str ) -> Domain:
         return self.domains.getDomain( name )
 
-    def findOperationByResult(self, inputId ) -> Optional[WorkflowNode]:
-        return next( (op for op in self.operations if op.suppliesDownstreamInput( inputId ) ), None )
+    def findOperationByOutput(self, outputId ) -> Tuple[Optional[WorkflowNode],Optional[OperationConnector]]:
+        for op in self.operations:
+            conn: Optional[OperationConnector] = op.findOutput( outputId )
+            if conn is not None: return ( op, conn )
+        return ( None, None )
 
     def __str__(self):
         return "OperationManager[ {} ]:\n\t\t{}\n\t\t{}".format( "; ".join( [ str(op) for op in self.operations ] ), str(self.domains), str(self.variables) )
 
     def createWorkflow(self):
-        for operation in self.operations:
-            for input in operation.inputs:
-                if isinstance(input, WorkflowConnector) and not input.isConnected():
-                    connection: Optional[WorkflowNode] = self.findOperationByResult( input.name )
-                    if connection is not None:
-                        input.setConnection( connection )
-                        connection.addOutput( operation )
+        for destOp in self.operations:
+            for destConn in destOp.connectors:
+                for inputId in destConn.inputs():
+                    sourceOp, sourceConn = self.findOperationByOutput( inputId )
+                    if sourceOp is not None:
+                        sourceConn.setOutput( destOp )
+                        destConn.addInput( sourceOp )
                     else:
-                        raise Exception( "Can't find connected operation for input {} of operation {}".format( input.name, operation.name ))
+                        raise Exception( "Can't find connected operation for input {} of operation {}".format( inputId, destOp.name ))
 
     def getResultOperations(self) -> List[WorkflowNode]:
          return list( filter( lambda x: x.isResult(), self.operations ) )
