@@ -35,7 +35,7 @@ class NetworkKernel(OpKernel):
             keras_model.add( keras_layer )
         return keras_model
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
         masterNode: MasterNode = node
         layerNodes: List[OpNode] = masterNode.getInputProxies()
@@ -50,7 +50,7 @@ class ModelKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any], products: List[str]) -> List[EDASArray]:
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any]) -> List[EDASArray]:
         modelId = node.getParm( "model", "model" )
         modelPath = self.archivePath( modelId, attrs )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
@@ -146,7 +146,7 @@ class TrainKernel(OpKernel):
         coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
         return EDASArray( id, None, xa.DataArray( array, coords=coords ) )
 
-    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset, products: List[str] ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         self.reseed()
         nIterations = train_node.getParm( "iterations", 1 )
         self.logger.info( "Executing fit-model {} times".format(nIterations) )

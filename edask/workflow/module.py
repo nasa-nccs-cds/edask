@@ -126,20 +126,19 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode, products: List[str] ) -> EDASDataset:
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode ) -> EDASDataset:
         inputDatasets: List[EDASDataset] = [ ]
         kernel = self.getKernel( op )
-        for input in op.inputs:
-            if isinstance(input, WorkflowConnector):
-                inputDatasets.append(self.buildSubWorkflow(request, input.connection, input.products))
-        return kernel.getResultDataset( request, op, inputDatasets, products )
+        for inputNode in op.inputNodes:
+            inputDatasets.append(self.buildSubWorkflow(request, inputNode ) )
+        return kernel.getResultDataset( request, op, inputDatasets )
 
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op, [] ) for op in resultOps ] )
+        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
         self.cleanup( request )
         return result.standardize()
 
@@ -186,11 +185,11 @@ class KernelManager:
             else:
                 if currentMasterNode is None:
                     currentMasterNode = MasterNode(kernel.parent)
-                    currentMasterNode.addMasterOutputs(rootNode.outputs)
+                    currentMasterNode.addMasterOutputs(rootNode.outputNodes)
                     masterNodeList.add( currentMasterNode )
                 currentMasterNode.addProxy(rootNode)
-            for conn in rootNode.inputs:
-                self.createMasterNodes( conn.connection, masterNodeList, currentMasterNode )
+            for inpputNode in rootNode.inputNodes:
+                self.createMasterNodes( inpputNode, masterNodeList, currentMasterNode )
 
     def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
         masterNodes: Set[MasterNode] = set()

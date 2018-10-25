@@ -45,10 +45,10 @@ class Kernel:
         for option in self.requiredOptions:
             assert node.findParm( option, None ) is not None, "Option re[{}] is required for the {} kernel".format( option, self.name )
 
-    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
+    def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset] ) -> EDASDataset:
         result = request.getCachedResult( self._id )
         if result is None:
-           result = self.buildWorkflow( request, node, inputs, products )
+           result = self.buildWorkflow( request, node, inputs )
            request.cacheResult( self._id, result )
         return result
 
@@ -70,7 +70,7 @@ class Kernel:
         return Archive.getFilePath( attrs["proj"], attrs["exp"], id )
 
     @abstractmethod
-    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset: pass
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset] ) -> EDASDataset: pass
 
 class OpKernel(Kernel):
     # Operates independently on sets of variables with same index across all input datasets
@@ -80,7 +80,7 @@ class OpKernel(Kernel):
         super(OpKernel, self).__init__(spec)
         self.addRequiredOptions( ["ax.s", "input"] )
 
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
+    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: List[EDASDataset] ) -> EDASDataset:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
@@ -91,14 +91,14 @@ class OpKernel(Kernel):
         for matched_inputs in matching_groups:
             inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
-            product = self.processInputCrossSection( request, op, inputCrossSection, products )
+            product = self.processInputCrossSection( request, op, inputCrossSection )
             for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
             product.name = op.getResultId( inputVars.id )
             result += product
         return self.signResult(result,request,wnode)
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset, products: List[str]  ) -> EDASDataset:
-        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs, products ) for input in inputDset.inputs ]))
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset  ) -> EDASDataset:
+        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs ) for input in inputDset.inputs ]))
         return EDASDataset.init( self.renameResults(results,node), inputDset.attrs )
 
     def renameResults1(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
@@ -116,12 +116,12 @@ class OpKernel(Kernel):
             resultMap[result.name] = result
         return resultMap
 
-    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
-        results = self.processVariable( request, node, inputs, attrs, products )
+    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
+        results = self.processVariable( request, node, inputs, attrs )
         for result in results: result.propagateHistory( inputs )
         return results
 
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any], products: List[str] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
         return [inputs]
 
     def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
@@ -201,7 +201,7 @@ class InputKernel(Kernel):
                 return EDASDataset.init( { cid: variable }, {} )
         return None
 
-    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset], products: List[str]) -> EDASDataset:
+    def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: List[EDASDataset] ) -> EDASDataset:
         snode: SourceNode = node
         result: EDASDataset = EDASDataset.empty()
         t0 = time.time()
