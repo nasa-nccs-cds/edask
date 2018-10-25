@@ -68,7 +68,7 @@ class ExecResultHandler(ResultHandler):
           self.logger.info( " Completed computation " + self.jobId + " in " + str(time.time() - self.start_time) + " seconds" )
           self._processFinalResult( )
       else:
-          self.failureCallback( Exception("status = " + status) )
+          self.failureCallback( resultFuture.result() )
       if self.portal: self.portal.removeHandler( self.clientId, self.jobId )
 
     def _processFinalResult( self ):
@@ -110,11 +110,11 @@ class ExecResultHandler(ResultHandler):
 
     def failureCallback(self, ex: Exception ):
         if self.portal:
-            self.portal.sendErrorReport( self.clientId, self.jobId, str(ex) )
+            self.portal.sendErrorReport( self.clientId, self.jobId, str(ex) + ":\n" +  str(traceback.format_tb( ex.__traceback__ ) )  )
             self.portal.removeHandler( self.clientId, self.jobId )
         else:
-            print("ERROR: " + str(ex))
-            print(traceback.format_exc())
+            self.logger.error( str(ex) )
+            self.logger.error( str(traceback.format_tb( ex.__traceback__ ) ) )
 
     def iterationCallback( self, resultFuture: Future ):
       status = resultFuture.status

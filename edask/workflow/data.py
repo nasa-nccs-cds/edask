@@ -595,6 +595,7 @@ class EDASDataset:
                 try:
                     ax = axes[irow,icol] if hasattr(axes, '__getitem__') else axes
                     xarray.plot.contourf( ax=ax, levels=8, cmap='jet', robust=True, transform=ccrs.PlateCarree() )
+                    ax.set_title(xarray.name)
                     ax.coastlines()
                 except Exception as err:
                     self.logger.error( "ERROR Plotting ( irow: {}, icol: {} ) of {} plots: {}".format(irow,icol,len(plot_arrays),str(err)))

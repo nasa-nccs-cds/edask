@@ -36,4 +36,3 @@ if __name__ == '__main__':
     tester = CollectionsTESTS()
     tstart = time.time()
     result = tester.compute_eofs_SN()
-    print( " Completed computation in " + str(time.time() - tstart) + " seconds" )
