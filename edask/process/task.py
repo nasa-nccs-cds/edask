@@ -6,7 +6,7 @@ import copy
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
 from edask.portal.parsers import WpsCwtParser
-from edask.workflow.data import EDASDataset, EDASArray
+from edask.workflow.data import EDASDataset, EDASArray, EDASDatasetCollection
 from edask.collections.agg import Archive
 
 class UID:
@@ -100,12 +100,12 @@ class TaskRequest:
       self.project = project
       self.experiment = experiment
       self.operationManager = _operationManager
-      self._resultCache: Dict[str, EDASDataset] = {}
+      self._resultCache: Dict[ str,  EDASDatasetCollection ] = {}
 
-  def getCachedResult( self, key: str )-> EDASDataset:
+  def getCachedResult( self, key: str )->  EDASDatasetCollection:
       return self._resultCache.get( key )
 
-  def cacheResult(self, key: str, result: EDASDataset)-> "TaskRequest":
+  def cacheResult(self, key: str, result: EDASDatasetCollection )-> "TaskRequest":
       self._resultCache[ key ] = result
       return self
 

@@ -643,6 +643,7 @@ class EDASDataset:
     def __setitem__(self, key: str, value: Any ): self.attrs[key] = value
 
 
+
 class MergeHandler:
     __metaclass__ = abc.ABCMeta
 
@@ -653,3 +654,21 @@ class StandardMergeHandler(MergeHandler):
 
     def mergeResults(self, results: List[EDASDataset] ) -> EDASDataset:
         return EDASDataset.merge( results )
+
+class EDASDatasetCollection:
+
+    def __init__( self ):
+        self.datasets: Dict[str,EDASDataset] = {}
+
+    @property
+    def ids(self) -> List[str]: return list(self.datasets.keys())
+
+    def __getitem__( self, key: str ) -> EDASDataset: return self.datasets.get( key )
+
+    def __setitem__(self, key: str, dset: EDASDataset ):
+        current = self.datasets.get( id, None )
+        self.datasets[id] = dset if current is None else EDASDataset.merge( [ current, dset ] )
+
+    def __iadd__(self, other: "EDASDatasetCollection" ):
+        for id in other.ids: self[id] = other[id]
+        return self

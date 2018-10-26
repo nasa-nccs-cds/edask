@@ -288,8 +288,8 @@ class OpNode(WorkflowNode):
             if conn.isResult: return True
         return False
 
-#    def getResultId(self, varName: str ) -> str:
-#        return self.rid if self.rid  else  "-".join( [ self.name, varName ] )
+    def getResultId(self, varName: str ) -> str:
+        return self.name +  "[" +  ",".join( self.outputs ) +  "]"
 
     def serialize(self) -> str:
         return "{}|{}|{}".format( self.name, self.domain, Parser.sdict(self.metadata) )

@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, DualOpKernel, TimeOpKernel
+from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, EnsOpKernel, TimeOpKernel
 import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode
 from edask.process.task import TaskRequest
@@ -288,9 +288,9 @@ class SumKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
         return [variable.sum( node.axes )]
 
-class DiffKernel(DualOpKernel):
+class DiffKernel(EnsOpKernel):
     def __init__( self ):
-        DualOpKernel.__init__( self, KernelSpec("diff", "Difference Kernel","Computes the point-by-point differences of pairs of arrays." ) )
+        EnsOpKernel.__init__(self, KernelSpec("diff", "Difference Kernel", "Computes the point-by-point differences of pairs of arrays."))
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         inputVars: List[EDASArray] = inputDset.inputs
