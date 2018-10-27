@@ -87,8 +87,9 @@ class OpKernel(Kernel):
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
         for connector in wnode.connectors:
-            inputDataset = EDASDataset.merge( [ inputs[id] for id in connector.inputs ] )
-            inputVars: EDASDataset = self.preprocessInputs(request, op, inputDataset, inputs[0].attrs )
+            connector_inputs = [ inputs[id] for id in connector.inputs ]
+            inputDataset = EDASDataset.merge( connector_inputs )
+            inputVars: EDASDataset = self.preprocessInputs(request, op, inputDataset )
             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
             product = self.processInputCrossSection( request, op, inputCrossSection )
             for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
@@ -124,13 +125,13 @@ class OpKernel(Kernel):
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
         return [inputs]
 
-    def preprocessInputs(self, request: TaskRequest, op: OpNode, inputDict: Dict[str,EDASArray], atts: Dict[str,Any] ) -> EDASDataset:
-        inputList = list(inputDict.values())
+    def preprocessInputs( self, request: TaskRequest, op: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+        inputList = inputDset.inputs
         interp_na = bool(op.getParm("interp_na", False))
-        if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDict.items() }
-        else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDict.items() }
+        if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDset.arrayMap.items() }
+        else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDset.arrayMap.items() }
         if op.isSimple and not self.requiresAlignment:
-            preprop_result: EDASDataset = EDASDataset.init( inputs, atts )
+            preprop_result: EDASDataset = EDASDataset.init( inputs, inputDset.attrs )
         else:
             result: EDASDataset = EDASDataset.empty()
             for input in inputs.values():
@@ -139,9 +140,9 @@ class OpKernel(Kernel):
                     merged_domain: str = request.intersectDomains(unapplied_domains, False)
                     processed_domain: Domain = request.cropDomain(merged_domain, inputs.values())
                     sub_array = input.subset( processed_domain, unapplied_domains )
-                    result.addArray( sub_array.name, sub_array, atts )
+                    result.addArray( sub_array.name, sub_array, inputDset.attrs )
                 else:
-                    result.addArray( input.name, input, atts )
+                    result.addArray( input.name, input, inputDset.attrs )
             preprop_result = result.align( op.getParm("align","lowest") )
         return preprop_result.groupby( op.grouping ).resample( op.resampling )
 
@@ -159,7 +160,7 @@ class EnsOpKernel(OpKernel):
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
         result: EDASDataset = EDASDataset.empty()
-        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
+#        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         input_vars: List[List[(str,EDASArray)]] = [ list(dset.arrayMap.items()) for dset in inputs ]
         self.testOptions( wnode )
         matching_groups = zip( *input_vars ) if len(inputs) > 1 else [ sum( input_vars, [] ) ]
@@ -218,13 +219,17 @@ class InputKernel(Kernel):
                 return EDASDataset.init( { cid: variable }, {} )
         return None
 
+    def importToDatasetCollection(self, collection: EDASDatasetCollection, request: TaskRequest, snode: SourceNode, dset: xr.Dataset):
+        pdest = self.processDataset(request, dset, snode)
+        for vid in snode.varSource.ids: collection[vid] = pdest.subselect(vid)
+
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: EDASDatasetCollection )  -> EDASDatasetCollection:
         snode: SourceNode = node
-        result: Dict[str,EDASDataset] = {}
+        results = EDASDatasetCollection()
         t0 = time.time()
         dset = self.getCachedDataset( snode )
         if dset is not None:
-            result += self.processDataset( request, dset.xr, snode )
+            self.importToDatasetCollection(results, request, snode, dset)
             self.logger.info( "Access input data from cache: " + dset.id )
         else:
             dataSource: DataSource = snode.varSource.dataSource
@@ -233,27 +238,28 @@ class InputKernel(Kernel):
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 for ( aggId, vars ) in aggs.items():
                     dset = xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
-                    result += self.processDataset( request, dset, snode )
+                    self.importToDatasetCollection( results, request, snode, dset )
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
-                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids(), parallel=True)
-                result += self.processDataset( request, dset, snode )
+                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids, parallel=True)
+                self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.archive:
                 self.logger.info( "Reading data from archive: " + dataSource.address )
                 dataPath =  request.archivePath( dataSource.address )
                 dset = xr.open_dataset(dataPath, autoclose=True)
-                result += self.processDataset( request, dset, snode )
+                self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
                 engine = ParmMgr.get("dap.engine","netcdf4")
                 self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 dset = xr.open_dataset(dataSource.address, engine=engine, autoclose=True)
-                result  +=  self.processDataset( request, dset, snode )
+                self.importToDatasetCollection(results, request, snode, dset)
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
-        return self.signResult( result, request, node,  sources = snode.varSource.getId() )
+        return results
 
 
     def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
-        edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids() }, snode.varSource.name2id(coordMap) )
+        edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids}, snode.varSource.name2id(coordMap) )
         processed_domain: Domain  = request.cropDomain( snode.domain, edset.inputs, snode.offset )
-        return edset.subset( processed_domain ) if snode.domain else edset
+        result = edset.subset( processed_domain ) if snode.domain else edset
+        return self.signResult(result, request, snode, sources=snode.varSource.getId())

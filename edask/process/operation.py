@@ -379,7 +379,7 @@ class OperationManager:
 
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
-            for id in varSource.ids():
+            for id in varSource.ids:
                 op = SourceNode( "xarray.input", varSource.domain, varSource, id, {} )
                 self.operations.append( op )
 

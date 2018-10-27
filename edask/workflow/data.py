@@ -8,6 +8,7 @@ import abc, math, time
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
+from edask.process.operation import WorkflowNode
 from edask.data.processing import Parser
 import xarray.plot as xrplot
 import cartopy.crs as ccrs
@@ -661,14 +662,23 @@ class EDASDatasetCollection:
         self.datasets: Dict[str,EDASDataset] = {}
 
     @property
-    def ids(self) -> List[str]: return list(self.datasets.keys())
+    def keys(self) -> List[str]: return list(self.datasets.keys())
 
     def __getitem__( self, key: str ) -> EDASDataset: return self.datasets.get( key )
 
     def __setitem__(self, key: str, dset: EDASDataset ):
-        current = self.datasets.get( id, None )
-        self.datasets[id] = dset if current is None else EDASDataset.merge( [ current, dset ] )
+        current = self.datasets.get( key, None )
+        self.datasets[key] = dset if current is None else EDASDataset.merge( [ current, dset ] )
 
-    def __iadd__(self, other: "EDASDatasetCollection" ):
-        for id in other.ids: self[id] = other[id]
-        return self
+    def __iadd__( self, other: "EDASDatasetCollection" ):
+        for key in other.keys: self[key] = other[key]
+
+    def filterByOperation( self, op: WorkflowNode ) -> "EDASDatasetCollection":
+        filteredInputDatasets = EDASDatasetCollection()
+        print(" %%%% PROCESSING connectors ")
+        for connector in op.connectors:
+            print(" %%%% PROCESS connector : " + connector.output)
+            for vid in connector.inputs:
+                print(" %%%% PROCESS connector input: " + vid)
+                filteredInputDatasets[vid] = self[vid]
+        return filteredInputDatasets

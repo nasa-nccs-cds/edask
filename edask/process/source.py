@@ -93,14 +93,15 @@ class VariableSource(Node):
     def names(self) -> List[str]:
         return [ v.name for v in self.vids ]
 
+    @property
     def ids(self) -> List[str]:
         return [ v.id for v in self.vids ]
 
     def providesId(self, vid: str ) -> bool:
-        return vid in self.ids()
+        return vid in self.ids
 
     def getId(self) -> str:
-        return ":".join(self.ids())
+        return ":".join(self.ids)
 
     def __str__(self):
         return "V({})[ domain: {}, source: {} ]".format( ",".join([str(v) for v in self.vids]), self.domain, str(self.dataSource))

@@ -126,16 +126,18 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.describeProcess( op )
 
-    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode ) -> EDASDatasetCollection:
+    def getInputDatasets(self, request: TaskRequest, op: WorkflowNode ) -> EDASDatasetCollection:
         inputDatasets = EDASDatasetCollection()
-        kernel = self.getKernel( op )
+        print(" %%%% PROCESSING inputs ")
         for inputNode in op.inputNodes:
+            print(" %%%% ADD INPUT : " + inputNode.name )
             inputDatasets += self.buildSubWorkflow(request, inputNode )
-        filteredInputDatasets = EDASDatasetCollection()
-        for connector in op.connectors:
-            for id in connector.inputs:
-                filteredInputDatasets[id] = inputDatasets[id]
-        return kernel.getResultDataset( request, op, filteredInputDatasets )
+        return inputDatasets
+
+    def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode ) -> EDASDatasetCollection:
+        print( " %%%% BuildSubWorkflow: " + op.name )
+        inputDatasets: EDASDatasetCollection = self.getInputDatasets( request, op ).filterByOperation( op )
+        return self.getKernel( op ).getResultDataset( request, op, inputDatasets )
 
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
