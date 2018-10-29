@@ -2,7 +2,7 @@ from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
 from edask.process.operation import WorkflowNode, OpNode, MasterNode
 from edask.process.task import TaskRequest
-from edask.workflow.data import EDASArray
+from edask.workflow.data import EDASArray, EDASDatasetCollection
 from typing import List, Optional, Tuple, Dict, Any
 from operator import mul
 from functools import reduce
@@ -35,8 +35,9 @@ class NetworkKernel(OpKernel):
             keras_model.add( keras_layer )
         return keras_model
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
+        inputDset = inputDatasets.dataset
         masterNode: MasterNode = node
         layerNodes: List[OpNode] = masterNode.getInputProxies()
         assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
@@ -50,9 +51,9 @@ class ModelKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray, attrs: Dict[str, Any]) -> List[EDASArray]:
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         modelId = node.getParm( "model", "model" )
-        modelPath = self.archivePath( modelId, attrs )
+        modelPath = self.archivePath( modelId )
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
         layersSpec = modelData["layers"]
         assert layersSpec, "Missing levels spec in model data"
@@ -146,8 +147,9 @@ class TrainKernel(OpKernel):
         coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
         return EDASArray( id, None, xa.DataArray( array, coords=coords ) )
 
-    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
         self.reseed()
+        inputDset = inputDatasets.dataset
         nIterations = train_node.getParm( "iterations", 1 )
         self.logger.info( "Executing fit-model {} times".format(nIterations) )
         val_loss_values = []

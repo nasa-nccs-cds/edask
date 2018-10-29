@@ -1,6 +1,6 @@
 import logging
 from enum import Enum, auto
-from typing import List, Dict, Any, Set, Optional, Tuple, Union
+from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView
 from edask.process.domain import Domain, Axis
 import string, random, os, re, traceback
 from edask.collections.agg import Archive
@@ -8,7 +8,7 @@ import abc, math, time
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
-from edask.process.operation import WorkflowNode
+from edask.process.operation import WorkflowNode, OperationConnector
 from edask.data.processing import Parser
 import xarray.plot as xrplot
 import cartopy.crs as ccrs
@@ -376,12 +376,13 @@ class EDASDataset:
         newArrayMap = { id:array for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None }
         return EDASDataset( newArrayMap, self.attrs )
 
-    def standardize( self ) -> "EDASDataset":
+    def standardize( self, new_attrs: Dict[str,str] = {} ) -> "EDASDataset":
         dataset = self.purge().xr
         for id,val in self.StandardAxisMap.items():
             if id in dataset.dims and val not in dataset.dims:
                 dataset = dataset.rename( {id:val}, True )
-        return self.fromXr( dataset, self.attrs )
+        result_attrs = { **self.attrs, **new_attrs }
+        return self.fromXr( dataset, result_attrs )
 
     @classmethod
     def fromXr(cls, dataset: xa.Dataset, attrs: Dict[str,Any] = {} ) -> "EDASDataset":
@@ -490,9 +491,7 @@ class EDASDataset:
     def getAlignmentVariable(self, alignRes: str ):
         return self.getExtremeVariable( Extremity.parse(alignRes) )
 
-    def align( self, alignRes: str = "lowest" ) -> "EDASDataset":
-      if not alignRes: return self
-      target_var: EDASArray =  self.getAlignmentVariable( alignRes )
+    def align( self, target_var: EDASArray ) -> "EDASDataset":
       new_vars = { var.name: var.align(target_var) for var in self.inputs }
       return EDASDataset.init( new_vars, self.attrs )
 
@@ -658,20 +657,36 @@ class StandardMergeHandler(MergeHandler):
 
 class EDASDatasetCollection:
 
-    def __init__( self ):
-        self.datasets: Dict[str,EDASDataset] = {}
+    def __init__( self, dsets: Dict[str, EDASDataset] = {}  ):
+        self._datasets: Dict[str, EDASDataset] = dsets
 
     @property
-    def keys(self) -> List[str]: return list(self.datasets.keys())
+    def keys(self) -> KeysView[str]: return self._datasets.keys()
 
-    def __getitem__( self, key: str ) -> EDASDataset: return self.datasets.get( key )
+    def items(self) -> ItemsView[(str, EDASDataset)]: return self._datasets.items()
+
+    def __getitem__( self, key: str ) -> EDASDataset: return self._datasets.get(key)
 
     def __setitem__(self, key: str, dset: EDASDataset ):
-        current = self.datasets.get( key, None )
-        self.datasets[key] = dset if current is None else EDASDataset.merge( [ current, dset ] )
+        assert isinstance(dset,EDASDataset), "EDASDatasetCollection.setitem: Expecting EDASDataset, got " + dset.__class__.__name__
+        current = self._datasets.get(key, None)
+        self._datasets[key] = dset if current is None else EDASDataset.merge([current, dset])
 
     def __iadd__( self, other: "EDASDatasetCollection" ):
         for key in other.keys: self[key] = other[key]
+        return self
+
+    @property
+    def attrs(self) -> Dict[str,str]:
+        return { k:v for dset in self._datasets.values() for k,v in dset.attrs.items() }
+
+    @property
+    def arrays(self) -> List[EDASArray]:
+        return [array for dset in self._datasets.values() for array in dset.arrayMap.values()]
+
+    @property
+    def dataset(self) -> EDASDataset:
+        return EDASDataset.merge( list( self._datasets.values() ) )
 
     def filterByOperation( self, op: WorkflowNode ) -> "EDASDatasetCollection":
         filteredInputDatasets = EDASDatasetCollection()
@@ -682,3 +697,32 @@ class EDASDatasetCollection:
                 print(" %%%% PROCESS connector input: " + vid)
                 filteredInputDatasets[vid] = self[vid]
         return filteredInputDatasets
+
+    def filterByConnector(self, inputConnector: OperationConnector ) -> "EDASDatasetCollection":
+        filteredDatasets = EDASDatasetCollection()
+        for vid in inputConnector.inputs: filteredDatasets[vid] = self[vid]
+        return filteredDatasets
+
+    def getResultDataset(self)-> EDASDataset:
+        return EDASDataset.merge([dset.standardize( {"product": id} ) for id,dset in self._datasets.items()])
+
+    def getExtremeVariable(self, ext: Extremity ) -> EDASArray:
+        arrayList = self.arrays
+        sizes = [ x.size for x in arrayList ]
+        exVal = max( sizes ) if ext == Extremity.HIGHEST else min( sizes )
+        return arrayList[ sizes.index( exVal ) ]
+
+    def getAlignmentVariable(self, alignRes: str ):
+        return self.getExtremeVariable( Extremity.parse(alignRes) )
+
+    def align( self, alignRes: str ) -> "EDASDatasetCollection":
+        tvar = self.getAlignmentVariable( alignRes )
+        return EDASDatasetCollection( { key: dset.align(tvar) for key,dset in self._datasets.items() } )
+
+    def groupby( self, grouping: str ) -> "EDASDatasetCollection":
+        if grouping is None: return self
+        return EDASDatasetCollection( { key: dset.groupby(grouping) for key,dset in self._datasets.items() } )
+
+    def resample( self, resampling: str ) -> "EDASDatasetCollection":
+        if resampling is None: return self
+        return EDASDatasetCollection( { key: dset.resample(resampling) for key,dset in self._datasets.items() } )

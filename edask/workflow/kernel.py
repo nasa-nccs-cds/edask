@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import logging, random, string, os, time
 from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional, Tuple, Iterable
-from edask.process.operation import WorkflowNode, SourceNode, OpNode
+from edask.process.operation import WorkflowNode, SourceNode, OpNode, OperationConnector
 from edask.collections.agg import Archive
 import xarray as xr
 from edask.workflow.data import KernelSpec, EDASDataset, EDASArray, EDASDatasetCollection
@@ -87,28 +87,31 @@ class OpKernel(Kernel):
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
         for connector in wnode.connectors:
-            connector_inputs = [ inputs[id] for id in connector.inputs ]
-            inputDataset = EDASDataset.merge( connector_inputs )
-            inputVars: EDASDataset = self.preprocessInputs(request, op, inputDataset )
-            inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
-            product = self.processInputCrossSection( request, op, inputCrossSection )
-            for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
-            product.name = op.getResultId( inputVars.id )
-            self.signResult( product, request, wnode )
-            results[connector.output] = product
+            inputDatasets: EDASDatasetCollection = self.preprocessInputs(request, op, inputs.filterByConnector( connector ) )
+            results[connector.output] = self.processInputCrossSection( request, op, inputDatasets )
         return results
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset  ) -> EDASDataset:
-        results: List[EDASArray] = list(chain.from_iterable([ self.transformInput( request, node, input, inputDset.attrs ) for input in inputDset.inputs ]))
-        return EDASDataset.init( self.renameResults(results,node), inputDset.attrs )
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection  ) -> EDASDataset:
+#        inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputDatasets)
+        results = List[EDASDataset]
+        for key,dset in results.items():
+            result_arrays: List[EDASArray] = [ self.transformInput( request, node, input ) for input in dset.inputs ]
+            results.append( self.buildProduct( dset.id, request, node, result_arrays, inputDatasets.attrs ) )
+        return EDASDataset.merge( results )
 
-    def renameResults1(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
-        resultMap: Dict[str,EDASArray] = {}
-        for result in results:
-            result.name = node.getResultId(result.name)
-            key = node.rid if node.rid else result.product if result.product else result.name
-            resultMap[key] = result
-        return resultMap
+    def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
+        result_dset = EDASDataset.init( self.renameResults(result_arrays,node), attrs )
+        for parm in [ "product", "archive" ]: result_dset[parm] = node.getParm( parm, "" )
+        result_dset.name = node.getResultId( dsid )
+        return self.signResult( result_dset, request, node )
+
+    # def renameResults1(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
+    #     resultMap: Dict[str,EDASArray] = {}
+    #     for result in results:
+    #         result.name = node.getResultId(result.name)
+    #         key = node.rid if node.rid else result.product if result.product else result.name
+    #         resultMap[key] = result
+    #     return resultMap
 
     def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
         resultMap: Dict[str,EDASArray] = {}
@@ -117,32 +120,33 @@ class OpKernel(Kernel):
             resultMap[result.name] = result
         return resultMap
 
-    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
-        results = self.processVariable( request, node, inputs, attrs )
+    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]:
+        results = self.processVariable( request, node, inputs )
         for result in results: result.propagateHistory( inputs )
         return results
 
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray, attrs: Dict[str,Any] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]:
         return [inputs]
 
-    def preprocessInputs( self, request: TaskRequest, op: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        inputList = inputDset.inputs
-        interp_na = bool(op.getParm("interp_na", False))
-        if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDset.arrayMap.items() }
-        else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDset.arrayMap.items() }
+    def preprocessInputs( self, request: TaskRequest, op: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDatasetCollection:
+#         interp_na = bool(op.getParm("interp_na", False))
+#         if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDset.arrayMap.items() }
+#         else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDset.arrayMap.items() }
         if op.isSimple and not self.requiresAlignment:
-            preprop_result: EDASDataset = EDASDataset.init( inputs, inputDset.attrs )
+            preprop_result: EDASDatasetCollection = inputDatasets
         else:
-            result: EDASDataset = EDASDataset.empty()
-            for input in inputs.values():
-                unapplied_domains: Set[str] = input.unapplied_domains(inputList, op.domain)
-                if len( unapplied_domains ) > 0:
-                    merged_domain: str = request.intersectDomains(unapplied_domains, False)
-                    processed_domain: Domain = request.cropDomain(merged_domain, inputs.values())
-                    sub_array = input.subset( processed_domain, unapplied_domains )
-                    result.addArray( sub_array.name, sub_array, inputDset.attrs )
-                else:
-                    result.addArray( input.name, input, inputDset.attrs )
+            result: EDASDatasetCollection = EDASDatasetCollection()
+            arrayList = inputDatasets.arrays
+            for key,dset in inputDatasets.items():
+                for aid,array in dset.arrayMap.items():
+                    unapplied_domains: Set[str] = array.unapplied_domains(arrayList, op.domain)
+                    if len( unapplied_domains ) > 0:
+                        merged_domain: str = request.intersectDomains(unapplied_domains, False)
+                        processed_domain: Domain = request.cropDomain(merged_domain, arrayList )
+                        sub_array = array.subset( processed_domain, unapplied_domains )
+                        result[key] = EDASDataset( { aid: sub_array}, inputDatasets.attrs )
+                    else:
+                        result[key] = EDASDataset( { aid: array}, inputDatasets.attrs )
             preprop_result = result.align( op.getParm("align","lowest") )
         return preprop_result.groupby( op.grouping ).resample( op.resampling )
 
@@ -152,32 +156,32 @@ class OpKernel(Kernel):
         result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray ) }
         return EDASDataset.init( result, inputDset.attrs )
 
-class EnsOpKernel(OpKernel):
-    # Operates independently on sets of variables with same index across all input datasets
-    # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
-
-    def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
-        op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        result: EDASDataset = EDASDataset.empty()
-#        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
-        input_vars: List[List[(str,EDASArray)]] = [ list(dset.arrayMap.items()) for dset in inputs ]
-        self.testOptions( wnode )
-        matching_groups = zip( *input_vars ) if len(inputs) > 1 else [ sum( input_vars, [] ) ]
-        for matched_inputs in matching_groups:
-            inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
-            inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
-            product = self.processInputCrossSection( request, op, inputCrossSection )
-            for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
-            product.name = op.getResultId( inputVars.id )
-            result += product
-        return self.signResult(result,request,wnode)
-
-    def __init__(self, spec: KernelSpec):
-        super(EnsOpKernel, self).__init__(spec)
-        self.removeRequiredOptions( ["ax.s"] )
-        self._minInputs = 2
-        self._maxInputs = 2
+# class EnsOpKernel(OpKernel):
+#     # Operates independently on sets of variables with same index across all input datasets
+#     # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
+#
+#     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
+#         op: OpNode = wnode
+#         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+#         result: EDASDataset = EDASDataset.empty()
+# #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
+#         input_vars: List[List[(str,EDASArray)]] = [ list(dset.arrayMap.items()) for dset in inputs ]
+#         self.testOptions( wnode )
+#         matching_groups = zip( *input_vars ) if len(inputs) > 1 else [ sum( input_vars, [] ) ]
+#         for matched_inputs in matching_groups:
+#             inputVars: EDASDataset = self.preprocessInputs(request, op, { key:value for (key,value) in matched_inputs}, inputs[0].attrs )
+#             inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputVars)
+#             product = self.processInputCrossSection( request, op, inputCrossSection )
+#             for parm in [ "product", "archive" ]: product[parm] = op.getParm( parm, "" )
+#             product.name = op.getResultId( inputVars.id )
+#             result += product
+#         return self.signResult(result,request,wnode)
+#
+#     def __init__(self, spec: KernelSpec):
+#         super(EnsOpKernel, self).__init__(spec)
+#         self.removeRequiredOptions( ["ax.s"] )
+#         self._minInputs = 2
+#         self._maxInputs = 2
 
 class TimeOpKernel(OpKernel):
     # Operates independently on sets of variables with same index across all input datasets

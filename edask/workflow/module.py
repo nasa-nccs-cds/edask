@@ -127,26 +127,27 @@ class KernelManager:
         return module.describeProcess( op )
 
     def getInputDatasets(self, request: TaskRequest, op: WorkflowNode ) -> EDASDatasetCollection:
-        inputDatasets = EDASDatasetCollection()
+        dsetColl = EDASDatasetCollection()
         print(" %%%% PROCESSING inputs ")
         for inputNode in op.inputNodes:
             print(" %%%% ADD INPUT : " + inputNode.name )
-            inputDatasets += self.buildSubWorkflow(request, inputNode )
-        return inputDatasets
+            dsetColl += self.buildSubWorkflow(request, inputNode )
+        return dsetColl
 
     def buildSubWorkflow(self, request: TaskRequest, op: WorkflowNode ) -> EDASDatasetCollection:
         print( " %%%% BuildSubWorkflow: " + op.name )
-        inputDatasets: EDASDatasetCollection = self.getInputDatasets( request, op ).filterByOperation( op )
-        return self.getKernel( op ).getResultDataset( request, op, inputDatasets )
+        subWorkflowDatasets: EDASDatasetCollection = self.getInputDatasets( request, op ).filterByOperation( op )
+        return self.getKernel( op ).getResultDataset( request, op, subWorkflowDatasets )
 
     def buildRequest(self, request: TaskRequest ) -> EDASDataset:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        result = EDASDataset.merge( [ self.buildSubWorkflow( request, op ) for op in resultOps ] )
+        result = EDASDatasetCollection()
+        for op in resultOps: result += self.buildSubWorkflow( request, op )
         self.cleanup( request )
-        return result.standardize()
+        return result.getResultDataset()
 
     def cleanup(self, request: TaskRequest):
         ops: List[WorkflowNode] = request.getOperations()

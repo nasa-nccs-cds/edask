@@ -185,7 +185,8 @@ class WorkflowNode(Node):
             for inputSpec in inputSpecs:
                 inputToks = inputSpec.split(sep)
                 output = inputToks[1] if len(inputToks) > 1 else grpSpecToks[1] if len(grpSpecToks) > 1 else defaultOutput
-                ioMap.setdefault(output,set()).add(inputToks[0])
+                inputSet = ioMap.setdefault(output,set())
+                if inputToks[0]: inputSet.add(inputToks[0])
         for output,inputs in ioMap.items():
             connectors.append( WorkflowConnector(output,list(inputs)) )
         return connectors
