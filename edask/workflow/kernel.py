@@ -94,13 +94,12 @@ class OpKernel(Kernel):
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection  ) -> EDASDataset:
 #        inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputDatasets)
-        results = List[EDASDataset]
-        for key,dset in results.items():
-            result_arrays: List[EDASArray] = [ self.transformInput( request, node, input ) for input in dset.inputs ]
+        results: List[EDASDataset] = []
+        for key,dset in inputDatasets.items():
+            result_arrays: List[EDASArray] = [ array for input in dset.inputs for array in self.transformInput( request, node, input )  ]
             results.append( self.buildProduct( dset.id, request, node, result_arrays, inputDatasets.attrs ) )
         result =  EDASDataset.merge( results )
-        print( " $$$$ processInputCrossSection: " + node.name + " -> " + result.arrayIds)
-        return results
+        return result
 
     def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
         result_dset = EDASDataset.init( self.renameResults(result_arrays,node), attrs )
