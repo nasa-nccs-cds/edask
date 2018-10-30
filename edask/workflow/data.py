@@ -727,7 +727,7 @@ class EDASDatasetCollection:
         return filteredDatasets
 
     def getResultDataset(self)-> EDASDataset:
-        return EDASDataset.merge([dset.standardize( {"product": id} ) for id,dset in self._datasets.items()])
+        return EDASDataset.merge([dset.standardize( {"product": id} ) for id,dset in self._datasets.items()]).persist()
 
     def getExtremeVariable(self, ext: Extremity ) -> EDASArray:
         arrayList = self.arrays
