@@ -46,6 +46,7 @@ class Kernel:
             assert node.findParm( option, None ) is not None, "Option re[{}] is required for the {} kernel".format( option, self.name )
 
     def getResultDataset(self, request: TaskRequest, node: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
+        print( " $$$$ getResultDataset: " + node.name + " -> " + inputs.arrayIds )
         results = request.getCachedResult( self._id )
         if results is None:
            results: EDASDatasetCollection = self.buildWorkflow( request, node, inputs )
@@ -83,7 +84,7 @@ class OpKernel(Kernel):
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
-        results = EDASDatasetCollection()
+        results = EDASDatasetCollection("OpKernel.build-" + wnode.name )
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
         for connector in wnode.connectors:
@@ -97,7 +98,9 @@ class OpKernel(Kernel):
         for key,dset in results.items():
             result_arrays: List[EDASArray] = [ self.transformInput( request, node, input ) for input in dset.inputs ]
             results.append( self.buildProduct( dset.id, request, node, result_arrays, inputDatasets.attrs ) )
-        return EDASDataset.merge( results )
+        result =  EDASDataset.merge( results )
+        print( " $$$$ processInputCrossSection: " + node.name + " -> " + result.arrayIds)
+        return results
 
     def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
         result_dset = EDASDataset.init( self.renameResults(result_arrays,node), attrs )
@@ -135,7 +138,7 @@ class OpKernel(Kernel):
         if op.isSimple and not self.requiresAlignment:
             preprop_result: EDASDatasetCollection = inputDatasets
         else:
-            result: EDASDatasetCollection = EDASDatasetCollection()
+            result: EDASDatasetCollection = EDASDatasetCollection("PreprocessInputs")
             arrayList = inputDatasets.arrays
             for key,dset in inputDatasets.items():
                 for aid,array in dset.arrayMap.items():
@@ -148,7 +151,9 @@ class OpKernel(Kernel):
                     else:
                         result[key] = EDASDataset( { aid: array}, inputDatasets.attrs )
             preprop_result = result.align( op.getParm("align","lowest") )
-        return preprop_result.groupby( op.grouping ).resample( op.resampling )
+        result = preprop_result.groupby( op.grouping ).resample( op.resampling )
+        print( " $$$$ processInputCrossSection: " + op.name + " -> " + result.arrayIds)
+        return result
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
         if op.ensDim is None: return inputDset
@@ -229,11 +234,11 @@ class InputKernel(Kernel):
 
     def buildWorkflow(self, request: TaskRequest, node: WorkflowNode, inputs: EDASDatasetCollection )  -> EDASDatasetCollection:
         snode: SourceNode = node
-        results = EDASDatasetCollection()
+        results = EDASDatasetCollection( "InputKernel.build-" + node.name )
         t0 = time.time()
         dset = self.getCachedDataset( snode )
         if dset is not None:
-            self.importToDatasetCollection(results, request, snode, dset)
+            self.importToDatasetCollection(results, request, snode, dset.xr )
             self.logger.info( "Access input data from cache: " + dset.id )
         else:
             dataSource: DataSource = snode.varSource.dataSource

@@ -10,7 +10,9 @@ class Param:
 
 class Node:
 
-    def __init__( self, name: str, _metadata: Dict[str,Any] = {} ):
+    def __init__(self, name: str, _metadata=None):
+       if _metadata is None:
+           _metadata = {}
        self._name = name
        self.metadata: Dict[str,Any] = _metadata
 

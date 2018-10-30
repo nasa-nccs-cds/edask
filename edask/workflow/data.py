@@ -72,11 +72,15 @@ class EDASArray:
         self.name = name
         self.addDomain( _domId )
 
-    def purge(self, rename_dict: Dict[str,str] = {} ):
+    def purge(self, rename_dict=None):
+        if rename_dict is None:
+            rename_dict = {}
         return EDASArray( self.name, self.domId, self.cleanupCoords( self.xr, rename_dict ) )
 
     @staticmethod
-    def cleanupCoords( xarray: xa.DataArray, rename_dict: Dict[str,str] = {} ) -> xa.DataArray:
+    def cleanupCoords(xarray: xa.DataArray, rename_dict=None) -> xa.DataArray:
+        if rename_dict is None:
+            rename_dict = {}
         for coord in xarray.coords:
             if coord not in xarray.dims: xarray = xarray.drop(coord)
         for item in rename_dict.items():
@@ -198,7 +202,9 @@ class EDASArray:
         new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
         return self.updateXa(new_data,"align")
 
-    def updateXa( self, new_data: xa.DataArray, name:str, rename_dict: Dict[str,str] = {}, product=None ) -> "EDASArray":
+    def updateXa(self, new_data: xa.DataArray, name:str, rename_dict=None, product=None) -> "EDASArray":
+        if rename_dict is None:
+            rename_dict = {}
         return EDASArray( self.rname(name), self.domId, new_data.rename(rename_dict)  )
 
     def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
@@ -366,7 +372,9 @@ class EDASDataset:
         return EDASDataset.open_dataset( filePath )
 
     @classmethod
-    def rename( cls, dataset: xa.Dataset, idMap: Dict[str,str] = {} ) -> xa.Dataset:
+    def rename(cls, dataset: xa.Dataset, idMap=None) -> xa.Dataset:
+        if idMap is None:
+            idMap = {}
         for id,val in idMap.items():
             if val not in dataset and val not in dataset.dims:
                 dataset.rename( {id:val}, True )
@@ -376,7 +384,9 @@ class EDASDataset:
         newArrayMap = { id:array for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None }
         return EDASDataset( newArrayMap, self.attrs )
 
-    def standardize( self, new_attrs: Dict[str,str] = {} ) -> "EDASDataset":
+    def standardize(self, new_attrs=None) -> "EDASDataset":
+        if new_attrs is None:
+            new_attrs = {}
         dataset = self.purge().xr
         for id,val in self.StandardAxisMap.items():
             if id in dataset.dims and val not in dataset.dims:
@@ -385,12 +395,18 @@ class EDASDataset:
         return self.fromXr( dataset, result_attrs )
 
     @classmethod
-    def fromXr(cls, dataset: xa.Dataset, attrs: Dict[str,Any] = {} ) -> "EDASDataset":
+    def fromXr(cls, dataset: xa.Dataset, attrs=None) -> "EDASDataset":
+        if attrs is None:
+            attrs = {}
         arrayMap = { id:EDASArray( None, None, v ) for id,v in dataset.data_vars.items() }
         return EDASDataset( arrayMap, attrs )
 
     @classmethod
-    def new( cls, dataset: xa.Dataset, varMap: Dict[str,str] = {}, idMap: Dict[str,str] = {} ):
+    def new(cls, dataset: xa.Dataset, varMap=None, idMap=None):
+        if varMap is None:
+            varMap = {}
+        if idMap is None:
+            idMap = {}
         cls.rename( dataset, idMap )
         if varMap:  arrayMap = { vid: EDASArray( vid, domId, dataset[vid] ) for ( vid, domId ) in varMap.items() }
         else:       arrayMap = { vid: EDASArray( vid, None, dataset[vid] ) for ( vid ) in dataset.variables.keys() }
@@ -606,11 +622,9 @@ class EDASDataset:
     def mergeArrayMaps( cls, amap0: Dict[str,EDASArray], amap1: Dict[str,EDASArray] )-> Dict[str,EDASArray]:
         result: Dict[str, EDASArray] = {}
         for key in amap0.keys():
-            if key in amap1:
-                result[ key + "-0" ] = amap0[key]
-                result[ key + "-1"] =  amap1[key]
-            else:
-                result[key] = amap0[key]
+            if (key in amap1) and ( id(amap0[key]) != id(amap1[key]) ):
+                raise Exception( "Attempt to add different arrays with the same key to a Dataset: " + key )
+            result[ key  ] = amap0[key]
         for key in amap1.keys():
             if key not in amap0:
                 result[key] = amap1[key]
@@ -657,8 +671,11 @@ class StandardMergeHandler(MergeHandler):
 
 class EDASDatasetCollection:
 
-    def __init__( self, dsets: Dict[str, EDASDataset] = {}  ):
-        self._datasets: Dict[str, EDASDataset] = dsets
+    def __init__( self, name: str = None, dsets: Dict[str, EDASDataset] = None  ):
+        from edask.process.task import Job
+        self._name = Job.randomStr(6) if name is None else name
+        self._datasets: Dict[str, EDASDataset] = {} if dsets is None else dsets
+        print( " $$$$ DsetCol(" + self._name + ").init: " + self.arrayIds)
 
     @property
     def keys(self) -> KeysView[str]: return self._datasets.keys()
@@ -670,7 +687,12 @@ class EDASDatasetCollection:
     def __setitem__(self, key: str, dset: EDASDataset ):
         assert isinstance(dset,EDASDataset), "EDASDatasetCollection.setitem: Expecting EDASDataset, got " + dset.__class__.__name__
         current = self._datasets.get(key, None)
+        init_arrayIds = self.arrayIds
         self._datasets[key] = dset if current is None else EDASDataset.merge([current, dset])
+        print( " $$$$ DsetCol(" + self._name + ").setitem[ " + key + "] <- " + dset.id + ": " + init_arrayIds + " -> " + self.arrayIds)
+
+    @property
+    def arrayIds(self): return "[ " + ", ".join([dsid+":"+key for dsid,dset in self._datasets.items() for key in dset.arrayMap.keys()]) + " ]"
 
     def __iadd__( self, other: "EDASDatasetCollection" ):
         for key in other.keys: self[key] = other[key]
@@ -689,17 +711,18 @@ class EDASDatasetCollection:
         return EDASDataset.merge( list( self._datasets.values() ) )
 
     def filterByOperation( self, op: WorkflowNode ) -> "EDASDatasetCollection":
-        filteredInputDatasets = EDASDatasetCollection()
-        print(" %%%% PROCESSING connectors ")
+        filteredInputDatasets = EDASDatasetCollection(self._name + "-FilterByOperation")
+        print(" %%%% DsetCol(" + self._name + "): PROCESSING connectors ")
         for connector in op.connectors:
-            print(" %%%% PROCESS connector : " + connector.output)
+            print(" %%%% DsetCol(" + self._name + "): PROCESS connector : " + connector.output)
             for vid in connector.inputs:
-                print(" %%%% PROCESS connector input: " + vid)
+                print(" %%%% DsetCol(" + self._name + "): PROCESS connector input: " + vid)
                 filteredInputDatasets[vid] = self[vid]
+        print( " $$$$ DsetCol(" + self._name + "): filterByOperation[ " + op.name + "]: " + self.arrayIds + " -> " + filteredInputDatasets.arrayIds)
         return filteredInputDatasets
 
     def filterByConnector(self, inputConnector: OperationConnector ) -> "EDASDatasetCollection":
-        filteredDatasets = EDASDatasetCollection()
+        filteredDatasets = EDASDatasetCollection(self._name + "-FilterByConnector")
         for vid in inputConnector.inputs: filteredDatasets[vid] = self[vid]
         return filteredDatasets
 
@@ -717,12 +740,12 @@ class EDASDatasetCollection:
 
     def align( self, alignRes: str ) -> "EDASDatasetCollection":
         tvar = self.getAlignmentVariable( alignRes )
-        return EDASDatasetCollection( { key: dset.align(tvar) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Align", { key: dset.align(tvar) for key,dset in self._datasets.items() } )
 
     def groupby( self, grouping: str ) -> "EDASDatasetCollection":
         if grouping is None: return self
-        return EDASDatasetCollection( { key: dset.groupby(grouping) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Groupby", { key: dset.groupby(grouping) for key,dset in self._datasets.items() } )
 
     def resample( self, resampling: str ) -> "EDASDatasetCollection":
         if resampling is None: return self
-        return EDASDatasetCollection( { key: dset.resample(resampling) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Resample", { key: dset.resample(resampling) for key,dset in self._datasets.items() } )

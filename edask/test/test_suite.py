@@ -13,8 +13,8 @@ def test_subset():
     domains = [{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
                 "lon": {"start": 40, "end": 42, "system": "values"},
                 "time": {"start": 10, "end": 15, "system": "indices"}}]
-    variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0"}]
-    operations = [{"name": "xarray.subset", "input": "v0", "domain": "d0"}]
+    variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+    operations = [ { "name": "xarray.subset", "input": "v0" } ]
     results = mgr.testExec(domains, variables, operations)
     assert mgr.equals(results, [verification_data])
 

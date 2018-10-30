@@ -277,7 +277,9 @@ class EDASPortalClient:
                 self.response_manager.term()
                 self.response_manager = None
 
-    def sendMessage( self, type: str, mDataList: Sequence[str] = [""] ):
+    def sendMessage(self, type: str, mDataList=None):
+        if mDataList is None:
+            mDataList = [""]
         msgStrs = [ str(mData).replace("'",'"') for mData in mDataList ]
         self.log( "Sending {0} request {1} on port {2}.".format( type, msgStrs, self.request_port )  )
         try:

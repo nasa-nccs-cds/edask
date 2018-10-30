@@ -86,7 +86,8 @@ class VariableSource(Node):
         self.dataSource: DataSource = _source
         self.metadata = _metadata
 
-    def name2id(self, existingMap: Dict[str,str] = {} ) -> Dict[str,str]:
+    def name2id(self, _existingMap: Dict[str,str] = None ) -> Dict[str,str]:
+        existingMap = _existingMap if _existingMap is not None else {}
         existingMap.update( { v.elem() for v in self.vids if not v.identity() } )
         return existingMap
 

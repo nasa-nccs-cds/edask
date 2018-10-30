@@ -1,6 +1,6 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
-import logging
+import logging, string, random
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
@@ -28,9 +28,7 @@ class WpsCwtParser:
     name = Word(alphanums)
     token = key ^ numval
     delim = Word(",") ^ Word(";")
-
-    def __init__(self):
-        self.datainputsParser = self.getDatainputsParser()
+    vsep = Word("|") ^ Word(":")
 
     @classmethod
     def getDatainputsParser(cls):
@@ -39,9 +37,21 @@ class WpsCwtParser:
         return cls.keymap( cls.name, cls.list( spec ), "[]", "=" )
 
     @classmethod
+    def getOpConnectionsParser(cls):
+        output = Suppress(cls.vsep) + cls.name
+        input = cls.seq( cls.name )
+        item = input + Optional(Group(output))
+        return cls.seq( Group(item) )
+
+    @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
         cls.logger.info( "WpsCwtParser-> Parsing: " + datainputs )
-        return cls.postProcessResult( cls.getDatainputsParser().parseString(datainputs)[0] )
+        return cls.getDatainputsParser().parseString(datainputs)[0]
+
+    @classmethod
+    def parseOpConnections(cls, opConnections) -> List[List[List[str]]]:
+        cls.logger.info( "WpsCwtParser-> Parsing: " + opConnections )
+        return cls.getOpConnectionsParser().parseString(opConnections)[0]
 
     @classmethod
     def keymap( cls, key: Token, value: Token, enclosing: str = "{}", sep=":" ):
@@ -52,6 +62,11 @@ class WpsCwtParser:
     def list( cls, item, enclosing: str = "[]" ):
         elem = item + Suppress( ZeroOrMore(cls.delim) )
         return ( Suppress(enclosing[0]) + Group(OneOrMore(elem)) + Suppress(enclosing[1]) )
+
+    @classmethod
+    def seq( cls, item ):
+        elem = item + Suppress( ZeroOrMore(cls.delim) )
+        return  Group(OneOrMore(elem))
 
     @classmethod
     def postProcessResult( cls, result: Dict[str,List[Dict[str,Any]]] ) ->  Dict[str,List[Dict[str,Any]]]:
@@ -74,6 +89,11 @@ class WpsCwtParser:
                 return value.split(sep)
         return [ value ]
 
+    @staticmethod
+    def randomStr(length) -> str:
+      tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
+      return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
+
 if __name__ == '__main__':
 
     # datainputs0 = """[
@@ -84,5 +104,7 @@ if __name__ == '__main__':
     # result = WpsCwtParser.parseDatainputs( datainputs0 )
     # print( str(result) )
 
-    print( str( SizeParser.parse( "1G") ) )
+    opConnections = "a,c,b"
+    result = WpsCwtParser.parseOpConnections( opConnections )
+    print( str(result) )
 

@@ -95,8 +95,10 @@ class LocalTestManager(TestManager):
 
 class DistributedTestManager(TestManager):
 
-    def __init__(self, _proj: str, _exp: str, appConfiguration: Dict[str,str]={} ):
+    def __init__(self, _proj: str, _exp: str, appConfiguration=None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
+        if appConfiguration is None:
+            appConfiguration = {}
         self.processManager = ProcessManager( { **ParmMgr.parms, **appConfiguration } )
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:

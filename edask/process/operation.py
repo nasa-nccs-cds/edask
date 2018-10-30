@@ -172,23 +172,16 @@ class WorkflowNode(Node):
     def masterNode(self, value: "MasterNode" ): self._masterNode = MasterNodeWrapper(value)
 
     def parseInputs(self) -> List[WorkflowConnector]:
-        from edask.process.task import Job
+        from edask.portal.parsers import WpsCwtParser
         connectors = []
-        ioMap = {}
-        defaultOutput =  self.metadata.get( "result", Job.randomStr(6) )
+        defaultOutput =  self.metadata.get( "result", WpsCwtParser.randomStr(6) )
         ispecs = self.metadata.get( "input", "" )
-        if not isinstance(ispecs,str): return ispecs
-        sep = "|" if "|" in ispecs else ":"
-        for groupSpec in ispecs.split(";"):
-            grpSpecToks = groupSpec.split(sep)
-            inputSpecs = grpSpecToks[0].split(",")
-            for inputSpec in inputSpecs:
-                inputToks = inputSpec.split(sep)
-                output = inputToks[1] if len(inputToks) > 1 else grpSpecToks[1] if len(grpSpecToks) > 1 else defaultOutput
-                inputSet = ioMap.setdefault(output,set())
-                if inputToks[0]: inputSet.add(inputToks[0])
-        for output,inputs in ioMap.items():
-            connectors.append( WorkflowConnector(output,list(inputs)) )
+        if ispecs:
+            parsed_ispecs = WpsCwtParser.parseOpConnections( ispecs )
+            nOut = len( parsed_ispecs )
+            for connector_spec in parsed_ispecs:
+                output: str = connector_spec[1][0] if len( connector_spec ) > 1 else ( WpsCwtParser.randomStr(6) if (nOut > 1) else defaultOutput )
+                connectors.append( WorkflowConnector( output, connector_spec[0] ) )
         return connectors
 
     def _addWorkflowConnectors(self):
@@ -302,8 +295,10 @@ class OpNode(WorkflowNode):
 
 class MasterNode(OpNode):
 
-    def __init__(self, name: str, metadata: Dict[str,Any] = {}   ):
+    def __init__(self, name: str, metadata=None):
         super(MasterNode, self).__init__( name, "", "", metadata )
+        if metadata is None:
+            metadata = {}
         self.proxies: Set[OpNode] = set()
         self.master_inputs: Set[WorkflowNode] = set()
         self.master_outputs: Set[OpNode] = set()

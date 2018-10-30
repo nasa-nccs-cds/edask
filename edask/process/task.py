@@ -47,7 +47,9 @@ class Job:
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
 
   @classmethod
-  def init( cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]],  runargs: Dict[str,str]={}, priority: float=0.0 ):
+  def init(cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], runargs=None, priority: float=0.0):
+    if runargs is None:
+        runargs = {}
     return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
 
   def copy( self, workerIndex: int ) -> "Job":
