@@ -8,8 +8,7 @@ from operator import mul
 from functools import reduce
 import copy, sys, logging, random, numpy as np
 from keras.models import Sequential, Model
-from keras.layers import Dense, Activation
-from keras.engine.base_layer import Layer
+from collections import OrderedDict
 from edask.process.operation import WorkflowConnector
 from edask.collections.agg import Archive
 from keras.optimizers import SGD
@@ -111,7 +110,7 @@ class TrainKernel(OpKernel):
     def buildResultDataset(self, inputDset: EDASDataset, train_node: OpNode )-> EDASDataset:
         result = self.bestFitResult
         master_node, model = self.getModel(train_node)
-        arrays = {}
+        arrays = OrderedDict()
         loss_coord = ( "steps", range(result.train_loss_history.shape[0]) )
         arrays["loss"] =     EDASArray( "loss" ,     None, xa.DataArray( result.train_loss_history, coords=( loss_coord, ) ), [] )
         arrays["val_loss"] = EDASArray( "val_loss" , None, xa.DataArray( result.val_loss_history,   coords=( loss_coord, ) ), [] )

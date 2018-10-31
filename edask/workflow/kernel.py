@@ -12,7 +12,7 @@ from edask.collections.agg import Collection
 from edask.portal.parameters import ParmMgr
 from edask.data.cache import EDASKCacheMgr
 from edask.process.domain import Domain, Axis
-from itertools import chain
+from collections import OrderedDict
 
 class Kernel:
 
@@ -93,13 +93,18 @@ class OpKernel(Kernel):
         return results
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection  ) -> EDASDataset:
-#        inputCrossSection: EDASDataset = self.mergeEnsembles(request, op, inputDatasets)
         results: List[EDASDataset] = []
-        for key,dset in inputDatasets.items():
+        inputs: List[EDASDataset] = self.getInputDatasets( request, node, inputDatasets )
+        for key,dset in inputs.items():
             result_arrays: List[EDASArray] = [ array for input in dset.inputs for array in self.transformInput( request, node, input )  ]
             results.append( self.buildProduct( dset.id, request, node, result_arrays, inputDatasets.attrs ) )
         result =  EDASDataset.merge( results )
         return result
+
+    def getInputDatasets(self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection )-> List[EDASDataset]:
+        if "e" in node.axes:  return [ self.mergeEnsembles(request, node, inputDatasets) ]
+        else:                 return inputDatasets
+
 
     def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
         result_dset = EDASDataset.init( self.renameResults(result_arrays,node), attrs )
@@ -115,8 +120,8 @@ class OpKernel(Kernel):
     #         resultMap[key] = result
     #     return resultMap
 
-    def renameResults(self, results: List[EDASArray], node: OpNode  ) -> Dict[str,EDASArray]:
-        resultMap: Dict[str,EDASArray] = {}
+    def renameResults(self, results: List[EDASArray], node: OpNode  ) -> OrderedDict[str,EDASArray]:
+        resultMap: OrderedDict[str,EDASArray] = {}
         for result in results:
             result["rid"] = node.getResultId(result.name)
             resultMap[result.name] = result
@@ -146,18 +151,19 @@ class OpKernel(Kernel):
                         merged_domain: str = request.intersectDomains(unapplied_domains, False)
                         processed_domain: Domain = request.cropDomain(merged_domain, arrayList )
                         sub_array = array.subset( processed_domain, unapplied_domains )
-                        result[key] = EDASDataset( { aid: sub_array}, inputDatasets.attrs )
+                        result[key] = EDASDataset( OrderedDict([(aid,sub_array)]), inputDatasets.attrs )
                     else:
-                        result[key] = EDASDataset( { aid: array}, inputDatasets.attrs )
+                        result[key] = EDASDataset( OrderedDict([(aid,array)]), inputDatasets.attrs )
             preprop_result = result.align( op.getParm("align","lowest") )
         result = preprop_result.groupby( op.grouping ).resample( op.resampling )
         print( " $$$$ processInputCrossSection: " + op.name + " -> " + result.arrayIds)
         return result
 
-    def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDset: EDASDataset) -> EDASDataset:
-        if op.ensDim is None: return inputDset
+    def mergeEnsembles(self, op: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDatasetCollection:
+        if op.ensDim is None: return inputDatasets
+        datasetKeys = inputDatasets.keys
         sarray: xr.DataArray = xr.concat(inputDset.xarrays, dim=op.ensDim)
-        result = { inputDset.id: EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray ) }
+        result = OrderedDict( [ (inputDset.id, EDASArray( inputDset.id, inputDset.inputs[0].domId, sarray ) ) ] )
         return EDASDataset.init( result, inputDset.attrs )
 
 # class EnsOpKernel(OpKernel):
@@ -224,7 +230,7 @@ class InputKernel(Kernel):
             if variable is None:
                 assert cache_status == CacheStatus.Option, "Missing cached input: " + cid
             else:
-                return EDASDataset.init( { cid: variable }, {} )
+                return EDASDataset.init( OrderedDict( [ (cid, variable) ] ), {} )
         return None
 
     def importToDatasetCollection(self, collection: EDASDatasetCollection, request: TaskRequest, snode: SourceNode, dset: xr.Dataset):

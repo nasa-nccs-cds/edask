@@ -10,6 +10,7 @@ from edask.data.sources.timeseries import TimeIndexer
 from xarray.core.groupby import DataArrayGroupBy
 from edask.process.operation import WorkflowNode, OperationConnector
 from edask.data.processing import Parser
+from collections import OrderedDict
 import xarray.plot as xrplot
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -339,13 +340,14 @@ class PlotType:
 class EDASDataset:
     StandardAxisMap = { "x":"lon", "y":"lat", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
-    def __init__( self, _arrayMap: Dict[str,EDASArray], _attrs: Dict[str,Any]  ):
-        self.arrayMap: Dict[str,EDASArray] = _arrayMap
+    def __init__( self, _arrayMap: OrderedDict[str,EDASArray], _attrs: Dict[str,Any]  ):
+        self.arrayMap: OrderedDict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
         self.logger = logging.getLogger()
 
     def purge(self):
-        purgedArrayMap = { id:array.purge() for id,array in self.arrayMap.items() }
+        purgedArrayMap = OrderedDict()
+        for id,array in self.arrayMap.items(): purgedArrayMap[id] = array.purge()
         return EDASDataset( purgedArrayMap, self.attrs )
 
     def persist(self) -> "EDASDataset":
@@ -358,7 +360,7 @@ class EDASDataset:
                 array.addDomain( domain )
 
     @staticmethod
-    def init( arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
+    def init( arrays: OrderedDict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
@@ -381,8 +383,11 @@ class EDASDataset:
         return dataset
 
     def subselect(self, idmatch: str ) -> "EDASDataset":
-        newArrayMap = { id:array for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None }
-        return EDASDataset( newArrayMap, self.attrs )
+        selection = OrderedDict()
+        for id, array in self.arrayMap.items():
+            if re.match(idmatch,id) is not None:
+               selection[id] = array
+        return EDASDataset( selection, self.attrs )
 
     def standardize(self, new_attrs=None) -> "EDASDataset":
         if new_attrs is None:
@@ -396,21 +401,25 @@ class EDASDataset:
 
     @classmethod
     def fromXr(cls, dataset: xa.Dataset, attrs=None) -> "EDASDataset":
-        if attrs is None:
-            attrs = {}
-        arrayMap = { id:EDASArray( None, None, v ) for id,v in dataset.data_vars.items() }
-        return EDASDataset( arrayMap, attrs )
+        result = OrderedDict()
+        if attrs is None: attrs = {}
+        for id,v in dataset.data_vars.items():
+            result[id] = EDASArray( None, None, v )
+        return EDASDataset( result, attrs )
 
     @classmethod
     def new(cls, dataset: xa.Dataset, varMap=None, idMap=None):
-        if varMap is None:
-            varMap = {}
-        if idMap is None:
-            idMap = {}
+        if varMap is None: varMap = {}
+        if idMap is None: idMap = {}
         cls.rename( dataset, idMap )
-        if varMap:  arrayMap = { vid: EDASArray( vid, domId, dataset[vid] ) for ( vid, domId ) in varMap.items() }
-        else:       arrayMap = { vid: EDASArray( vid, None, dataset[vid] ) for ( vid ) in dataset.variables.keys() }
-        return EDASDataset( arrayMap, dataset.attrs )
+        result = OrderedDict()
+        if varMap:
+             for ( vid, domId ) in varMap.items():
+                 result[vid] = EDASArray( vid, domId, dataset[vid] )
+        else:
+            for ( vid ) in dataset.variables.keys():
+                result[vid] = EDASArray( vid, None, dataset[vid] )
+        return EDASDataset( result, dataset.attrs )
 
     def addArrays(self, arrays: Dict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
         self.arrayMap = arrays # copy.deepcopy(arrays)
@@ -438,7 +447,12 @@ class EDASDataset:
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
     def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
-    def customArraymap(self, id: str  ) -> Dict[str,EDASArray]: return { (key+"-"+id):item for key,item in self.arrayMap.items() }
+
+    def customArraymap(self, id: str  ) -> OrderedDict[str,EDASArray]:
+        result = OrderedDict()
+        for key,item in self.arrayMap.items():
+            result[(key+"-"+id)] = item
+        return result
 
     @property
     def domains(self) -> Set[str]: return { array.domId for array in self.arrayMap.values() }
@@ -450,7 +464,10 @@ class EDASDataset:
     def id(self) -> str: return "-".join( self.arrayMap.keys() )
 
     @property
-    def xr(self) -> xa.Dataset: return xa.Dataset( { id:array.xr for id,array in self.arrayMap.items() }, attrs=self.attrs )
+    def xr(self) -> xa.Dataset:
+        arrays = OrderedDict()
+        for key,array in self.arrayMap.items(): arrays[key] = array.xr
+        return xa.Dataset( arrays, attrs=self.attrs )
 
     @property
     def vars2doms(self) -> Dict[str,str]: return { name:array.domId for ( name, array ) in self.arrayMap.items() }
@@ -483,18 +500,21 @@ class EDASDataset:
         return [ array.xr for id, array in self.arrayMap.items() if re.match(idmatch,id) is not None ]
 
     def subset( self, domain: Domain ):
-        arrayMap = { vid: array.subset( domain, { domain.name } ) for ( vid, array ) in self.arrayMap.items() }
-        return EDASDataset( arrayMap, self.attrs )
+        arrays = OrderedDict()
+        for vid,array in self.arrayMap.items(): arrays[vid] = array.subset( domain, { domain.name } )
+        return EDASDataset( arrays, self.attrs )
 
     def groupby( self, grouping: str ):
         if grouping is None: return self
-        arrayMap = { vid: array.groupby( grouping ) for ( vid, array ) in self.arrayMap.items() }
-        return EDASDataset( arrayMap, self.attrs )
+        arrays = OrderedDict()
+        for vid,array in self.arrayMap.items(): arrays[vid] = array.groupby( grouping )
+        return EDASDataset( arrays, self.attrs )
 
     def resample( self, resampling: str ) -> "EDASDataset":
         if resampling is None: return self
-        arrayMap = { vid: array.resample( resampling ) for ( vid, array ) in self.arrayMap.items() }
-        return EDASDataset( arrayMap, self.attrs )
+        arrays = OrderedDict()
+        for vid,array in self.arrayMap.items(): arrays[vid] = array.resample( resampling )
+        return EDASDataset( arrays, self.attrs )
 
     def requiresSubset(self, target_domain: str ) -> bool:
         return len( self.domains.difference( { target_domain } ) ) > 0
@@ -508,7 +528,8 @@ class EDASDataset:
         return self.getExtremeVariable( Extremity.parse(alignRes) )
 
     def align( self, target_var: EDASArray ) -> "EDASDataset":
-      new_vars = { var.name: var.align(target_var) for var in self.inputs }
+      new_vars = OrderedDict()
+      for var in self.inputs: new_vars[var.name] = var.align(target_var)
       return EDASDataset.init( new_vars, self.attrs )
 
     def addDataset(self, dataset: xa.Dataset, varMap: Dict[str,str] ):
@@ -633,9 +654,9 @@ class EDASDataset:
     @classmethod
     def merge(cls, dsets: List["EDASDataset"]):
         if len( dsets ) == 1: return dsets[0]
-        arrayMap: Dict[str,EDASArray] = {}
+        arrayMap: OrderedDict[str,EDASArray] = OrderedDict()
         attrs: Dict[str,Any] = {}
-        for idx,dset in enumerate(dsets):
+        for dset in dsets:
             arrayMap = cls.mergeArrayMaps(  arrayMap, dset.arrayMap )
             attrs.update( dset.attrs )
         return EDASDataset( arrayMap, attrs )
@@ -671,10 +692,10 @@ class StandardMergeHandler(MergeHandler):
 
 class EDASDatasetCollection:
 
-    def __init__( self, name: str = None, dsets: Dict[str, EDASDataset] = None  ):
+    def __init__( self, name: str = None, dsets: OrderedDict[str, EDASDataset] = None  ):
         from edask.process.task import Job
         self._name = Job.randomStr(6) if name is None else name
-        self._datasets: Dict[str, EDASDataset] = {} if dsets is None else dsets
+        self._datasets: OrderedDict[str, EDASDataset] = OrderedDict() if dsets is None else dsets
         print( " $$$$ DsetCol(" + self._name + ").init: " + self.arrayIds)
 
     @property
@@ -740,12 +761,12 @@ class EDASDatasetCollection:
 
     def align( self, alignRes: str ) -> "EDASDatasetCollection":
         tvar = self.getAlignmentVariable( alignRes )
-        return EDASDatasetCollection( self._name + "-Align", { key: dset.align(tvar) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Align", OrderedDict( [ (key, dset.align(tvar)) for key,dset in self._datasets.items() ] ) )
 
     def groupby( self, grouping: str ) -> "EDASDatasetCollection":
         if grouping is None: return self
-        return EDASDatasetCollection( self._name + "-Groupby", { key: dset.groupby(grouping) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Groupby", OrderedDict( [ (key, dset.groupby(grouping)) for key,dset in self._datasets.items() ] ) )
 
     def resample( self, resampling: str ) -> "EDASDatasetCollection":
         if resampling is None: return self
-        return EDASDatasetCollection( self._name + "-Resample", { key: dset.resample(resampling) for key,dset in self._datasets.items() } )
+        return EDASDatasetCollection( self._name + "-Resample", OrderedDict( [ (key, dset.resample(resampling)) for key,dset in self._datasets.items() ] ) )

@@ -10,7 +10,7 @@ from  scipy import stats, signal
 from edask.process.domain import Axis, DomainManager
 from edask.data.cache import EDASKCacheMgr
 from eofs.xarray import Eof
-import datetime, os
+from collections import OrderedDict
 import numpy as np
 
 
@@ -296,7 +296,7 @@ class DiffKernel(OpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
         inputVars: List[EDASArray] = inputDatasets.arrays
         result = inputVars[0] - inputVars[1]
-        return EDASDataset.init( { result.name: result }, inputDatasets.attrs )
+        return EDASDataset.init( OrderedDict([(result.name,result)]), inputDatasets.attrs )
 
 class SubsetKernel(OpKernel):
     def __init__( self ):
