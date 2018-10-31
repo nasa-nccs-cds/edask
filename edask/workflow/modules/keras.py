@@ -34,9 +34,8 @@ class NetworkKernel(OpKernel):
             keras_model.add( keras_layer )
         return keras_model
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         assert isinstance( node, MasterNode ), "Model kernel must be associated with a Master Node"
-        inputDset = inputDatasets.dataset
         masterNode: MasterNode = node
         layerNodes: List[OpNode] = masterNode.getInputProxies()
         assert len(layerNodes) == 1, "Must have one and only one input layer to network, found {}".format( len(layerNodes) )
@@ -146,9 +145,8 @@ class TrainKernel(OpKernel):
         coords = [ ('inputs',range(array.shape[0]) ), ('nodes',range(array.shape[1]) ) ] if array.ndim == 2 else [ ('nodes',range(array.shape[0]) ) ]
         return EDASArray( id, None, xa.DataArray( array, coords=coords ) )
 
-    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, train_node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         self.reseed()
-        inputDset = inputDatasets.dataset
         nIterations = train_node.getParm( "iterations", 1 )
         self.logger.info( "Executing fit-model {} times".format(nIterations) )
         val_loss_values = []

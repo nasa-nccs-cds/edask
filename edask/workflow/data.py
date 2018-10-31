@@ -340,7 +340,7 @@ class PlotType:
 class EDASDataset:
     StandardAxisMap = { "x":"lon", "y":"lat", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
-    def __init__( self, _arrayMap: OrderedDict[str,EDASArray], _attrs: Dict[str,Any]  ):
+    def __init__( self, _arrayMap: "OrderedDict[str,EDASArray]", _attrs: Dict[str,Any]  ):
         self.arrayMap: OrderedDict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
         self.logger = logging.getLogger()
@@ -360,7 +360,7 @@ class EDASDataset:
                 array.addDomain( domain )
 
     @staticmethod
-    def init( arrays: OrderedDict[str,EDASArray], attrs: Dict[str,Any]  ) -> "EDASDataset":
+    def init( arrays: "OrderedDict[str,EDASArray]", attrs: Dict[str,Any]  ) -> "EDASDataset":
         dataset = EDASDataset.empty()
         return dataset.addArrays(arrays,attrs)
 
@@ -448,7 +448,7 @@ class EDASDataset:
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
     def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
 
-    def customArraymap(self, id: str  ) -> OrderedDict[str,EDASArray]:
+    def customArraymap(self, id: str  ) -> "OrderedDict[str,EDASArray]":
         result = OrderedDict()
         for key,item in self.arrayMap.items():
             result[(key+"-"+id)] = item
@@ -692,7 +692,7 @@ class StandardMergeHandler(MergeHandler):
 
 class EDASDatasetCollection:
 
-    def __init__( self, name: str = None, dsets: OrderedDict[str, EDASDataset] = None  ):
+    def __init__( self, name: str = None, dsets: "OrderedDict[str, EDASDataset]" = None  ):
         from edask.process.task import Job
         self._name = Job.randomStr(6) if name is None else name
         self._datasets: OrderedDict[str, EDASDataset] = OrderedDict() if dsets is None else dsets

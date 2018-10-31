@@ -230,10 +230,9 @@ class EofKernel(TimeOpKernel):
                 self.logger.warning( "Can't execute rename {} on {} with dims {}".format( str(item), data.name, str( data.dims ) ) )
         return data
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
         nModes = node.getParm("modes", 16)
         center = bool(node.getParm("center", "false"))
-        inputDset = inputDatasets.dataset
         merged_input_data, info = self.get_input_array( inputDset )
         shapes = info['shapes']
         slicers = info['slicers']
@@ -293,24 +292,24 @@ class DiffKernel(OpKernel):
     def __init__( self ):
         OpKernel.__init__(self, KernelSpec("diff", "Difference Kernel", "Computes the point-by-point differences of pairs of arrays."))
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
-        inputVars: List[EDASArray] = inputDatasets.arrays
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
+        inputVars: List[EDASArray] = inputDataset.arrayMap.values()
         result = inputVars[0] - inputVars[1]
-        return EDASDataset.init( OrderedDict([(result.name,result)]), inputDatasets.attrs )
+        return EDASDataset.init( OrderedDict([(result.name,result)]), inputDataset.attrs )
 
 class SubsetKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("subset", "Subset Kernel","NoOp kernel used to return (subsetted) inputs." ) )
 
-    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
-        return inputDatasets.dataset
+    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
+        return inputDataset
 
 class NoOp(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("noop", "NoOp Kernel","NoOp kernel used to output intermediate products in workflow." ) )
 
-    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
-        return inputDatasets.dataset
+    def processInputCrossSection(self, request: TaskRequest, node: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
+        return inputDataset
 
 class CacheKernel(OpKernel):
     def __init__( self ):
