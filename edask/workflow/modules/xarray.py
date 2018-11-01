@@ -290,7 +290,7 @@ class DiffKernel(OpKernel):
         OpKernel.__init__(self, KernelSpec("diff", "Difference Kernel", "Computes the point-by-point differences of pairs of arrays."))
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
-        inputVars: List[EDASArray] = inputDataset.arrayMap.values()
+        inputVars: List[EDASArray] = inputDataset.arrays
         result = inputVars[0] - inputVars[1]
         return EDASDataset.init( OrderedDict([(result.name,result)]), inputDataset.attrs )
 

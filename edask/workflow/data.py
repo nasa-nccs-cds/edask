@@ -491,6 +491,9 @@ class EDASDataset:
     def inputs(self) -> List[EDASArray]: return list(self.arrayMap.values())
 
     @property
+    def arrays(self) -> List[EDASArray]: return self.inputs
+
+    @property
     def xarrays(self) -> List[xa.DataArray]: return [ array.xr for array in self.arrayMap.values() ]
 
     @property
