@@ -83,6 +83,14 @@ class OpKernel(Kernel):
         super(OpKernel, self).__init__(spec)
         self.addRequiredOptions( ["input"] )
 
+    def getInputCrossSections(self, inputs: EDASDatasetCollection ) -> Dict[str,EDASDataset]:
+        inputCrossSections = {}
+        for dsKey, dset in inputs.items():
+            for index, (akey, array) in enumerate(dset.arrayMap.items()):
+                merge_set: EDASDataset = inputCrossSections.setdefault( index, EDASDataset(OrderedDict(), inputs.attrs ) )
+                merge_set[dsKey + "-" + akey] = array
+        return inputCrossSections
+
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
         op: OpNode = wnode
         self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
@@ -90,16 +98,16 @@ class OpKernel(Kernel):
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
         for connector in wnode.connectors:
-            if self.spansInputs( wnode ):
-                if wnode.ensDim is not None: inputDataset: EDASDataset = self.mergeEnsembles(request, op, inputs.filterByConnector( connector ) )
-                else:                        inputDataset: EDASDataset = self.preprocessInputCollection(request, op, inputs.filterByConnector( connector ) )
-            else:                            inputDataset: EDASDataset = self.preprocessInputCollection(request, op, inputs.filterByConnector( connector ) )
-            results[connector.output] = self.processInputCrossSection( request, op, inputDataset )
+            inputDatasets: Dict[str,EDASDataset] = self.getInputCrossSections( inputs.filterByConnector(connector) )
+            for key, dset in inputDatasets.items():
+                processedInputs = self.preprocessInputs(request, op, dset )
+                if wnode.ensDim is not None: processedInputs = self.mergeEnsembles( op, processedInputs )
+                results[connector.output] = self.processInputCrossSection( request, op, processedInputs )
         return results
 
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDataset: EDASDataset  ) -> EDASDataset:
-        resultArrays = [ array for input in inputDataset.arrayMap.values() for array in self.transformInput( request, node, input ) ]
-        return self.buildProduct( inputDataset.id, request, node, resultArrays, inputDataset.attrs )
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        resultArrays = [ array for input in inputs.arrayMap.values() for array in self.transformInput( request, node, input ) ]
+        return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
 
     def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
         result_dset = EDASDataset.init( self.renameResults(result_arrays,node), attrs )
@@ -121,14 +129,6 @@ class OpKernel(Kernel):
 
     def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]:
         return [inputs]
-
-    def preprocessInputCollection( self, request: TaskRequest, op: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
-        resultArrays: OrderedDict[str,EDASArray] = OrderedDict()
-        for dsKey, dset in  inputDatasets.items():
-            processed_dset = self.preprocessInputs( request, op, dset )
-            for aid, array in processed_dset.arrayMap.items():
-                resultArrays[ dsKey + "-" + aid ] = array
-        return EDASDataset( resultArrays, inputDatasets.attrs )
 
     def preprocessInputs( self, request: TaskRequest, op: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
 #         interp_na = bool(op.getParm("interp_na", False))
@@ -155,19 +155,10 @@ class OpKernel(Kernel):
         print( " $$$$ processInputCrossSection: " + op.name + " -> " + str( result.ids ) )
         return result
 
-    def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
-        merge_sets = {}
-        for dsKey, dset in  inputDatasets.items():
-            for index, (akey, array) in enumerate( dset.arrayMap.items() ):
-                merge_set: EDASDataset = merge_sets.setdefault( index, EDASDataset( OrderedDict(), inputDatasets.attrs ) )
-                merge_set[ dsKey + "-" + akey ] = array
-                pass
-        result = OrderedDict()
-        for index in range( len(merge_sets) ):
-            merge_set: EDASDataset = self.preprocessInputs( request, op, merge_sets[index] )
-            sarray: xr.DataArray = xr.concat(merge_set.xarrays, dim=op.ensDim)
-            result[ merge_set.id ] = EDASArray( "merged-" + merge_set.id, list(merge_set.domains)[0], sarray )
-        return  EDASDataset.init( result, inputDatasets.attrs )
+    def mergeEnsembles(self, op: OpNode, dset: EDASDataset ) -> EDASDataset:
+        sarray: xr.DataArray = xr.concat( dset.xarrays, dim=op.ensDim)
+        result = EDASArray( dset.id, list(dset.domains)[0], sarray )
+        return  EDASDataset.init( OrderedDict([(dset.id,result)]), dset.attrs )
 
 # class EnsOpKernel(OpKernel):
 #     # Operates independently on sets of variables with same index across all input datasets
