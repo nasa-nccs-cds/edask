@@ -1,15 +1,15 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, os, time
+import logging, random, string, time
 from edask.process.task import TaskRequest
-from typing import List, Dict, Set, Any, Optional, Tuple, Iterable
-from edask.process.operation import WorkflowNode, SourceNode, OpNode, OperationConnector
+from typing import List, Dict, Set, Any, Optional
+from edask.process.operation import WorkflowNode, SourceNode, OpNode
 from edask.collections.agg import Archive
 import xarray as xr
 from edask.workflow.data import KernelSpec, EDASDataset, EDASArray, EDASDatasetCollection
 from edask.process.source import SourceType, DataSource
 from edask.process.node import Param, Node
 from edask.collections.agg import Collection
-from edask.portal.parameters import ParmMgr
+from edask.config import EdaskEnv
 from edask.data.cache import EDASKCacheMgr
 from edask.process.domain import Domain, Axis
 from collections import OrderedDict
@@ -256,7 +256,7 @@ class InputKernel(Kernel):
                 dset = xr.open_dataset(dataPath, autoclose=True)
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
-                engine = ParmMgr.get("dap.engine","netcdf4")
+                engine = EdaskEnv.get("dap.engine", "netcdf4")
                 self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 dset = xr.open_dataset(dataSource.address, engine=engine, autoclose=True)
                 self.importToDatasetCollection(results, request, snode, dset)

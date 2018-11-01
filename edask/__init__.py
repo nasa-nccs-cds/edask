@@ -1,11 +1,6 @@
 import logging, os, time
 LOG_DIR = os.path.expanduser("~/.edask/logs")
-CONFIG_DIR = os.environ.get( 'EDASK_CACHE_DIR', os.path.expanduser("~/.edask/conf") )
-COLLECTIONS_DIR= os.environ.get( 'EDASK_COLL_DIR', CONFIG_DIR )
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-if not os.path.exists(CONFIG_DIR):
-    os.makedirs(CONFIG_DIR)
+if not os.path.exists(LOG_DIR):  os.makedirs(LOG_DIR)
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime() )
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

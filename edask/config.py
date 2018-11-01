@@ -5,10 +5,13 @@ from typing import Sequence, List, Dict, Mapping, Optional
 class ParameterManager:
 
     def __init__(self):
-        from edask import CONFIG_DIR
         self.logger =  logging.getLogger()
-        self.path = join( CONFIG_DIR,"app.conf" )
+        self.path = os.path.expanduser("~/.edask/conf/app.conf" )
         self._parms: Dict[str,str] = self.getAppConfiguration()
+        self.CONFIG_DIR = self._parms.get( "edask.cache.dir", os.path.expanduser("~/.edask/conf") )
+        self.COLLECTIONS_DIR = self._parms.get("edask.coll.dir", self.CONFIG_DIR )
+        for cpath in [ self.CONFIG_DIR, self.COLLECTIONS_DIR ]:
+            if not os.path.exists(cpath): os.makedirs(cpath)
 
     @property
     def parms(self)-> Dict[str,str]: return self._parms
@@ -28,9 +31,9 @@ class ParameterManager:
     def __getitem__( self, key: str ) -> str: return self._parms.get( key )
     def get( self, key: str, default=None ) -> str: return self._parms.get( key, default )
 
-ParmMgr =   ParameterManager()
+EdaskEnv = ParameterManager()
 
 if __name__ == '__main__':
-    print( ParmMgr['dap.engine'] )
+    print(EdaskEnv['dap.engine'])
 
 

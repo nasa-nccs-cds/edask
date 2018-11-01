@@ -1,13 +1,12 @@
-import zmq, traceback
-from dask.distributed import Future
-import random, string, os, datetime, atexit
+import traceback
+import atexit
 from edask.portal.base import EDASPortal, Message, Response
-from typing import List, Dict, Any, Union, Sequence
+from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.process.task import Job
 from edask.process.manager import ProcessManager, ExecResultHandler
-from edask.portal.parameters import ParmMgr
+from edask.config import EdaskEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
@@ -18,10 +17,10 @@ class EDASapp(EDASPortal):
          return array[index] if( len(array) > index ) else default
 
     def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
-        super( EDASapp, self ).__init__(  get_or_else( client_address, ParmMgr.get( "client.address", "127.0.0.1") ),
-                                          get_or_else( request_port,   ParmMgr.get( "request.port", 4556 ) ),
-                                          get_or_else( response_port,  ParmMgr.get( "response.port", 4557 ) )  )
-        self.processManager = ProcessManager( ParmMgr.parms )
+        super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("client.address", "127.0.0.1")),
+                                        get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
+                                        get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
+        self.processManager = ProcessManager(EdaskEnv.parms)
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
 
