@@ -145,9 +145,10 @@ class OpKernel(Kernel):
                 else:
                     resultArrays[aid] = array
             resultDataset = EDASDataset( resultArrays, inputDataset.attrs )
-            preprop_result = resultDataset.align( op.getParm("align","lowest") )
-        result = preprop_result.groupby( op.grouping ).resample( op.resampling )
-        print( " $$$$ processInputCrossSection: " + op.name + " -> " + result.arrayIds)
+            alignmentTarget = resultDataset.getAlignmentVariable( op.getParm("align","lowest") )
+            preprop_result = resultDataset.align( alignmentTarget )
+        result: EDASDataset = preprop_result.groupby( op.grouping ).resample( op.resampling )
+        print( " $$$$ processInputCrossSection: " + op.name + " -> " + str( result.ids ) )
         return result
 
     def mergeEnsembles(self, request: TaskRequest, op: OpNode, inputDatasets: EDASDatasetCollection ) -> EDASDataset:
