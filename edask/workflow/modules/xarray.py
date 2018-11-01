@@ -88,7 +88,6 @@ class FilterKernel(OpKernel):
 class DecycleKernel(OpKernel):
     def __init__( self ):
         OpKernel.__init__( self, KernelSpec("decycle", "Decycle Kernel","Removes the seasonal cycle from the temporal dynamics" ) )
-        self.removeRequiredOptions(["ax.s"])
 
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         data = variable.persist()
@@ -130,10 +129,8 @@ class TeleconnectionKernel(OpKernel):
         OpKernel.__init__( self, KernelSpec("telemap", "Teleconnection Kernel",
                             "Produces teleconnection map by computing covariances at each point "
                             "(in roi) with location specified by 'lat' and 'lon' parameters." ) )
-        self.removeRequiredOptions(["ax.s"])
 
-    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray,
-                         attrs: Dict[str,Any] ) -> List[EDASArray]:
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         variable.persist()
         parms = self.getParameters( node, [ Param("lat"), Param("lon")])
         aIndex = variable.xr.get_axis_num('t')

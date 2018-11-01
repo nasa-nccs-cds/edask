@@ -24,15 +24,17 @@ class Kernel:
         self.parent: Optional[str] = None
         self._minInputs = 1
         self._maxInputs = 100000
-        self._requiresAlignment = False
         self.requiredOptions = []
         self._id: str  = self._spec.name + "-" + ''.join([ random.choice( string.ascii_letters + string.digits ) for n in range(5) ] )
 
     @property
     def name(self): return self._spec.name
 
-    @property
-    def requiresAlignment(self): return self._requiresAlignment or ( self._minInputs > 1 )
+    def spansInputs(self, op: WorkflowNode) -> bool:
+        return (op.ensDim is not None) or ( self._minInputs > 1 )
+
+    def requiresAlignment(self, op: WorkflowNode) -> bool:
+        return self.spansInputs(op) or (op.alignmentStrategy is not None)
 
     def getSpec(self) -> KernelSpec: return self._spec
     def getCapabilities(self) -> str: return self._spec.summary
@@ -79,7 +81,7 @@ class OpKernel(Kernel):
 
     def __init__(self, spec: KernelSpec):
         super(OpKernel, self).__init__(spec)
-        self.addRequiredOptions( ["ax.s", "input"] )
+        self.addRequiredOptions( ["input"] )
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
         op: OpNode = wnode
@@ -88,8 +90,10 @@ class OpKernel(Kernel):
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
         for connector in wnode.connectors:
-            if op.ensDim is None:   inputDataset: EDASDataset = self.preprocessInputCollection(request, op, inputs.filterByConnector( connector ) )
-            else:                   inputDataset: EDASDataset = self.mergeEnsembles(request, op, inputs.filterByConnector( connector ) )
+            if self.spansInputs( wnode ):
+                if wnode.ensDim is not None: inputDataset: EDASDataset = self.mergeEnsembles(request, op, inputs.filterByConnector( connector ) )
+                else:                        inputDataset: EDASDataset = self.preprocessInputCollection(request, op, inputs.filterByConnector( connector ) )
+            else:                            inputDataset: EDASDataset = self.preprocessInputCollection(request, op, inputs.filterByConnector( connector ) )
             results[connector.output] = self.processInputCrossSection( request, op, inputDataset )
         return results
 
@@ -157,6 +161,7 @@ class OpKernel(Kernel):
             for index, (akey, array) in enumerate( dset.arrayMap.items() ):
                 merge_set: EDASDataset = merge_sets.setdefault( index, EDASDataset( OrderedDict(), inputDatasets.attrs ) )
                 merge_set[ dsKey + "-" + akey ] = array
+                pass
         result = OrderedDict()
         for index in range( len(merge_sets) ):
             merge_set: EDASDataset = self.preprocessInputs( request, op, merge_sets[index] )
@@ -197,7 +202,6 @@ class TimeOpKernel(OpKernel):
 
     def __init__(self, spec: KernelSpec):
         super(TimeOpKernel, self).__init__(spec)
-        self.removeRequiredOptions( ["ax.s"] )
 
 class CacheStatus:
     Ignore = 0

@@ -675,9 +675,9 @@ class EDASDataset:
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)
     def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )
-    def __setitem__(self, key: str, value: Any ): self.attrs[key] = value
-
-
+    def __setitem__(self, key: str, value: Any ):
+        if isinstance( value, EDASArray ): self.addArray( key, value, {} )
+        else: self.attrs[key] = value
 
 class MergeHandler:
     __metaclass__ = abc.ABCMeta

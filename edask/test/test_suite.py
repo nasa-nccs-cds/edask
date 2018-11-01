@@ -5,6 +5,15 @@ import time, traceback, logging, inspect
 import numpy.ma as ma
 mgr = LocalTestManager( "PyTest", "test_suite" )
 
+def test_eave1():
+    domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
+                                "lon":  { "start":30, "end":40, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0,v1", "axis":"e" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
 def test_subset():
     verification_data = ma.array([271.715, 271.7168, 271.7106, 271.7268, 270.9894, 270.9614, 270.9766, 271.0617,
                                   270.5978, 270.5309, 270.494, 270.6829, 270.0909, 270.1363, 270.1072, 270.1761,
@@ -99,15 +108,6 @@ def test_diff1() :
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
     operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
-    results = mgr.testExec( domains, variables, operations )
-    mgr.print(results)
-
-def test_eave1() :
-    domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
-                                "lon":  { "start":30, "end":40, "system":"values" },
-                                "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
-    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0,v1", "axis":"e" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
