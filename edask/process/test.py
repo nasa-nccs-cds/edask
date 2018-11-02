@@ -66,6 +66,7 @@ class TestManager:
             self.logger.info(result)
 
     def equals(self, result: EDASDataset, verification_arrays: List[ma.MaskedArray], thresh: float = 0.0001) -> bool:
+        if result is None: return False
         for idx, result in enumerate(result.inputs):
             a1 = result.xr.to_masked_array(copy=False).flatten()
             a2 = verification_arrays[idx].flatten()
@@ -99,7 +100,8 @@ class DistributedTestManager(TestManager):
             appConfiguration = {}
         self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> ExecResultHandler:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
         self.processManager.executeProcess(job.process, job, resultHandler)
+        return resultHandler

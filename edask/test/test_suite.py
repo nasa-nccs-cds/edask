@@ -5,6 +5,15 @@ import time, traceback, logging, inspect
 import numpy.ma as ma
 mgr = LocalTestManager( "PyTest", "test_suite" )
 
+def test_ave_timeslice():
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":50,  "system":"values" },
+                                "lon":  { "start":0, "end":100, "system":"values" },
+                                "time": { "start":'1990-01-01T00Z', "end":'1991-01-01T00Z', "system":"timestamps"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"xy" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
 def test_eave1():
     domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
                                 "lon":  { "start":30, "end":40, "system":"values" },
