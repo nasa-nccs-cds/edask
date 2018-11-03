@@ -7,6 +7,7 @@ from edask.collections.agg import Archive
 import abc, math, time
 import xarray as xa
 from edask.data.sources.timeseries import TimeIndexer
+from edask.util.logging import EDASLogger
 from xarray.core.groupby import DataArrayGroupBy
 from edask.process.operation import WorkflowNode, OperationConnector
 from edask.data.processing import Parser
@@ -67,7 +68,7 @@ class EDASArray:
     def __init__( self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy] ):
         self.alwaysPersist = False
         self.loaded_data = None
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.domId = _domId
         self._data = data
         self.name = name
@@ -343,7 +344,7 @@ class EDASDataset:
     def __init__( self, _arrayMap: "OrderedDict[str,EDASArray]", _attrs: Dict[str,Any]  ):
         self.arrayMap: OrderedDict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
 
     def purge(self):
         purgedArrayMap = OrderedDict()

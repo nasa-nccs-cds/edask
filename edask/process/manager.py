@@ -1,12 +1,12 @@
 from typing import Dict, Any, Union, List, Callable, Optional
 import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
-from threading import Thread
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job
 from edask.workflow.data import EDASDataset
 from edask.portal.base import EDASPortal, Message, Response
 from dask.distributed import Client, Future, LocalCluster
+from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
 from edask.collections.agg import Archive
 from enum import Enum
@@ -16,7 +16,7 @@ class ResultHandler:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, clientId: str, jobId: str, **kwargs ):
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.clientId = clientId
         self.jobId = jobId
         self.cacheDir = kwargs.get( "cache", "/tmp")
@@ -123,8 +123,7 @@ class ExecResultHandler(ResultHandler):
           result: EDASDataset = resultFuture.result()
           self.results.append(result)
       else:
-          self.failureCallback( Exception("status = " + status) )
-
+          self.failureCallback( Exception("status = " + status + ", Exception = " + str( resultFuture.exception() ) + "\n" + str( traceback.format_tb(resultFuture.traceback()) ) ) )
       if self.completed == self.workers:
         self.processFinalResult()
         if self.portal:
@@ -159,7 +158,7 @@ class ProcessManager(GenericProcessManager):
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
-      self.logger =  logging.getLogger()
+      self.logger =  EDASLogger.getLogger()
       scheduler = self.config.get( "dask.scheduler", None )
       if scheduler is not None:
           self.logger.info( "Initializing Dask cluster with scheduler {}".format(scheduler) )

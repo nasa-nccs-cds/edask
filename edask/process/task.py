@@ -3,6 +3,7 @@ import logging, random, string
 import xarray as xa
 from edask.process.domain import DomainManager, Domain, AxisBounds, Axis
 import copy
+from edask.util.logging import EDASLogger
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
 from edask.portal.parsers import WpsCwtParser
@@ -70,13 +71,13 @@ class Job:
   @property
   def workers(self):
       sParms = self.getSchedulerParameters()
-      return int( sParms.get("workers",8) )
+      return int( sParms.get("workers",4) )
 
 class TaskRequest:
     
   @classmethod
   def new( cls, job: Job ):
-    logger = logging.getLogger()
+    logger = EDASLogger.getLogger()
     logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(job.process, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
@@ -87,7 +88,7 @@ class TaskRequest:
 
   @classmethod
   def init( cls, project: str, experiment: str, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
-    logger = logging.getLogger()
+    logger = EDASLogger.getLogger()
     logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( identifier, str( dataInputs ) ))
     uid = UID( requestId )
     domainManager = DomainManager.new( dataInputs.get("domain") )

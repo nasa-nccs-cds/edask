@@ -1,11 +1,12 @@
 from edask.process.test import LocalTestManager
 from edask.workflow.data import EDASDataset
+from edask.util.logging import EDASLogger
 import logging, time
 
 class CacheTESTS:
 
     def __init__(self):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.mgr = LocalTestManager("TEST","aveTest")
 
     def print(self, results: EDASDataset):

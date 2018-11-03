@@ -1,8 +1,13 @@
 from dask.distributed import Client
-server = "edaskwndev01:8786"
+from edask.util.logging import EDASLogger
+
+server = "localhost:8786"
 client = Client( server )
 
+
 def square(x):
+    logger = EDASLogger.getLogger()
+    logger.info( "Executing square: " + str(x))
     return x ** 2
 
 def neg(x):
@@ -10,6 +15,7 @@ def neg(x):
 
 A = client.map(square, range(10))
 B = client.map(neg, A)
+
 total = client.submit(sum, B)
 result = total.result()
 

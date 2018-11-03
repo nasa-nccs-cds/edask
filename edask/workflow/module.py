@@ -5,6 +5,7 @@ from os import listdir
 from os.path import isfile, join, os
 from edask.process.operation import WorkflowNode,  WorkflowConnector, MasterNode, OpNode
 from edask.process.task import TaskRequest, Job
+from edask.util.logging import EDASLogger
 from typing import List, Dict, Callable, Set, Optional
 import xarray as xa
 
@@ -14,7 +15,7 @@ class OperationModule:
     __metaclass__ = ABCMeta
 
     def __init__( self, name: str ):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self._name = name
 
     def getName(self) -> str: return self._name
@@ -35,7 +36,7 @@ class OperationModule:
 class KernelModule(OperationModule):
 
     def __init__( self, name, kernels: Dict[str,Callable[[],Kernel]] ):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self._kernels: Dict[str,Callable[[str],Kernel]] = kernels
         self._instances: Dict[str,Kernel] = {}
         OperationModule.__init__( self, name )
@@ -78,7 +79,7 @@ class KernelModule(OperationModule):
 class KernelManager:
 
     def __init__( self ):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.operation_modules: Dict[str,KernelModule] = {}
         self.build()
 

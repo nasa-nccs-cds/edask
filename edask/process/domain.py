@@ -3,6 +3,7 @@ import string, random, logging
 from enum import Enum, auto
 import xarray as xa
 import pandas as pd
+from edask.util.logging import EDASLogger
 import numpy as np
 from edask.data.sources.timeseries import TimeConversions
 from datetime import datetime, timezone
@@ -93,7 +94,7 @@ class AxisBounds:
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _step: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
         self.name = _name
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         assert type(_start) == type(_end), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
         self.system = _system

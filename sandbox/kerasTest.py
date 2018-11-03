@@ -5,13 +5,12 @@ import xarray as xa
 import time, traceback, logging
 import numpy as np
 from edask.workflow.modules.xarray import *
-from edask.process.operation import WorkflowNode
+from edask.util.logging import EDASLogger
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
-from edask.workflow.kernel import Kernel
 
 if __name__ == '__main__':
-    logger = logging.getLogger()
+    logger = EDASLogger.getLogger()
     logger.info( "STARTUP" )
     dataset_path = '/Users/tpmaxwel/Dropbox/Tom/Data/GISS/CMIP5/E2H/r1i1p1/*.nc'
     dataset_ncml = '/Users/tpmaxwel/.edas/cache/collections/agg/giss_r1i1p1-tas_Amon_GISS-E2-H_historical_r1i1p1_1.ncml'

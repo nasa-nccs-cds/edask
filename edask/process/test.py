@@ -3,6 +3,7 @@ import numpy.ma as ma
 from edask.process.task import Job
 from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
+from edask.util.logging import EDASLogger
 from edask.process.manager import ProcessManager, ExecResultHandler
 from edask.config import EdaskEnv
 
@@ -44,7 +45,7 @@ class TestDataManager:
 class TestManager:
 
     def __init__(self, _proj: str, _exp: str):
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.project = _proj
         self.experiment = _exp
 

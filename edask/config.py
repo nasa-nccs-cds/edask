@@ -1,11 +1,12 @@
 from os.path import dirname, abspath, join
 import logging, os
 from typing import Sequence, List, Dict, Mapping, Optional
+from edask.util.logging import EDASLogger
 
 class ParameterManager:
 
     def __init__(self):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.path = os.path.expanduser("~/.edask/conf/app.conf" )
         self._parms: Dict[str,str] = self.getAppConfiguration()
         self.CONFIG_DIR = self._parms.get( "edask.cache.dir", os.path.expanduser("~/.edask/conf") )

@@ -2,6 +2,7 @@ from edask.process.test import LocalTestManager
 import matplotlib.pyplot as plt
 from edask.workflow.data import EDASDataset, PlotType
 from edask.portal.plotters import plotter
+from edask.util.logging import EDASLogger
 import numpy.ma as ma
 import xarray as xa
 import logging, math
@@ -9,7 +10,7 @@ import logging, math
 class PlotTESTS:
 
     def __init__(self):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.mgr = LocalTestManager("PlotTESTS","demo")
 
     def eof_plot(self, mtype: int, dset: EDASDataset ):

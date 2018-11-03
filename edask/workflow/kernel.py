@@ -10,6 +10,7 @@ from edask.process.source import SourceType, DataSource
 from edask.process.node import Param, Node
 from edask.collections.agg import Collection
 from edask.config import EdaskEnv
+from edask.util.logging import EDASLogger
 from edask.data.cache import EDASKCacheMgr
 from edask.process.domain import Domain, Axis
 from collections import OrderedDict
@@ -19,7 +20,7 @@ class Kernel:
     __metaclass__ = ABCMeta
 
     def __init__( self, spec: KernelSpec ):
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self._spec: KernelSpec = spec
         self.parent: Optional[str] = None
         self._minInputs = 1

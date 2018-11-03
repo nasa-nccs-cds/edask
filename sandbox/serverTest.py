@@ -3,8 +3,7 @@ from edask.portal.base import Message, Response
 from dask.distributed import Future
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import matplotlib.pyplot as plt
-from edask.workflow.data import EDASDataset
-from edask.collections.agg import Archive
+from edask.util.logging import EDASLogger
 from edask.portal.plotters import plotter
 from edask.process.task import Job
 from edask.process.test import TestDataManager
@@ -16,7 +15,7 @@ import logging, traceback, time, os
 #     def __init__(self, clientId: str, jobId: str, **kwargs ):
 #         super(AppTestsResultHandler,self).__init__(clientId,jobId,**kwargs)
 #         self.results: List[EDASDataset] = []
-#         self.logger =  logging.getLogger()
+#         self.logger =  EDASLogger.getLogger()
 #
 #     def successCallback(self, resultFuture: Future):
 #         status = resultFuture.status
@@ -89,7 +88,7 @@ import logging, traceback, time, os
 class AppTests:
 
     def __init__( self, _project: str, _experiment: str, appConfiguration: Dict[str,str] ):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.project = _project
         self.experiment = _experiment
         self.processManager = ProcessManager(appConfiguration)

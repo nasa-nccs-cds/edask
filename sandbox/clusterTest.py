@@ -1,13 +1,14 @@
 from edask.process.test import DistributedTestManager, ExecResultHandler
 from edask.workflow.data import EDASDataset
+from edask.util.logging import EDASLogger
 import numpy.ma as ma
 import xarray as xa
 import logging, time
 
-class CollectionsTESTS:
+class ClusterTests:
 
     def __init__(self):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.mgr = DistributedTestManager( "PlotTESTS", "demo" )
         self.resultHandler: ExecResultHandler = None
 
@@ -41,7 +42,16 @@ class CollectionsTESTS:
         operations = [ { "name": "xarray.subset", "input": "v0" } ]
         self.resultHandler = self.mgr.testExec(domains, variables, operations)
 
+    def test_subset_dap(self):
+        domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
+                                    "lon":  { "start":40, "end":42, "system":"values" },
+                                    "time": { "start":10, "end":15, "system":"indices" } } ]
+        variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0"  } ]
+        operations = [ { "name":"xarray.subset", "input":"v0" } ]
+        self.resultHandler = self.mgr.testExec(domains, variables, operations)
+
+
 if __name__ == '__main__':
-    tester = CollectionsTESTS()
+    tester = ClusterTests()
     tstart = time.time()
-    result = tester.test_subset()
+    result = tester.test_subset_dap()

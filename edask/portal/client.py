@@ -2,6 +2,7 @@ import zmq, traceback, time, logging, xml, cdms2
 from threading import Thread
 from cdms2.variable import DatasetVariable
 from typing import Sequence, List, Dict, Mapping, Optional
+from edask.util.logging import EDASLogger
 from edask.process.task import UID
 import random, string, os
 from enum import Enum
@@ -44,7 +45,7 @@ class ResponseManager(Thread):
         from edask.config import EdaskEnv
         Thread.__init__(self)
         self.context = context
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.host = host
         self.port = port
         self.clientId = clientId
@@ -224,7 +225,7 @@ class EDASPortalClient:
             self.app_host = host
             self.application_thread = None
             self.clientID = UID.randomId(6)
-            self.logger =  logging.getLogger()
+            self.logger =  EDASLogger.getLogger()
             self.context = zmq.Context()
             self.request_socket = self.context.socket(zmq.REQ)
 
@@ -297,7 +298,7 @@ class EDASPortalClient:
 class AppThread(Thread):
     def __init__(self, host, request_port, response_port):
         Thread.__init__(self)
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self._response_port = response_port
         self._request_port = request_port
         self._host = host

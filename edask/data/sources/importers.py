@@ -5,6 +5,7 @@ import logging
 from edask.data.sources.timeseries import DataSource, CTimeRange, TimeseriesData
 import xarray as xa
 from edask.collections.agg import Archive
+from edask.util.logging import EDASLogger
 
 class IITMDataSource(DataSource):
 
@@ -15,7 +16,7 @@ class IITMDataSource(DataSource):
         DataSource.__init__(self, name)
         self.type = _type.lower()
         self.dataFile = self.getDataFilePath("IITM","txt")
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
 
     def serialize(self,lines):
         lines.append( "@IITMDataSource:" + ",".join( [ self.name, self.type ] ) )

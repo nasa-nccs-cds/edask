@@ -1,8 +1,7 @@
 import zmq, traceback, time, logging, xml, cdms2, socket
 from threading import Thread
 from typing import List, Dict, Sequence, Set
-from cdms2.variable import DatasetVariable
-from random import SystemRandom
+from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
@@ -69,7 +68,7 @@ class Responder:
 
     def __init__( self,  _context: zmq.Context,  _client_address: str,  _response_port: int ):
         super(Responder, self).__init__()
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.context: zmq.Context =  _context
         self.response_port = _response_port
         self.executing_jobs: Dict[str,Response] = {}
@@ -157,7 +156,7 @@ class Responder:
 class EDASPortal:
 
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
-        self.logger =  logging.getLogger()
+        self.logger =  EDASLogger.getLogger()
         self.active = True
         try:
             self.request_port = request_port

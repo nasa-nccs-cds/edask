@@ -12,6 +12,7 @@ from functools import reduce
 import copy, sys, logging, random, numpy as np
 from keras.models import Sequential, Model
 from keras.layers import Dense, Activation
+from edask.util.logging import EDASLogger
 from keras.engine.base_layer import Layer
 from keras.callbacks import History, Callback
 
@@ -20,7 +21,7 @@ def notNone( x ): return x is not None
 class PerformanceTracker(Callback):
     def __init__( self, _stopCond, **kwargs ):
         super(PerformanceTracker,self).__init__()
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.stopCond = _stopCond
         self.val_loss_history = None
         self.training_loss_history = None
@@ -104,7 +105,7 @@ class FitResult(object):
         return FitResult( history.history['val_loss'], history.history['loss'], initial_weights, final_weights,  training_loss, val_loss, nEpocs )
 
     def __init__( self, _val_loss_history: Iterable[float], _train_loss_history: Iterable[float], _initial_weights: List[np.ndarray], _final_weights: List[np.ndarray], _training_loss: float,  _val_loss: float, _nEpocs: int ):
-        self.logger = logging.getLogger()
+        self.logger = EDASLogger.getLogger()
         self.val_loss_history = np.array( _val_loss_history )
         self.train_loss_history = np.array( _train_loss_history )
         self.initial_weights = _initial_weights

@@ -1,6 +1,7 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
 import logging, string, random
+from edask.util.logging import EDASLogger
 
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
@@ -19,7 +20,7 @@ class SizeParser:
         else: return int( input1 )
 
 class WpsCwtParser:
-    logger = logging.getLogger()
+    logger = EDASLogger.getLogger()
 
     integer = (Optional("-") + Word(nums)).setParseAction(str2int)
     float = (Optional("-") + Word(nums + ".") + Optional(CaselessLiteral("E") + Optional("-") + Word(nums))).setParseAction(str2float)
