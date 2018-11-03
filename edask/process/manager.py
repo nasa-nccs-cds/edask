@@ -123,7 +123,11 @@ class ExecResultHandler(ResultHandler):
           result: EDASDataset = resultFuture.result()
           self.results.append(result)
       else:
-          self.failureCallback( Exception("status = " + status + ", Exception = " + str( resultFuture.exception() ) + "\n" + str( traceback.format_tb(resultFuture.traceback()) ) ) )
+          try:                      self.failureCallback( Exception("status = " + status + "\n" + str( traceback.format_tb(resultFuture.traceback(60)) ) ) )
+          except TimeoutError:
+              try:                  self.failureCallback( Exception("status = " + status + ", Exception = " + str( resultFuture.exception(60) )  ) )
+              except TimeoutError:
+                                    self.failureCallback( Exception("status = " + status  ) )
       if self.completed == self.workers:
         self.processFinalResult()
         if self.portal:
