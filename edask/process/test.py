@@ -103,14 +103,8 @@ class DistributedTestManager(TestManager):
             appConfiguration = {}
         self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  Tuple[ExecResultHandler, List[Future]]:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  ExecResultHandler:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
-        futures = self.processManager.executeProcess(job.process, job, resultHandler)
-        return ( resultHandler, futures )
-
-    def testTestExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> ExecResultHandler:
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
-        resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
-        self.processManager.testExecuteProcess(job.process, job, resultHandler)
+        self.processManager.executeProcess( job.process, job, resultHandler )
         return resultHandler

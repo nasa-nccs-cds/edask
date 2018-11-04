@@ -22,7 +22,16 @@ class ResultHandler:
         self.cacheDir = kwargs.get( "cache", "/tmp")
         self.workers = kwargs.get( "workers", 1 )
         self.completed = 0
+        self._futures: List[Future] = None
         self.filePath = self.cacheDir + "/" + Job.randomStr(6) + ".nc"
+
+    def setFutures(self, futures ) -> "ResultHandler":
+        self._futures = futures
+        return self
+
+    def getResults( self, timeout = None ) -> List[EDASDataset]:
+        assert self._futures is not None, "Can't get reults from unsubmitted handler"
+        return [ future.result(timeout) for future in self._futures ]
 
     def getExpDir(self, proj: str, exp: str ) -> str:
         expDir =  self.cacheDir + "/experiments/" + proj + "/" + exp
@@ -179,19 +188,19 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ) -> List[Future]:
+  def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ) -> ResultHandler:
       try:
         self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
         if resultHandler.workers > 1:
             jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.workers) ]
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
             for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
-            return result_futures
+            return resultHandler.setFutures( result_futures )
         else:
             result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
             result_future.add_done_callback( resultHandler.successCallback )
             self.logger.info("Submitted computation, result = " + str(result_future.result()))
-            return [ result_future ]
+            return resultHandler.setFutures(  [ result_future ] )
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))
