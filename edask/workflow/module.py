@@ -164,6 +164,7 @@ class KernelManager:
 
     def buildTask( self, job: Job ) -> EDASDataset:
         try:
+            self.logger.error("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
         except Exception as err:
