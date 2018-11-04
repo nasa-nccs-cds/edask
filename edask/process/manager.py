@@ -198,7 +198,7 @@ class ProcessManager(GenericProcessManager):
           self.logger.info("Defining workflow, nWorkers = " + str(resultHandler.workers))
           result_future = self.client.submit(lambda x: x.workerIndex, job)
           result_future.add_done_callback(resultHandler.successCallback)
-          self.logger.info("Submitted computation")
+          self.logger.info("Submitted computation, result = " + result_future.result() )
 
       except Exception as ex:
           self.logger.error("Execution error: " + str(ex))
