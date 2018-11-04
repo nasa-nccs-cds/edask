@@ -49,15 +49,16 @@ class WpsCwtParser:
         try:
             return cls.getDatainputsParser().parseString(datainputs)[0]
         except ParseException as err:
-            cls.logger.error("Error parsing input at col {}: '{}'".format(err.col, err.line))
+            cls.logger.error("\n\n -----> Error parsing input at col {}: '{}'\n".format(err.col, err.line))
             raise err
 
     @classmethod
     def parseOpConnections(cls, opConnections) -> List[List[List[str]]]:
         try:
-            return cls.getOpConnectionsParser().parseString( str(opConnections) )[0]
+            opCon = ",".join( opConnections ) if hasattr(opConnections, '__iter__') else opConnections
+            return cls.getOpConnectionsParser().parseString( str(opCon) )[0]
         except ParseException as err:
-            cls.logger.error( "Error parsing input at col {}: '{}'".format( err.col, err.line ) )
+            cls.logger.error( "\n\n -----> Error parsing input at col {}: '{}'\n".format( err.col, err.line ) )
             raise err
 
     @classmethod
