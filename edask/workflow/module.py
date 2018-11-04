@@ -172,11 +172,11 @@ class KernelManager:
             self.logger.info( traceback.format_exc() )
             raise err
 
-    def testBuildTask( self, job: Job ) -> int:
+    def testBuildTask( self, job: Job ) -> EDASDataset:
         try:
             self.logger.error("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )
-            return job.workerIndex
+            return self.buildRequest( request )
         except Exception as err:
             self.logger.error( "BuildTask Exception: " + str(err) )
             self.logger.info( traceback.format_exc() )
