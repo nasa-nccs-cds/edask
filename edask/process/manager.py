@@ -179,17 +179,19 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ):
+  def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ) -> List[Future]:
       try:
         self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
         if resultHandler.workers > 1:
             jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.workers) ]
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
             for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
+            return result_futures
         else:
             result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
             result_future.add_done_callback( resultHandler.successCallback )
-        self.logger.info("Submitted computation")
+            self.logger.info("Submitted computation, result = " + str(result_future.result()))
+            return [ result_future ]
 
       except Exception as ex:
           self.logger.error( "Execution error: " + str(ex))

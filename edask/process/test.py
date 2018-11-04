@@ -6,6 +6,8 @@ from edask.workflow.module import edasOpManager
 from edask.util.logging import EDASLogger
 from edask.process.manager import ProcessManager, ExecResultHandler
 from edask.config import EdaskEnv
+from dask.distributed import Future
+from typing import List, Optional, Tuple, Dict, Any
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
@@ -101,11 +103,11 @@ class DistributedTestManager(TestManager):
             appConfiguration = {}
         self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> ExecResultHandler:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  Tuple[ExecResultHandler, List[Future]]:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
-        self.processManager.executeProcess(job.process, job, resultHandler)
-        return resultHandler
+        futures = self.processManager.executeProcess(job.process, job, resultHandler)
+        return ( resultHandler, futures )
 
     def testTestExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> ExecResultHandler:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
