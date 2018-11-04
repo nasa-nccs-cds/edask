@@ -172,6 +172,16 @@ class KernelManager:
             self.logger.info( traceback.format_exc() )
             raise err
 
+    def testBuildTask( self, job: Job ) -> int:
+        try:
+            self.logger.error("Worker-> BuildTask, index = " + str(job.workerIndex) )
+            request: TaskRequest = TaskRequest.new( job )
+            return job.workerIndex
+        except Exception as err:
+            self.logger.error( "BuildTask Exception: " + str(err) )
+            self.logger.info( traceback.format_exc() )
+            raise err
+
     # def buildTasks(self, job: Job ) -> EDASDataset:
     #     try:
     #         instances = xa.DataArray( range(job.iterations), coords=[('node',range(job.iterations))] )
