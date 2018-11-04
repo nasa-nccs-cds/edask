@@ -55,7 +55,7 @@ class WpsCwtParser:
     @classmethod
     def parseOpConnections(cls, opConnections) -> List[List[List[str]]]:
         try:
-            opCon = ",".join( opConnections ) if hasattr(opConnections, '__iter__') else opConnections
+            opCon = ",".join( opConnections ) if hasattr(opConnections, '__iter__') and not isinstance(opConnections, str) else opConnections
             return cls.getOpConnectionsParser().parseString( str(opCon) )[0]
         except ParseException as err:
             cls.logger.error( "\n\n -----> Error parsing input at col {}: '{}'\n".format( err.col, err.line ) )
