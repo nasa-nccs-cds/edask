@@ -193,6 +193,18 @@ class ProcessManager(GenericProcessManager):
           resultHandler.failureCallback( ex )
           traceback.print_exc()
 
+  def testExecuteProcess(self, service: str, job: Job, resultHandler: ResultHandler):
+      try:
+          self.logger.info("Defining workflow, nWorkers = " + str(resultHandler.workers))
+          result_future = self.client.submit(lambda x: x.workerIndex, job)
+          result_future.add_done_callback(resultHandler.successCallback)
+          self.logger.info("Submitted computation")
+
+      except Exception as ex:
+          self.logger.error("Execution error: " + str(ex))
+          resultHandler.failureCallback(ex)
+          traceback.print_exc()
+
       # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
       #
       # serviceProvider = apiManager.getServiceProvider("edas")

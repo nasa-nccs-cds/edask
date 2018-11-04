@@ -106,3 +106,9 @@ class DistributedTestManager(TestManager):
         resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
         self.processManager.executeProcess(job.process, job, resultHandler)
         return resultHandler
+
+    def testTestExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) -> ExecResultHandler:
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
+        resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
+        self.processManager.testExecuteProcess(job.process, job, resultHandler)
+        return resultHandler

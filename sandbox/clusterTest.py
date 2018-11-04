@@ -48,7 +48,7 @@ class ClusterTests:
                                     "time": { "start":10, "end":15, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0"  } ]
         operations = [ { "name":"xarray.subset", "input":"v0" } ]
-        self.resultHandler = self.mgr.testExec(domains, variables, operations)
+        self.resultHandler = self.mgr.testTestExec(domains, variables, operations)
 
 
 if __name__ == '__main__':
