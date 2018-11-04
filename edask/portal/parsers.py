@@ -46,13 +46,19 @@ class WpsCwtParser:
 
     @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
-        cls.logger.info( "WpsCwtParser-> Parsing: " + datainputs )
-        return cls.getDatainputsParser().parseString(datainputs)[0]
+        try:
+            return cls.getDatainputsParser().parseString(datainputs)[0]
+        except ParseException as err:
+            cls.logger.error("Error parsing input at col {}: '{}'".format(err.col, err.line))
+            raise err
 
     @classmethod
     def parseOpConnections(cls, opConnections) -> List[List[List[str]]]:
-        cls.logger.info( "WpsCwtParser-> Parsing: " + opConnections )
-        return cls.getOpConnectionsParser().parseString(opConnections)[0]
+        try:
+            return cls.getOpConnectionsParser().parseString( str(opConnections) )[0]
+        except ParseException as err:
+            cls.logger.error( "Error parsing input at col {}: '{}'".format( err.col, err.line ) )
+            raise err
 
     @classmethod
     def keymap( cls, key: Token, value: Token, enclosing: str = "{}", sep=":" ):
