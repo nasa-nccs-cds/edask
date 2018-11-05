@@ -24,7 +24,8 @@ class ClusterTests:
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-TN"  } ]
-        self.mgr.testExec(domains, variables, operations)
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, result = " + str( result ) )
 
     def compute_eofs_SN(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
@@ -32,7 +33,8 @@ class ClusterTests:
         operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
                         {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
                         {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
-        self.mgr.testExec(domains, variables, operations)
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, result = " + str( result ) )
 
     def test_subset(self):
         domains = [{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
@@ -40,7 +42,8 @@ class ClusterTests:
                     "time": {"start": 10, "end": 15, "system": "indices"}}]
         variables = [{"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"}]
         operations = [ { "name": "xarray.subset", "input": "v0" } ]
-        self.resultHandler = self.mgr.testExec(domains, variables, operations)
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, result = " + str( result ) )
 
     def test_subset_dap(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
@@ -48,8 +51,8 @@ class ClusterTests:
                                     "time": { "start":10, "end":15, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0"  } ]
         operations = [ { "name":"xarray.subset", "input":"v0" } ]
-        resultHandler = self.mgr.testExec(domains, variables, operations)
-        print( "Submitted Request, results = " + str( resultHandler.getResults() ) )
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, result = " + str( result ) )
 
 
 if __name__ == '__main__':
