@@ -37,13 +37,14 @@ class ClusterTests:
         print( "Submitted Request, result = " + str( result ) )
 
     def test_subset(self):
+        t0 = time.time()
         domains = [{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
                     "lon": {"start": 40, "end": 42, "system": "values"},
                     "time": {"start": 10, "end": 15, "system": "indices"}}]
         variables = [{"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"}]
         operations = [ { "name": "xarray.subset", "input": "v0" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
-        print( "Submitted Request, result = " + str( result ) )
+        print( "Submitted Request, elapsed: {} sec, result = {}".format( time.time()-t0, str( result ) ) )
 
     def test_subset_dap(self):
         domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },

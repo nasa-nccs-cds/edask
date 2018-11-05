@@ -113,26 +113,6 @@ class Collection:
 #        self.dims = args[6].strip().split(' ')
 #        self.units = args[7].strip()
 
-class Axis:
-
-   def __init__(self, *args ):
-       self.name = args[0].strip()
-       self.long_name = args[1].strip()
-       self.type = args[2].strip()
-       self.length = self.getNumber( args[3].strip(), True )
-       self.units = args[4].strip()
-       self.bounds = [ self.getNumber(args[5].strip()), self.getNumber(args[6].strip()) ]
-
-   def getIndexList( self, dset, min_value, max_value ):
-        values = dset.variables[self.name][:]
-        return np.where((values > min_value) & (values < max_value))
-
-   def getNumber(self, arg: str, isInt = False ) -> int:
-       try:
-           result = float(arg)
-           return int( result ) if isInt else result
-       except: return 1 if isInt else 0.0
-
 class File:
 
     def __init__(self, _collection, *args ):
@@ -147,6 +127,28 @@ class File:
 
     def parm(self, key ):
         return self.collection.parm( key )
+
+    @classmethod
+    def getNumber(cls, arg: str, isInt = False ) -> int:
+       try:
+           result = float(arg)
+           return int( result ) if isInt else result
+       except: return 1 if isInt else 0.0
+
+class Axis:
+
+   def __init__(self, *args ):
+       self.name = args[0].strip()
+       self.long_name = args[1].strip()
+       self.type = args[2].strip()
+       self.length = File.getNumber( args[3].strip(), True )
+       self.units = args[4].strip()
+       self.bounds = [ File.getNumber(args[5].strip()), File.getNumber(args[6].strip()) ]
+
+   def getIndexList( self, dset, min_value, max_value ):
+        values = dset.variables[self.name][:]
+        return np.where((values > min_value) & (values < max_value))
+
 
 class VarRec:
 
@@ -229,7 +231,7 @@ class Aggregation:
                         value = line[2:].split(";")
                         if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
                         elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                        elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
+                        elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
                         elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
                         elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
                     except Exception as err:
