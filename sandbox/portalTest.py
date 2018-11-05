@@ -28,7 +28,7 @@ def testAvg():
             },
         }],
         variable=[{
-            "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/reanalysis/MERRA2/mon/atmos/tas.ncml",
+            "uri": "collection:cip_merra2_mth",
             "name":"tas:v0",
             "domain":"d0"
         }],
@@ -42,7 +42,7 @@ def testAvg():
 
     print('Query:\n' + datainputs)
 
-    rId1 = portal.sendMessage("execute", ["WPS", datainputs.replace(" ", "").replace("\n", ""), '{ "response":"object" }'])
+    rId1 = portal.sendMessage( "execute", ["WPS", datainputs.replace(" ", "").replace("\n", "") ] )
     portal.waitUntilDone()
 
 
