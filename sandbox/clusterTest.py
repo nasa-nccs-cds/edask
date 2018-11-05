@@ -55,4 +55,4 @@ class ClusterTests:
 if __name__ == '__main__':
     tester = ClusterTests()
     tstart = time.time()
-    result = tester.test_subset_dap()
+    result = tester.test_subset()
