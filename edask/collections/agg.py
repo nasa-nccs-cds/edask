@@ -119,13 +119,19 @@ class Axis:
        self.name = args[0].strip()
        self.long_name = args[1].strip()
        self.type = args[2].strip()
-       self.length = int(args[3].strip())
+       self.length = self.getNumber( args[3].strip(), True )
        self.units = args[4].strip()
-       self.bounds = [ float(args[5].strip()), float(args[6].strip()) ]
+       self.bounds = [ self.getNumber(args[5].strip()), self.getNumber(args[6].strip()) ]
 
    def getIndexList( self, dset, min_value, max_value ):
         values = dset.variables[self.name][:]
         return np.where((values > min_value) & (values < max_value))
+
+   def getNumber(self, arg: str, isInt = False ) -> int:
+       try:
+           result = float(arg)
+           return int( result ) if isInt else result
+       except: return 1 if isInt else 0.0
 
 class File:
 
