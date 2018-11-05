@@ -1,9 +1,10 @@
-from edask.process.test import TestManager, LocalTestManager
+from edask.process.test import TestManager, LocalTestManager, DistributedTestManager
 from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging, inspect
 import numpy.ma as ma
-mgr = LocalTestManager( "PyTest", "test_suite" )
+LOCAL_TESTS = False
+mgr = LocalTestManager( "PyTest", "test_suite" ) if LOCAL_TESTS else DistributedTestManager( "PyTest", "test_suite" )
 
 def test_ave_timeslice():
     domains = [{ "name":"d0",   "lat":  { "start":0, "end":50,  "system":"values" },
