@@ -6,6 +6,7 @@ from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.source import VID
 from edask.config import EdaskEnv
+from edask.util.logging import EDASLogger
 
 def parse_dict( dict_spec ):
     result = {}
@@ -201,6 +202,7 @@ class AggProcessing:
 class Aggregation:
 
     def __init__(self, _name, _agg_file ):
+        self.logger = EDASLogger.getLogger()
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
@@ -211,17 +213,22 @@ class Aggregation:
         self._parseAggFile()
 
     def _parseAggFile(self):
+        self.logger.info( "Parsing Agg file: " + self.spec )
         with open(self.spec, "r") as file:
             for line in file.readlines():
                 if not line: break
                 if line[1] == ";":
-                    type = line[0]
-                    value = line[2:].split(";")
-                    if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
-                    elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                    elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
-                    elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
-                    elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                    try:
+                        type = line[0]
+                        value = line[2:].split(";")
+                        if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
+                        elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                        elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
+                        elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                        elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                    except Exception as err:
+                        self.logger.error( "Error parsing Agg file, line: " + line )
+                        raise err
 
     def parm(self, key ):
         return self.parms.get( key, "" )
