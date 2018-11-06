@@ -103,14 +103,12 @@ class DistributedTestManager(TestManager):
             appConfiguration = {}
         self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
 
-    def testSubmit(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
-        resultHandler = self.processManager.submitProcess(job.process, job, ExecResultHandler("local", job.process, workers=job.workers))
-        if resultHandler is None: return None
-        results = resultHandler.getResults()
-        return results[0]
-
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
-        return self.processManager.runProcess(job)
+        result = self.processManager.submitProcess(job.process, job, ExecResultHandler("local", job.process, workers=job.workers))
+        return result
+
+    # def testExec1(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+    #     job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
+    #     return self.processManager.runProcess(job)
 

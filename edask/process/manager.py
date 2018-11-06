@@ -191,18 +191,31 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  def runProcess( self, job: Job ) -> EDASDataset:
+  # def runProcess( self, job: Job ) -> EDASDataset:
+  #   start_time = time.time()
+  #   try:
+  #       self.logger.info( "Running workflow for requestId " + job.requestId)
+  #       result = edasOpManager.buildTask( job )
+  #       self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+  #       return result
+  #   except Exception as err:
+  #       self.logger.error( "Execution error: " + str(err))
+  #       traceback.print_exc()
+
+  def submitProcess( self, service: str, job: Job, resultHandler: ExecResultHandler ) -> EDASDataset:
     start_time = time.time()
     try:
         self.logger.info( "Running workflow for requestId " + job.requestId)
         result = edasOpManager.buildTask( job )
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+        resultHandler.processResult( result )
         return result
     except Exception as err:
         self.logger.error( "Execution error: " + str(err))
-        traceback.print_exc()
+        self.logger.error( traceback.format_exc() )
+        resultHandler.failureCallback(err)
 
-  def submitProcess(self, service: str, job: Job, resultHandler: ResultHandler) -> ResultHandler:
+  def submitProcessAsync(self, service: str, job: Job, resultHandler: ResultHandler) -> ResultHandler:
       try:
         self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
         resultHandler.updateStartTime()
@@ -221,79 +234,3 @@ class ProcessManager(GenericProcessManager):
           self.logger.error( "Execution error: " + str(ex))
           resultHandler.failureCallback( ex )
           traceback.print_exc()
-
-  def testExecuteProcess(self, service: str, job: Job, resultHandler: ResultHandler):
-      try:
-          self.logger.info("Defining workflow, nWorkers = " + str(resultHandler.workers))
-          result_future = self.client.submit( lambda x: edasOpManager.testBuildTask( x ), job )
-          result_future.add_done_callback(resultHandler.successCallback)
-          self.logger.info("Submitted computation, result = " + str(result_future.result()) )
-
-      except Exception as ex:
-          self.logger.error("Execution error: " + str(ex))
-          resultHandler.failureCallback(ex)
-          traceback.print_exc()
-
-      # request: TaskRequest = TaskRequest( job.requestId, job.identifier, dataInputsObj )
-      #
-      # serviceProvider = apiManager.getServiceProvider("edas")
-      # ( job.requestId, serviceProvider.executeProcess( request, job.datainputs, job.runargs, executionCallback ) )
-
-
-#
-#
-#   def alloc = if( _apiManagerOpt.isEmpty ) { _apiManagerOpt = Some( new APIManager( serverConfiguration ) ) }
-#   def apiManager: APIManager = { alloc; _apiManagerOpt.get }
-#   def serverIsDown: bool = { false; }
-#
-#   def unacceptable(msg: str): Unit = {
-#     logger.error(msg)
-#     throw new NotAcceptableException(msg)
-#   }
-#
-#   def term = _apiManagerOpt.foreach( _.shutdown )
-#
-#   def describeProcess(service: str, name: str, runArgs: Dict[str,str]): xml.Elem = {
-#     val serviceProvider = apiManager.getServiceProvider(service)
-#     //        logger.info("Executing Service {}, Service provider = {} ".format( service, serviceProvider.getClass.getName ))
-#     serviceProvider.describeWPSProcess( name, runArgs )
-#   }
-#
-#   def getCapabilities(service: str, identifier: str, runArgs: Dict[str,str]): xml.Elem = {
-#     edasOpManager
-#   }
-#
-#
-# //  def getResultFilePath( service: str, resultId: str, executor: WorkflowExecutor ): Option[str] = {
-# //    val serviceProvider = apiManager.getServiceProvider(service)
-# //    val path = serviceProvider.getResultFilePath( resultId, executor )
-# //    logger.info( "EDAS ProcessManager-> getResultFile: " + resultId + ", path = " + path.getOrElse("NULL") )
-# //    path
-# //  }
-#
-#   def hasResult( service: str, resultId: str ): bool = { false }
-#
-#   def getResult( service: str, resultId: str, response_syntax: wps.ResponseSyntax.Value ): Element = {
-#     logger.info( "EDAS ProcessManager-> getResult: " + resultId)
-#     val serviceProvider = apiManager.getServiceProvider(service)
-#     serviceProvider.getResult( resultId, response_syntax )
-#   }
-#
-#   def getResultVariable( service: str, resultId: str ): Option[RDDTransientVariable] = {
-#     logger.info( "EDAS ProcessManager-> getResult: " + resultId)
-#     val serviceProvider = apiManager.getServiceProvider(service)
-#     serviceProvider.getResultVariable(resultId)
-#   }
-#
-#   def getResultVariables( service: str ): Iterable[str] = {
-#     val serviceProvider = apiManager.getServiceProvider(service)
-#     serviceProvider.getResultVariables
-#   }
-#
-#   def getResultStatus( service: str, resultId: str, response_syntax: wps.ResponseSyntax.Value ): Element = {
-#     logger.info( "EDAS ProcessManager-> getResult: " + resultId)
-#     val serviceProvider = apiManager.getServiceProvider(service)
-#     serviceProvider.getResultStatus(resultId,response_syntax)
-#   }
-# }
-
