@@ -152,7 +152,7 @@ class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def executeProcess( self, service: str, job: Job, resultHandler: ExecResultHandler )-> str: pass
+  def submitProcess(self, service: str, job: Job, resultHandler: ExecResultHandler)-> str: pass
 
   @abc.abstractmethod
   def getResult( self, service: str, resultId: str )-> Element: pass
@@ -191,7 +191,18 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ) -> ResultHandler:
+  def runProcess( self, job: Job ) -> EDASDataset:
+    start_time = time.time()
+    try:
+        self.logger.info( "Running workflow for requestId " + job.requestId)
+        result = edasOpManager.buildTask( job )
+        self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+        return result
+    except Exception as err:
+        self.logger.error( "Execution error: " + str(err))
+        traceback.print_exc()
+
+  def submitProcess(self, service: str, job: Job, resultHandler: ResultHandler) -> ResultHandler:
       try:
         self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
         resultHandler.updateStartTime()

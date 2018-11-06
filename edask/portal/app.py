@@ -74,7 +74,7 @@ class EDASapp(EDASPortal):
         try:
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
           resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler( clientId, jobId, self, workers=job.workers) )
-          self.processManager.executeProcess(jobId, job, resultHandler )
+          self.processManager.submitProcess(jobId, job, resultHandler)
           return Message( clientId, jobId, resultHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
@@ -85,7 +85,7 @@ class EDASapp(EDASPortal):
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
           resultHandler: ExecResultHandler = self.addHandler(clientId, job.process, ExecResultHandler( clientId, job.process, workers=job.workers))
-          self.processManager.executeProcess(job.process, job, resultHandler)
+          self.processManager.submitProcess(job.process, job, resultHandler)
           return Message(clientId, job.process, resultHandler.filePath)
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )

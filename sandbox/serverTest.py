@@ -100,7 +100,7 @@ class AppTests:
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
           resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
-          self.processManager.executeProcess(job.process, job, resultHandler)
+          self.processManager.submitProcess(job.process, job, resultHandler)
           return Message(clientId, job.process, resultHandler.filePath)
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
