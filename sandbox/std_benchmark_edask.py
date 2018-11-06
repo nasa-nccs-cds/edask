@@ -13,7 +13,8 @@ edask_cip_tas_mon="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanal
 dataset = edask_cip_tas_mon
 
 try:
-    client = Client( 'edaskwndev01:8786' )
+#    client = Client( 'edaskwndev01:8786' )
+    client = Client()
 
     print( "READ " + dataset )
     
