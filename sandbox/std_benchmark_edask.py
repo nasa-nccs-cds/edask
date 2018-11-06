@@ -3,7 +3,9 @@ import pandas as pd
 import xarray as xa
 import time, traceback
 from dask.distributed import Client, LocalCluster
+from multiprocessing import freeze_support
 
+freeze_support()
 print ( "STARTUP" )
 client = None
 start = time.time()
