@@ -74,7 +74,16 @@ class ClusterTests:
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
 
+    def test_mean(self):
+        t0 = time.time()
+        domains =    [ { "name": "d0" } ]
+        variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
+        operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
+        self.print(result)
+
 if __name__ == '__main__':
     tester = ClusterTests()
     tstart = time.time()
-    result = tester.test_average()
+    result = tester.test_mean()
