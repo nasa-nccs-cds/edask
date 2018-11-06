@@ -86,4 +86,4 @@ class ClusterTests:
 if __name__ == '__main__':
     tester = ClusterTests()
     tstart = time.time()
-    result = tester.test_mean()
+    result = tester.compute_eofs_SN()
