@@ -6,22 +6,25 @@ from dask.distributed import Client
 
 print ( "STARTUP" )
 client = None
+dataset_month = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/01/*.nc4'
+dataset_year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/*/*.nc4'
+dataset_35year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/*/*/*.nc4'
+dataset_ncml = '/dass/adm/edas/cache/collections/agg/merra2_inst1_2d_int_Nx-M2I1NXINT.5.12.4MOfZ.ncml'
 start = time.time()
 
-edask_cip_tas_6hr="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanalysis/NASA-GMAO/GEOS-5/MERRA2/6hr/atmos/tas/*.nc"
-edask_cip_tas_mon="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanalysis/NASA-GMAO/GEOS-5/MERRA2/mon/atmos/tas/*.nc"
-dataset = edask_cip_tas_6hr
+dataset = dataset_35year
 
 try:
-    client = Client( 'edaskwndev01:8786' )
+    client = Client( 'cldradn101:8786' )
 
     print( "READ " + dataset )
     
-    ds_m=xa.open_mfdataset( dataset, autoclose=True, data_vars=['tas'], parallel=True )
+    ds_m=xa.open_mfdataset( dataset, autoclose=True, data_vars=['KE'], parallel=True )
 
     print( "COMPUTE MEAN, Result:" )
 
-    print( ds_m.tas.mean().values )
+#    print ds_m.KE.mean(dim='time').mean(dim='lon').mean(dim='lat').values
+    print( ds_m.KE.mean().values )
 
     print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
