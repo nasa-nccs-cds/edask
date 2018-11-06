@@ -79,7 +79,7 @@ class ClusterTests:
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
         operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
-        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        result: EDASDataset = self.mgr.testExec1(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
 

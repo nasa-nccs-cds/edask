@@ -191,16 +191,16 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  # def runProcess( self, job: Job ) -> EDASDataset:
-  #   start_time = time.time()
-  #   try:
-  #       self.logger.info( "Running workflow for requestId " + job.requestId)
-  #       result = edasOpManager.buildTask( job )
-  #       self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
-  #       return result
-  #   except Exception as err:
-  #       self.logger.error( "Execution error: " + str(err))
-  #       traceback.print_exc()
+  def runProcess( self, job: Job ) -> EDASDataset:
+    start_time = time.time()
+    try:
+        self.logger.info( "Running workflow for requestId " + job.requestId)
+        result = edasOpManager.buildTask( job )
+        self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+        return result
+    except Exception as err:
+        self.logger.error( "Execution error: " + str(err))
+        traceback.print_exc()
 
   def submitProcess( self, service: str, job: Job, resultHandler: ExecResultHandler ) -> EDASDataset:
     start_time = time.time()
