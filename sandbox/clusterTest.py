@@ -61,7 +61,8 @@ class ClusterTests:
         variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
         operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
-        print( "Submitted Request, elapsed: {} sec, result = {}".format( time.time()-t0, str( result ) ) )
+        print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
+        for array in result.arrays: print( "\n" + str( array.xr.to_netcdf() ) )
 
 if __name__ == '__main__':
     tester = ClusterTests()
