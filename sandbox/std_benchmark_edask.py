@@ -10,7 +10,7 @@ start = time.time()
 
 edask_cip_tas_6hr="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanalysis/NASA-GMAO/GEOS-5/MERRA2/6hr/atmos/tas/*.nc"
 edask_cip_tas_mon="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanalysis/NASA-GMAO/GEOS-5/MERRA2/mon/atmos/tas/*.nc"
-dataset = edask_cip_tas_6hr
+dataset = edask_cip_tas_mon
 
 try:
     client = Client( 'edaskwndev01:8786' )
