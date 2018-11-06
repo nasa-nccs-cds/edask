@@ -55,8 +55,15 @@ class ClusterTests:
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, result = " + str( result ) )
 
+    def test_average(self):
+        t0 = time.time()
+        domains =    [ { "name": "d0" } ]
+        variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
+        operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy" } ]
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "Submitted Request, elapsed: {} sec, result = {}".format( time.time()-t0, str( result ) ) )
 
 if __name__ == '__main__':
     tester = ClusterTests()
     tstart = time.time()
-    result = tester.compute_eofs_SN()
+    result = tester.test_average()
