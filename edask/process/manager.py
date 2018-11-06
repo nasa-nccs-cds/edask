@@ -22,8 +22,12 @@ class ResultHandler:
         self.cacheDir = kwargs.get( "cache", "/tmp")
         self.workers = kwargs.get( "workers", 1 )
         self.completed = 0
+        self.start_time = time.time()
         self._futures: List[Future] = None
         self.filePath = self.cacheDir + "/" + Job.randomStr(6) + ".nc"
+
+    def updateStartTime( self):
+        self.start_time = time.time()
 
     def setFutures(self, futures ) -> "ResultHandler":
         self._futures = futures
@@ -59,10 +63,9 @@ class ResultHandler:
 
 class ExecResultHandler(ResultHandler):
 
-    def __init__(self, clientId: str, jobId: str, portal: Optional[EDASPortal]=None, **kwargs ):
+    def __init__( self, clientId: str, jobId: str, portal: Optional[EDASPortal]=None, **kwargs ):
         super(ExecResultHandler,self).__init__( clientId, jobId, **kwargs )
         self.portal = portal
-        self.start_time = time.time()
         self.results: List[EDASDataset] = []
 
     def processResult( self, result: EDASDataset ):
@@ -191,6 +194,7 @@ class ProcessManager(GenericProcessManager):
   def executeProcess( self, service: str, job: Job, resultHandler: ResultHandler ) -> ResultHandler:
       try:
         self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
+        resultHandler.updateStartTime()
         if resultHandler.workers > 1:
             jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.workers) ]
             result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
