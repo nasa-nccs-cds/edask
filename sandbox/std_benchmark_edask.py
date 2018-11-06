@@ -20,7 +20,7 @@ try:
 
     print( "COMPUTE MEAN, Result:" )
 
-    print( ds_m.tas.mean().values )
+    print( ds_m.tas.mean( dim=["lat","lon"], keep_attrs=True ).values )
 
     print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
