@@ -6,6 +6,7 @@ import string, random, os, re, traceback
 from edask.collections.agg import Archive
 import abc, math, time
 import xarray as xa
+from dask.distributed import Client
 from edask.data.sources.timeseries import TimeIndexer
 from edask.util.logging import EDASLogger
 from xarray.core.groupby import DataArrayGroupBy
@@ -112,7 +113,8 @@ class EDASArray:
 
     def persist(self) -> xa.DataArray:
         if self.loaded_data is None:
-            self.loaded_data = self.xr.load().persist()
+            client = None # Client.current()
+            self.loaded_data = self.xr.load().persist() if client is None else Client.persist( self.xr.load() )
         return self.loaded_data
 
     @property

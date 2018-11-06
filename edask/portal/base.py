@@ -1,5 +1,4 @@
 import zmq, traceback, time, logging, xml, cdms2, socket
-from threading import Thread
 from typing import List, Dict, Sequence, Set
 from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime

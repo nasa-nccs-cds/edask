@@ -8,7 +8,7 @@ from edask.portal.base import EDASPortal, Message, Response
 from dask.distributed import Client, Future, LocalCluster
 from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
-from edask.collections.agg import Archive
+from threading import Thread
 from enum import Enum
 import xarray as xa
 
@@ -178,6 +178,7 @@ class ProcessManager(GenericProcessManager):
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
+      self.submitters = []
       scheduler = self.config.get( "dask.scheduler", None )
       if scheduler is not None:
           self.logger.info( "Initializing Dask cluster with scheduler {}".format(scheduler) )
@@ -215,22 +216,27 @@ class ProcessManager(GenericProcessManager):
         self.logger.error( traceback.format_exc() )
         resultHandler.failureCallback(err)
 
-  def submitProcessAsync(self, service: str, job: Job, resultHandler: ResultHandler) -> ResultHandler:
-      try:
-        self.logger.info( "Defining workflow, nWorkers = " + str(resultHandler.workers) )
-        resultHandler.updateStartTime()
-        if resultHandler.workers > 1:
-            jobs = [ job.copy(wIndex) for wIndex in range(resultHandler.workers) ]
-            result_futures = self.client.map( lambda x: edasOpManager.buildTask( x ), jobs )
-            for result_future in result_futures: result_future.add_done_callback( resultHandler.iterationCallback )
-            return resultHandler.setFutures( result_futures )
-        else:
-            result_future = self.client.submit( lambda x: edasOpManager.buildTask( x ), job )
-            result_future.add_done_callback( resultHandler.successCallback )
-            self.logger.info("Submitted computation, result = " + str(result_future.result()))
-            return resultHandler.setFutures(  [ result_future ] )
+  def submitProcessAsync( self, job: Job, resultHandler: ExecResultHandler ):
+      submitter: SubmissionThread = SubmissionThread( job, resultHandler )
+      self.submitters.append( submitter )
+      submitter.run()
 
-      except Exception as ex:
-          self.logger.error( "Execution error: " + str(ex))
-          resultHandler.failureCallback( ex )
-          traceback.print_exc()
+class SubmissionThread(Thread):
+
+    def __init__(self, job: Job, resultHandler: ExecResultHandler ):
+        Thread.__init__(self)
+        self.job = job
+        self.resultHandler = resultHandler
+        self.logger =  EDASLogger.getLogger()
+
+    def run(self):
+        start_time = time.time()
+        try:
+            self.logger.info( "Running workflow for requestId " + self.job.requestId)
+            result = edasOpManager.buildTask( self.job )
+            self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+            self.resultHandler.processResult( result )
+        except Exception as err:
+            self.logger.error( "Execution error: " + str(err))
+            self.logger.error( traceback.format_exc() )
+            self.resultHandler.failureCallback(err)

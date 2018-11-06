@@ -108,7 +108,8 @@ class DistributedTestManager(TestManager):
         result = self.processManager.submitProcess(job.process, job, ExecResultHandler("local", job.process, workers=job.workers))
         return result
 
-    def testExec1(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+    def testExecAsync(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]):
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
-        return self.processManager.runProcess(job)
+        self.processManager.submitProcessAsync( job, ExecResultHandler("local", job.process, workers=job.workers))
+
 
