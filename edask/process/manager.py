@@ -219,7 +219,7 @@ class ProcessManager(GenericProcessManager):
   def submitProcessAsync( self, job: Job, resultHandler: ExecResultHandler ):
       submitter: SubmissionThread = SubmissionThread( job, resultHandler )
       self.submitters.append( submitter )
-      submitter.run()
+      submitter.start()
 
 class SubmissionThread(Thread):
 
