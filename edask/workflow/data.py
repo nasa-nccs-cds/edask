@@ -49,6 +49,9 @@ class KernelSpec:
     @property
     def summary(self) -> str: return ";".join( [ self.name, self.title ] )
 
+    @property
+    def xml(self) -> str: return '<kernel name="{}" title="{}" />'.format( self.name, self.title )
+
     def __str__(self): return ";".join( [ self.name, self.title, self.description, str(self._options) ] )
 
 class Transformation:
