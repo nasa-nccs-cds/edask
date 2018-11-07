@@ -1,4 +1,4 @@
-from edask.process.manager import ProcessManager, ExecResultHandler
+from edask.process.manager import ProcessManager, ExecHandler
 from edask.portal.base import Message, Response
 from dask.distributed import Future
 from typing import Sequence, List, Dict, Mapping, Optional, Any
@@ -99,7 +99,7 @@ class AppTests:
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
+          resultHandler = ExecHandler("local", job.process, workers=job.workers)
           self.processManager.submitProcess(job.process, job, resultHandler)
           return Message(clientId, job.process, resultHandler.filePath)
         except Exception as err:

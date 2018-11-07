@@ -1,4 +1,4 @@
-from edask.process.test import DistributedTestManager, ExecResultHandler
+from edask.process.test import DistributedTestManager, ExecHandler
 from edask.workflow.data import EDASDataset
 from edask.util.logging import EDASLogger
 import numpy.ma as ma
@@ -10,7 +10,7 @@ class ClusterTests:
     def __init__(self):
         self.logger =  EDASLogger.getLogger()
         self.mgr = DistributedTestManager( "PlotTESTS", "demo" )
-        self.resultHandler: ExecResultHandler = None
+        self.resultHandler: ExecHandler = None
 
     def print(self, results: EDASDataset):
       for variable in results.inputs:
@@ -79,7 +79,7 @@ class ClusterTests:
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
         operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
-        result: EDASDataset = self.mgr.testExecAsync(domains, variables, operations)
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Async Request, elapsed: {} sec".format( time.time()-t0 ) )
 
     def test_mean_dap(self):
@@ -87,10 +87,10 @@ class ClusterTests:
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": self.mgr.getAddress( "merra2", "tas"), "name": "tas:v0", "domain": "d0"} ]
         operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
-        result: EDASDataset = self.mgr.testExecAsync(domains, variables, operations)
-        print( "Submitted Request, elapsed: {} sec".format( time.time()-t0 ) )
+        result: EDASDataset = self.mgr.testExec(domains, variables, operations)
+        print( "---------------->>>> Completed Request, elapsed: {} sec".format( time.time()-t0 ) )
 
 if __name__ == '__main__':
     tester = ClusterTests()
     tstart = time.time()
-    result = tester.test_mean()
+    result = tester.test_mean_dap()
