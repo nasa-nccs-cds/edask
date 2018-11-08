@@ -117,8 +117,12 @@ class Responder:
 
     def doSendDataPacket( self, dataPacket: DataPacket ):
         self.socket.send( dataPacket.getTransferHeader() )
-        if( dataPacket.hasData() ): self.socket.send( dataPacket.getRawData() )
-        self.logger.info( "@@R: Sent data packet " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() )
+        if( dataPacket.hasData() ):
+            bdata: bytes = dataPacket.getRawData()
+            self.socket.send( bdata )
+            self.logger.info("@@R: Sent data packet for " + dataPacket.id() + ", data Size: " + str(len(bdata)) + ", header: " + dataPacket.getHeaderString())
+        else:
+            self.logger.info( "@@R: Sent data header only for " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() + "---> NO DATA!" )
 
     def setExeStatus( self, cId: str, rid: str, status: str ):
         self.status_reports[rid] = status
