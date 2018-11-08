@@ -93,9 +93,9 @@ class AxisBounds:
 
 
     def __init__(self, _name: str, _start: Union[float,int,str], _end: Union[float,int,str], _step: Union[float,int,str], _system: str, _metadata: Dict, timeDelta: Optional[relativedelta] = None ):
+        assert type(_start) == type(_end), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( _name, _start, _end)
         self.name = _name
         self.logger = EDASLogger.getLogger()
-        assert type(_start) == type(_end), "Axis {}: Start & end bounds must have same encoding: start={}, end={}".format( self.name, self.start, self.end)
         self.type = Axis.parse( _name )
         self.system = _system
         self.start = _start
@@ -103,6 +103,7 @@ class AxisBounds:
         self.end = _end
         self.step = _step
         self.metadata = _metadata
+
 
     def crop(self, axis: Axis, minVal: Union[float,int,np.datetime64], maxVal: Union[float,int,np.datetime64] ):
         if (axis == Axis.T) and self.system.startswith( ("val","time") ):
