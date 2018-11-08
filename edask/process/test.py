@@ -4,7 +4,7 @@ from edask.process.task import Job
 from edask.workflow.modules.xarray import *
 from edask.workflow.module import edasOpManager
 from edask.util.logging import EDASLogger
-from edask.process.manager import ProcessManager, ExecResultHandler
+from edask.process.manager import ProcessManager, ExecHandler
 from edask.config import EdaskEnv
 from dask.distributed import Future
 from typing import List, Optional, Tuple, Dict, Any
@@ -88,7 +88,7 @@ class LocalTestManager(TestManager):
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
         t0 = time.time()
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
-        resultHandler = ExecResultHandler("testJob", "local")
+        resultHandler = ExecHandler("testJob", "local")
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
         result = edasOpManager.buildRequest(request)
         if processResult: resultHandler.processResult(result)
@@ -103,8 +103,11 @@ class DistributedTestManager(TestManager):
             appConfiguration = {}
         self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  ExecResultHandler:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
-        resultHandler = ExecResultHandler( "local", job.process, workers=job.workers)
-        self.processManager.executeProcess( job.process, job, resultHandler )
-        return resultHandler
+        execHandler = ExecHandler("local", job.process, workers=job.workers)
+        execHandler.execJob( job )
+        return execHandler.getResult()
+
+
+

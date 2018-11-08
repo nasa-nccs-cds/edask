@@ -4,6 +4,7 @@ from cdms2.variable import DatasetVariable
 from typing import Sequence, List, Dict, Mapping, Optional
 from edask.util.logging import EDASLogger
 from edask.process.task import UID
+import xarray as xa
 import random, string, os
 from enum import Enum
 MB = 1024 * 1024
@@ -41,7 +42,7 @@ class MessageState(Enum):
 
 class ResponseManager(Thread):
 
-    def __init__(self, context: zmq.Context, clientId: str, host: str, port: int ):
+    def __init__(self, context: zmq.Context, clientId: str, host: str, port: int, **kwargs ):
         from edask.config import EdaskEnv
         Thread.__init__(self)
         self.context = context
@@ -55,6 +56,7 @@ class ResponseManager(Thread):
         self.cached_results = {}
         self.cached_arrays = {}
         self.filePaths = {}
+        self.diag = bool(kwargs.get("diag",False))
         self.setDaemon(True)
         self.cacheDir = EdaskEnv.CONFIG_DIR
         self.log("Created RM, cache dir = " + self.cacheDir )
@@ -135,6 +137,7 @@ class ResponseManager(Thread):
                 filePath = self.saveFile( msg, socket )
                 self.filePaths[rId] = filePath
                 self.log("Saved file '{0}' for rid {1}".format(filePath,rId))
+                if self.diag: self.log( str( xa.open_dataset(filePath) ) ) # .to_netcdf()
             elif type == "error":
                 self.log(  "\n\n #### ERROR REPORT " + rId + ": " + msg )
                 print (" *** Execution Error Report: " + msg)
@@ -239,7 +242,7 @@ class EDASPortalClient:
             self.request_port = ConnectionMode.connectSocket(self.request_socket, self.app_host, request_port)
             self.log("[1]Connected request socket to server {0} on port: {1}".format( self.app_host, self.request_port ) )
 
-            self.response_manager = ResponseManager(self.context, self.clientID, host, response_port)
+            self.response_manager = ResponseManager(self.context, self.clientID, host, response_port, **kwargs)
             self.response_manager.start()
 
 

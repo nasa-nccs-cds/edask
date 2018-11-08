@@ -5,7 +5,7 @@ from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.process.task import Job
-from edask.process.manager import ProcessManager, ExecResultHandler
+from edask.process.manager import ProcessManager, ExecHandler
 from edask.config import EdaskEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -27,9 +27,8 @@ class EDASapp(EDASPortal):
     def start( self ): self.run()
 
     def getCapabilities(self, utilSpec: Sequence[str] ) -> Message:
-        capabilities = edasOpManager.getCapabilitiesStr()
+        capabilities = edasOpManager.getCapabilities()
         return Message( utilSpec[0], "capabilities", capabilities )
-
 
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
@@ -73,9 +72,9 @@ class EDASapp(EDASPortal):
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
-          resultHandler: ExecResultHandler = self.addHandler(clientId, jobId, ExecResultHandler( clientId, jobId, self, workers=job.workers) )
-          self.processManager.executeProcess(jobId, job, resultHandler )
-          return Message( clientId, jobId, resultHandler.filePath )
+          execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, jobId, self, workers=job.workers))
+          execHandler.execJob( job )
+          return Message( clientId, jobId, execHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
@@ -84,9 +83,9 @@ class EDASapp(EDASPortal):
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          resultHandler: ExecResultHandler = self.addHandler(clientId, job.process, ExecResultHandler( clientId, job.process, workers=job.workers))
-          self.processManager.executeProcess(job.process, job, resultHandler)
-          return Message(clientId, job.process, resultHandler.filePath)
+          execHandler: ExecHandler = self.addHandler(clientId, job.process, ExecHandler(clientId, job.process, workers=job.workers))
+          execHandler.execJob( job )
+          return Message(clientId, job.process, execHandler.filePath)
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()

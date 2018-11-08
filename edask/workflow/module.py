@@ -28,10 +28,12 @@ class OperationModule:
     def getCapabilities(self): pass
 
     @abstractmethod
-    def getCapabilitiesStr(self): pass
+    def getSerializationStr(self):  pass
 
-    def serialize(self): return "!".join( [self._name, "python", self.getCapabilitiesStr() ] )
+    def serialize(self): return "!".join([self._name, "python", self.getSerializationStr()])
 
+    @property
+    def xml(self): return self.getCapabilities()
 
 class KernelModule(OperationModule):
 
@@ -69,8 +71,8 @@ class KernelModule(OperationModule):
             self._instances[instanceName] = instance
         return instance
 
-    def getCapabilities(self): return [ kernel().getCapabilities() for kernel in self._kernels.values() ]
-    def getCapabilitiesStr(self): return "~".join([ kernel().getCapabilities() for kernel in self._kernels.values() ])
+    def getCapabilities(self): return '<module name="{}"> {} </module>'.format(self.getName(), " ".join([kernel().getCapabilities() for kernel in self._kernels.values()]))
+    def getSerializationStr(self): return "~".join([ kernel().serialize() for kernel in self._kernels.values() ])
 
     def describeProcess( self, op ):
         kernel = self._kernels.get( op )
@@ -119,7 +121,11 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.createKernel( op )
 
-    def getCapabilitiesStr(self) -> str:
+    def getCapabilities(self) -> str:
+        specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
+        return '<modules> {} </modules>'.format( " ".join( specs ) )
+
+    def serialize(self) -> str:
         specs = [ opMod.serialize() for opMod in self.operation_modules.values() ]
         return "|".join( specs )
 

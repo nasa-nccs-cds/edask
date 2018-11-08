@@ -6,6 +6,7 @@ from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.source import VID
 from edask.config import EdaskEnv
+from edask.util.logging import EDASLogger
 
 def parse_dict( dict_spec ):
     result = {}
@@ -112,20 +113,6 @@ class Collection:
 #        self.dims = args[6].strip().split(' ')
 #        self.units = args[7].strip()
 
-class Axis:
-
-   def __init__(self, *args ):
-       self.name = args[0].strip()
-       self.long_name = args[1].strip()
-       self.type = args[2].strip()
-       self.length = int(args[3].strip())
-       self.units = args[4].strip()
-       self.bounds = [ float(args[5].strip()), float(args[6].strip()) ]
-
-   def getIndexList( self, dset, min_value, max_value ):
-        values = dset.variables[self.name][:]
-        return np.where((values > min_value) & (values < max_value))
-
 class File:
 
     def __init__(self, _collection, *args ):
@@ -140,6 +127,28 @@ class File:
 
     def parm(self, key ):
         return self.collection.parm( key )
+
+    @classmethod
+    def getNumber(cls, arg: str, isInt = False ) -> int:
+       try:
+           result = float(arg)
+           return int( result ) if isInt else result
+       except: return 1 if isInt else 0.0
+
+class Axis:
+
+   def __init__(self, *args ):
+       self.name = args[0].strip()
+       self.long_name = args[1].strip()
+       self.type = args[2].strip()
+       self.length = File.getNumber( args[3].strip(), True )
+       self.units = args[4].strip()
+       self.bounds = [ File.getNumber(args[5].strip()), File.getNumber(args[6].strip()) ]
+
+   def getIndexList( self, dset, min_value, max_value ):
+        values = dset.variables[self.name][:]
+        return np.where((values > min_value) & (values < max_value))
+
 
 class VarRec:
 
@@ -201,6 +210,7 @@ class AggProcessing:
 class Aggregation:
 
     def __init__(self, _name, _agg_file ):
+        self.logger = EDASLogger.getLogger()
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
@@ -211,17 +221,22 @@ class Aggregation:
         self._parseAggFile()
 
     def _parseAggFile(self):
+        self.logger.info( "Parsing Agg file: " + self.spec )
         with open(self.spec, "r") as file:
             for line in file.readlines():
                 if not line: break
                 if line[1] == ";":
-                    type = line[0]
-                    value = line[2:].split(";")
-                    if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
-                    elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                    elif type == 'C': self.dims[ value[0].strip() ] = int( value[1].strip() )
-                    elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
-                    elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                    try:
+                        type = line[0]
+                        value = line[2:].split(";")
+                        if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
+                        elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                        elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
+                        elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                        elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                    except Exception as err:
+                        self.logger.error( "Error parsing Agg file, line: " + line )
+                        raise err
 
     def parm(self, key ):
         return self.parms.get( key, "" )
