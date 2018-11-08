@@ -53,10 +53,7 @@ class WpsCwtParser:
             raise err
 
     @classmethod
-    def
-
-
-        (cls, opConnections) -> List[List[List[str]]]:
+    def parseOpConnections(cls, opConnections) -> List[List[List[str]]]:
         try:
             opCon = ",".join( opConnections ) if hasattr(opConnections, '__iter__') and not isinstance(opConnections, str) else opConnections
             return cls.getOpConnectionsParser().parseString( str(opCon) )[0]
