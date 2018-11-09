@@ -51,7 +51,7 @@ class DataPacket(Response):
         return bytearray( self.clientId + ":" + self._body, 'utf-8' )
 
     def getHeaderString(self) -> str:
-        return self._body
+        return self.clientId + ":" + self._body
 
     def getTransferData(self) -> bytes:
         return bytearray( self.clientId, 'utf-8' ) + self._data
@@ -116,13 +116,15 @@ class Responder:
         return packaged_msg
 
     def doSendDataPacket( self, dataPacket: DataPacket ):
-        self.socket.send( dataPacket.getTransferHeader() )
+        header = dataPacket.getTransferHeader()
+        self.socket.send( header )
+        self.logger.info("@@R: Sent data header for " + dataPacket.id() + ": " + dataPacket.getHeaderString())
         if( dataPacket.hasData() ):
             bdata: bytes = dataPacket.getRawData()
             self.socket.send( bdata )
-            self.logger.info("@@R: Sent data packet for " + dataPacket.id() + ", data Size: " + str(len(bdata)) + ", header: " + dataPacket.getHeaderString())
+            self.logger.info("@@R: Sent data packet for " + dataPacket.id() + ", data Size: " + str(len(bdata)) )
         else:
-            self.logger.info( "@@R: Sent data header only for " + dataPacket.id() + ", header: " + dataPacket.getHeaderString() + "---> NO DATA!" )
+            self.logger.info( "@@R: Sent data header only for " + dataPacket.id() + "---> NO DATA!" )
 
     def setExeStatus( self, cId: str, rid: str, status: str ):
         self.status_reports[rid] = status
