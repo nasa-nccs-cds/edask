@@ -2,7 +2,7 @@ from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
 import logging, random, string
 import xarray as xa
 from edask.process.domain import DomainManager, Domain, AxisBounds, Axis
-import copy
+import copy, pandas as pd
 from edask.util.logging import EDASLogger
 from edask.process.source import VariableManager
 from edask.process.operation import OperationManager, WorkflowNode
@@ -128,9 +128,14 @@ class TaskRequest:
       for input in inputs:
         coord: xa.DataArray = input.coord(axis)
         if coord is not None:
-            assert len( coord.shape ) == 1, "Not currently supporting multi-dimensional axes: " + coord.name
-            values = coord.values
-            new_bounds = new_bounds.crop( axis, 0, len(coord.values)-1 ) if new_bounds.system.startswith("ind") else new_bounds.crop( axis, values[0], values[-1] )
+            if (axis == Axis.T) and bound.isValueType and bound.start == bound.end:
+                index: pd.DatetimeIndex = coord.get_index("t")
+                loc = index.get_loc( bound.start, method="nearest" )
+                new_bounds = AxisBounds( "t", loc, loc+1, bound.step, "index", bound.metadata, bound._timeDelta )
+            else:
+                assert len( coord.shape ) == 1, "Not currently supporting multi-dimensional axes: " + coord.name
+                values = coord.values
+                new_bounds = new_bounds.crop( axis, 0, len(coord.values)-1 ) if new_bounds.system.startswith("ind") else new_bounds.crop( axis, values[0], values[-1] )
       return new_bounds
 
   def linkWorkflow(self) -> List[WorkflowNode]:

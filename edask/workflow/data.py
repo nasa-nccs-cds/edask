@@ -219,6 +219,7 @@ class EDASArray:
         return EDASArray(self.name, self.domId, xrdata  )
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
+        from edask.portal.parsers import WpsCwtParser
         pointMap: Dict[str,Any] = {}
         valSliceMap: Dict[str, Any] = {}
         indexSliceMap: Dict[str, Any] = {}
