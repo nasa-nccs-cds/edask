@@ -112,7 +112,7 @@ class DetrendKernel(OpKernel):
         method = node.getParm("method", "highpass")
         if method == "highpass":
             window_size = node.getParm("wsize", data.shape[axisIndex]//8 )
-            detrend_args = { dim:window_size, "center":True, "min_periods": 1 }
+            detrend_args = { dim:int(window_size), "center":True, "min_periods": 1 }
             trend = data.rolling(**detrend_args).mean()
             detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
             return [detrend]
