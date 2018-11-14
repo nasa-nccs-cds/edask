@@ -113,7 +113,7 @@ class KernelManager:
         return self.operation_modules[ op.module ]
 
     def getKernel(self, node: WorkflowNode):
-        assert node.module in self.operation_modules.keys, "Unknown Kernel Module: " + node.module
+        assert node.module in self.operation_modules.keys(), "Unknown Kernel Module: " + node.module
         module = self.operation_modules[ node.module ]
         return module.getKernel(node)
 
