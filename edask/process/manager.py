@@ -154,7 +154,7 @@ class ExecHandler(ExecHandlerBase):
     def getTbStr(self, ex ) -> str:
         if ex.__traceback__  is None: return ""
         tb = traceback.extract_tb( ex.__traceback__ )
-        return "&cr;&tab;".join( traceback.format_list( tb ) )
+        return " ".join( traceback.format_list( tb ) )
 
     def getErrorReport(self, ex ):
         errMsg = getattr( ex, 'message', repr(ex) )
