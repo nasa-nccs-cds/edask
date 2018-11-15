@@ -231,7 +231,7 @@ class EDASPortal:
     def execUtility( self, utilSpec: Sequence[str] ) -> Message: pass
     def execute( self, taskSpec: Sequence[str] ) -> Response: pass
     def shutdown( self ): pass
-    def getCapabilities( self, utilSpec: Sequence[str] ) -> Message: pass
+    def getCapabilities( self, type: str ) -> Message: pass
     def describeProcess( self, utilSpec: Sequence[str] ) -> Message: pass
 
     def sendResponseMessage( self, msg: Response ) -> str:
@@ -278,7 +278,8 @@ class EDASPortal:
                     self.logger.info("@@Portal: Received Shutdown Message")
                     exit(0)
                 elif parts[1].lower() == "getcapabilities":
-                    self.sendResponseMessage( self.getCapabilities(parts) )
+                    type = parts[1] if len(parts) > 1 else "kernels"
+                    self.sendResponseMessage( self.getCapabilities(type) )
                 elif parts[1].lower() == "describeprocess":
                     self.sendResponseMessage( self.describeProcess(parts) )
                 else:

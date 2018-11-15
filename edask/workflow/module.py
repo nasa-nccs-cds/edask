@@ -121,9 +121,16 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.createKernel( op )
 
-    def getCapabilities(self) -> str:
-        specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
-        return '<modules> {} </modules>'.format( " ".join( specs ) )
+    def getCapabilities(self, type: str ) -> str:
+        from edask.collections.agg import Collection
+        if( type.lower().startswith("ker") ):
+            specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
+            return '<modules> {} </modules>'.format( " ".join( specs ) )
+        elif( type.lower().startswith("col") ):
+            specs = Collection.getCollectionsList()
+            return '<collections> {} </collections>'.format( " ".join( specs ) )
+        else:
+            raise Exception( "Unknown capabilities type: " + type )
 
     def serialize(self) -> str:
         specs = [ opMod.serialize() for opMod in self.operation_modules.values() ]

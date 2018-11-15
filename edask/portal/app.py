@@ -26,9 +26,9 @@ class EDASapp(EDASPortal):
 
     def start( self ): self.run()
 
-    def getCapabilities(self, utilSpec: Sequence[str] ) -> Message:
-        capabilities = edasOpManager.getCapabilities()
-        return Message( utilSpec[0], "capabilities", capabilities )
+    def getCapabilities(self, type: str  ) -> Message:
+        capabilities = edasOpManager.getCapabilities(type)
+        return Message( type, "capabilities", capabilities )
 
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )

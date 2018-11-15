@@ -52,6 +52,14 @@ class Collection:
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
+    def getCollectionsList(cls):
+        collList = []
+        for f in os.listdir(cls.baseDir):
+            if( os.path.isfile( os.path.join(cls.baseDir, f ) ) and f.endswith(".csv") ):
+                collList.append( f[0:-4] )
+        return collList
+
+    @classmethod
     def new(cls, name: str ):
         spec_file = os.path.join( cls.baseDir, name + ".csv" )
         return Collection(name, spec_file)
