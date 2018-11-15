@@ -56,7 +56,10 @@ class Collection:
         collList = []
         for f in os.listdir(cls.baseDir):
             if( os.path.isfile( os.path.join(cls.baseDir, f ) ) and f.endswith(".csv") ):
-                collList.append( '<collection name="{}"> </collection>'.format( f[0:-4] ) )
+                collection_name = f[0:-4]
+                collection = Collection.new( collection_name )
+                aggSpecs = [ '<variable name="{}" agg="{}"/>'.format( vName, aggName ) for vName,aggName in collection.aggs.items( )]
+                collList.append( '<collection name="{}"> {} </collection>'.format( collection_name, " ".join( aggSpecs ) ) )
         return collList
 
     @classmethod
