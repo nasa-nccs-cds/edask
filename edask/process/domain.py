@@ -128,9 +128,9 @@ class AxisBounds:
         bndsMin, bndsMax = (minVal, maxVal) if minVal < maxVal else (maxVal, minVal)
         if (bndsMax < coordMin) or (bndsMin > coordMax):
             if self.type == Axis.X:
-                if ( bndsMax < coordMin ) and ( bndsMin + 360 < coordMax ):
+                if ( bndsMax < coordMin ) and ( bndsMin + 360 <= coordMax ):
                     return ( coordMin + 360, coordMax + 360 )
-                if ( bndsMin > coordMax ) and ( bndsMax - 360 > coordMin ):
+                if ( bndsMin > coordMax ) and ( bndsMax - 360 >= coordMin ):
                     return ( coordMin - 360, coordMax - 360 )
             raise Exception( "Empty intersection between roi and data domain, axis = " + self.name + ", roi = " + str((bndsMin, bndsMax)) + ", coord range = " + str((coordMin, coordMax)))
         return coordMin, coordMax
