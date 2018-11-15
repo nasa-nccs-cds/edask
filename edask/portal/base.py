@@ -263,7 +263,7 @@ class EDASPortal:
     def run(self):
         while self.active:
             self.logger.info(  "@@Portal:Listening for requests on port: {}, host: {}".format( self.request_port, self.getHostInfo() ) )
-            request_header = str( self.request_socket.recv(0) ).strip()
+            request_header = str( self.request_socket.recv(0) ).strip().strip("'")
             parts = request_header.split("!")
             self.responder.registerClient( parts[0] )
             try:
@@ -294,7 +294,7 @@ class EDASPortal:
                 traceback.print_exc()
                 self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
 
-        self.logger.info( "@@Portal: EXIT EDASPortal");
+        self.logger.info( "@@Portal: EXIT EDASPortal")
 
     def term( self, msg ):
         self.logger.info( "@@Portal: !!EDAS Shutdown: " + msg )
