@@ -130,7 +130,7 @@ class AxisBounds:
             if self.type == Axis.X:
                 if ( bndsMax < coordMin ) and ( bndsMin + 360 <= coordMax ):
                     return ( coordMin + 360, coordMax + 360 )
-                if ( bndsMin > coordMax ) and ( bndsMax - 360 >= coordMin ):
+                elif ( bndsMin > coordMax ) and ( bndsMax - 360 >= coordMin ):
                     return ( coordMin - 360, coordMax - 360 )
             raise Exception( "Empty intersection between roi and data domain, axis = " + self.name + ", roi = " + str((bndsMin, bndsMax)) + ", coord range = " + str((coordMin, coordMax)))
         return coordMin, coordMax
@@ -138,6 +138,8 @@ class AxisBounds:
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
         try:
             coordMin, coordMax = self.testBounds( minVal, maxVal )
+            if self.type == Axis.X:
+                self.logger.info( "CROP LONGITUDE: " + ", roi = " + str((minVal, maxVal)) + ", init coord range = " + str((self.start, self.end)) + ", adjusted coord range = " + str((coordMin, coordMax)) )
             newStart, newEnd = max( minVal, coordMin ), min( maxVal, coordMax )
             return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
         except Exception as err:
