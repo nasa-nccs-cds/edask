@@ -228,7 +228,7 @@ class EofKernel(TimeOpKernel):
         return data
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputDset: EDASDataset ) -> EDASDataset:
-        nModes = node.getParm("modes", 16)
+        nModes = int( node.getParm("modes", 16) )
         center = bool(node.getParm("center", "false"))
         merged_input_data, info = self.get_input_array( inputDset )
         shapes = info['shapes']
