@@ -105,13 +105,13 @@ class AxisBounds:
 
 
     def crop(self, axis: Axis, minVal: Union[float,int,np.datetime64], maxVal: Union[float,int,np.datetime64] ):
-        if (axis == Axis.T) and self.system.startswith( ("val","time") ):
+        if (axis == Axis.T) and self.isValueType:
             return self.cropTime( minVal, maxVal )
         else:
             return self.cropValOrIndex( minVal, maxVal )
 
     def cropTime(self, minVal: np.datetime64, maxVal: np.datetime64 ) -> "AxisBounds":
-        assert self.system.startswith( ("val","time") ), "AxisBounds must have value='system' in order to cropTimes: " + self.name
+        assert self.isValueType, "AxisBounds must have system='value' in order to cropTimes: " + self.name
         assert self.type == Axis.T, "AxisBounds must have type='t' in order to cropTimes: " + self.name
         self.logger.info( " cropTime: start = {}, end = {}".format( self.start, self.end ) )
         minTime: datetime = TimeConversions.toDatetime( minVal )
@@ -157,12 +157,17 @@ class AxisBounds:
 
     def slice(self) -> slice:
         start, end = self.start, self.end
-        if (self._timeDelta is not None) and ( self.type == Axis.T ):
-            ( start, end ) = self.offsetBounds()
+        if ( self.type == Axis.T ):
+            if (self._timeDelta is not None): ( start, end ) = self.offsetBounds()
+            if isinstance( start, str): ( start, end ) = ( WpsCwtParser.isoDateStr(start), WpsCwtParser.isoDateStr(end) )
         return slice( start, end )
 
+    @property
+    def isValueType(self)-> bool:
+        return self.system.startswith( ("val","time") )
+
     def offsetBounds( self ) -> (datetime,datetime):
-        assert self.system.startswith( ("val","time") ), "Must use 'system=values' with the 'offset' option"
+        assert self.isValueType, "Must use 'system=values' with the 'offset' option"
         return ( TimeConversions.parseDate( self.start ) + self._timeDelta, TimeConversions.parseDate( self.end ) + self._timeDelta )
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
@@ -267,12 +272,6 @@ class Domain:
     @classmethod
     def slice( cls, axis: Axis, bounds: AxisBounds ) -> Tuple[str,slice]:
          return ( bounds.name if axis == Axis.UNKNOWN else axis.name.lower(), bounds.slice() )
-
-    def subset( self, array: xa.Dataset ) -> xa.Dataset:
-        for system in [ "val", "ind" ] :
-            bounds_list = [ self.slice( axis, bounds ) for (axis, bounds) in self.axisBounds.items() if bounds.system.startswith( system ) ]
-            if( len(bounds_list) ): array = array.sel( dict( bounds_list ) ) if system == "val" else array.isel( dict( bounds_list ) )
-        return array
 
     def __str__(self):
         return "D({})[ {} ]".format( self.name, "; ".join( [ str(b) for b in self.axisBounds.values()] ) )

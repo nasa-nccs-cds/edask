@@ -3,7 +3,7 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging, inspect
 import numpy.ma as ma
-LOCAL_TESTS = False
+LOCAL_TESTS = True
 mgr = LocalTestManager( "PyTest", "test_suite" ) if LOCAL_TESTS else DistributedTestManager( "PyTest", "test_suite" )
 
 def test_ave_timeslice():
@@ -97,6 +97,24 @@ def test_max1() :
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
     assert mgr.equals(results, [verification_data])
+
+def test_max_timeslice() :
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
+                                "lon":  { "start":0, "end":10, "system":"values" },
+                                "time": { "start":'1990-01-01T00:00:00', "end":'1990-01-01T00:00:00', "system":"values" } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
+def test_max_lon_slice() :
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
+                                "lon":  { "start":0, "end":0, "system":"values" },
+                                "time": { "start":'1990-01-01T00:00:00', "end":'1991-01-01T00:00:00', "system":"values" } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"yt" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
 
 def test_min1() :
     # Verification data: nco_scripts/min1.sh

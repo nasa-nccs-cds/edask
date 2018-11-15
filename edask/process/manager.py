@@ -151,8 +151,18 @@ class ExecHandler(ExecHandlerBase):
         if method == "max": return current > threshold
         raise Exception( "Unknown comparison method: " + method )
 
+    def getTbStr(self, ex ) -> str:
+        if ex.__traceback__  is None: return ""
+        tb = traceback.extract_tb( ex.__traceback__ )
+        return " ".join( traceback.format_list( tb ) )
+
+    def getErrorReport(self, ex ):
+        errMsg = getattr( ex, 'message', repr(ex) )
+        return errMsg + ":" +  str( self.getTbStr(ex) )
+
     def failureCallback(self, ex: Exception ):
-        error_message = str(ex)  if ex.__traceback__  is None else str(ex) + ":\n" +  str(traceback.format_tb( ex.__traceback__ ) )
+        try: error_message = self.getErrorReport( ex )
+        except: error_message = repr(ex)
         if self.portal:
             self.portal.sendErrorReport( self.clientId, self.jobId, error_message )
             self.portal.removeHandler( self.clientId, self.jobId )

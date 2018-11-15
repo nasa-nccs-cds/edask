@@ -1,8 +1,7 @@
 from pyparsing import *
 from typing import Sequence, List, Dict, Any
-import logging, string, random
+import logging, string, random, datetime
 from edask.util.logging import EDASLogger
-
 def sval( input: ParseResults ): return "".join( [ str(x) for x in input.asList() ] )
 def list2dict( input: ParseResults ): return { elem[0]: elem[1] for elem in input.asList() }
 def str2int( input: ParseResults ): return int( sval(input) )
@@ -43,6 +42,18 @@ class WpsCwtParser:
         input = cls.seq( cls.name )
         item = input + Optional(Group(output))
         return cls.seq( Group(item) )
+
+    @classmethod
+    def strToDatetime(cls, dTime: str)-> datetime:
+        import dateparser
+        dt: datetime = dateparser.parse(dTime, settings={'TIMEZONE': 'UTC'} )
+        return datetime
+
+    @classmethod
+    def isoDateStr(cls, dTime: str)-> str:
+        import dateparser
+        dt: datetime.datetime = dateparser.parse(dTime, settings={'TIMEZONE': 'UTC'} )
+        return dt.replace(microsecond=0).isoformat(" ")
 
     @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
@@ -103,6 +114,7 @@ class WpsCwtParser:
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
 
 if __name__ == '__main__':
+    import xarray as xr
 
     # datainputs0 = """[
     # variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|19543b"}];
@@ -112,7 +124,17 @@ if __name__ == '__main__':
     # result = WpsCwtParser.parseDatainputs( datainputs0 )
     # print( str(result) )
 
-    opConnections = "a,c,b"
-    result = WpsCwtParser.parseOpConnections( opConnections )
-    print( str(result) )
+    # opConnections = "a,c,b"
+    # result = WpsCwtParser.parseOpConnections( opConnections )
+    # print( str(result) )
+
+#    import dateparser, datetime
+#    dt: datetime.datetime = dateparser.parse( '1990-01-01T00:00:00Z' )
+#    print( dt )
+
+    dset = xr.open_dataset( "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", autoclose=True )
+    tas = dset["tas"]
+    slice = tas.load().sel( time = '1990-01-01' )
+    print( slice )
+
 
