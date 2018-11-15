@@ -123,16 +123,22 @@ class AxisBounds:
         newEnd =   maxTime if maxTime < endTime else endTime
         return AxisBounds( self.name, str(newStart), str(newEnd), self.step, self.system, self.metadata, self._timeDelta )
 
-    def testBounds(self, minVal: Union[float,int], maxVal: Union[float,int] ):
+    def testBounds(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> Tuple[float,float]:
         coordMin, coordMax = (self.start, self.end) if self.start < self.end else (self.end, self.start)
         bndsMin, bndsMax = (minVal, maxVal) if minVal < maxVal else (maxVal, minVal)
-        if (bndsMax < coordMin) or (bndsMin > coordMax): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name + ", roi = " + str((bndsMin, bndsMax)) + ", coord range = " + str((coordMin, coordMax)))
+        if (bndsMax < coordMin) or (bndsMin > coordMax):
+            if self.type == Axis.X:
+                if ( bndsMax < coordMin ) and ( bndsMin + 360 < coordMax ):
+                    return ( coordMin + 360, coordMax + 360 )
+                if ( bndsMin > coordMax ) and ( bndsMax - 360 > coordMin ):
+                    return ( coordMin - 360, coordMax - 360 )
+            raise Exception( "Empty intersection between roi and data domain, axis = " + self.name + ", roi = " + str((bndsMin, bndsMax)) + ", coord range = " + str((coordMin, coordMax)))
+        return coordMin, coordMax
 
     def cropValOrIndex(self, minVal: Union[float,int], maxVal: Union[float,int] ) -> "AxisBounds":
         try:
-            self.testBounds( minVal, maxVal )
-            if( minVal <= maxVal ):   newStart, newEnd = max( minVal, self.start ), min( maxVal, self.end )
-            else:                     newStart, newEnd = min( minVal, self.start ), max( maxVal, self.end )
+            coordMin, coordMax = self.testBounds( minVal, maxVal )
+            newStart, newEnd = max( minVal, coordMin ), min( maxVal, coordMax )
             return AxisBounds( self.name, newStart, newEnd, self.step, self.system, self.metadata, self._timeDelta )
         except Exception as err:
             self.logger.error( "CROP ERROR: " + str(err))
