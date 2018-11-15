@@ -56,7 +56,7 @@ class Collection:
         collList = []
         for f in os.listdir(cls.baseDir):
             if( os.path.isfile( os.path.join(cls.baseDir, f ) ) and f.endswith(".csv") ):
-                collList.append( f[0:-4] )
+                collList.append( '<collection name="{}"> </collection>'.format( f[0:-4] ) )
         return collList
 
     @classmethod
