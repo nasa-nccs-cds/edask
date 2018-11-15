@@ -134,7 +134,7 @@ class TeleconnectionKernel(OpKernel):
         variable.persist()
         parms = self.getParameters( node, [ Param("lat"), Param("lon")])
         aIndex = variable.xr.get_axis_num('t')
-        center: xa.DataArray = variable.selectPoint( float(parms["lat"]), float(parms["lon"]) ).xr
+        center: xa.DataArray = variable.selectPoint( float(parms["lon"]), float(parms["lat"]) ).xr
         cmean, data_mean = center.mean(axis=aIndex), variable.xr.mean(axis=aIndex)
         cstd, data_std = center.std(axis=aIndex), variable.xr.std(axis=aIndex)
         cov = np.sum((variable.xr - data_mean) * (center - cmean), axis=aIndex) / variable.xr.shape[aIndex]
