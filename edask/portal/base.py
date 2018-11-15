@@ -278,7 +278,7 @@ class EDASPortal:
                     self.logger.info("@@Portal: Received Shutdown Message")
                     exit(0)
                 elif parts[1].lower() == "getcapabilities":
-                    type = parts[1] if len(parts) > 1 else "kernels"
+                    type = parts[2] if len(parts) > 2 else "kernels"
                     self.sendResponseMessage( self.getCapabilities(type) )
                 elif parts[1].lower() == "describeprocess":
                     self.sendResponseMessage( self.describeProcess(parts) )
