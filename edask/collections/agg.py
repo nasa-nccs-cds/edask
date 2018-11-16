@@ -3,10 +3,11 @@ from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict, Sequence, BinaryIO, TextIO, ValuesView
+from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.source import VID
 from edask.config import EdaskEnv
 from edask.util.logging import EDASLogger
+def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
 
 def parse_dict( dict_spec ):
     result = {}
@@ -88,12 +89,16 @@ class Collection:
     def getAggId( self, varName: str ) -> str:
         return self.aggs.get( varName )
 
-    def getAggregation( self, aggId: str ):
+    def getAggregation( self, aggId: str ) -> "Aggregation":
         agg_file = os.path.join( Collection.baseDir, aggId + ".ag1")
         return Aggregation( self.name, agg_file )
 
+    def getVariableSpec( self, varName: str ):
+        agg =  self.getAggregation( self.getAggId( varName ) )
+        return agg.toXml(varName)
+
     def getVariable( self, varName ) -> Variable:
-        agg =  self.getAggregation( varName )
+        agg =  self.getAggregation( self.getAggId( varName ) )
         return agg.getVariable(varName)
 
     def fileList(self, aggId: str ) -> List[BinaryIO]:
@@ -160,6 +165,9 @@ class Axis:
         values = dset.variables[self.name][:]
         return np.where((values > min_value) & (values < max_value))
 
+   def toXml(self):
+       return '<Axis id="{}" name="{}" type="{}" size="{}" units="{}" bounds="{}"/>'.format( self.name, self.long_name, self.type, self.length, self.units, ",".join([ str(x) for x in self.bounds ]))
+
 
 class VarRec:
 
@@ -186,6 +194,10 @@ class VarRec:
 
     def parm(self, key ):
         return self.metadata.get( key )
+
+    def toXml(self)-> str:
+        return '<variable id="{}" name="{}" dodsName="{}" description="{}" shape="{}" dims="{}" resolution="{}" units="{}"/>'.format(
+            self.name, self.metadata["longName"], self.metadata["dodsName"], self.metadata["description"], a2s(self.shape), a2s(self.dims), a2s(self.resolution), self.units )
 
 class AggProcessing:
 
@@ -226,7 +238,7 @@ class Aggregation:
         self.spec = _agg_file
         self.parms = {}
         self.files: Dict[str,BinaryIO] = OrderedDict()
-        self.axes = {}
+        self.axes: Dict[str,Axis] = {}
         self.dims = {}
         self.vars = {}
         self._parseAggFile()
@@ -248,6 +260,13 @@ class Aggregation:
                     except Exception as err:
                         self.logger.error( "Error parsing Agg file, line: " + line )
                         raise err
+
+    def toXml(self, varName: str )-> str:
+        specs = []
+        specs.extend( [ axis.toXml() for axis in self.axes.values() ] )
+        specs.append( self.vars[ varName ].toXml() )
+        specs.extend( [ '<parm name="{}" value="{}"/>'.format(name,value) for name,value in self.parms.items() ] )
+        return '<variable name="{}"> {} </variable>'.format( self.name, " ".join( specs ))
 
     def parm(self, key ):
         return self.parms.get( key, "" )

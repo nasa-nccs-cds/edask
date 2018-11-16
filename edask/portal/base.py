@@ -233,6 +233,7 @@ class EDASPortal:
     def shutdown( self ): pass
     def getCapabilities( self, type: str ) -> Message: pass
     def describeProcess( self, utilSpec: Sequence[str] ) -> Message: pass
+    def getVariableSpec( self, collId: str, varId: str ) -> Message: pass
 
     def sendResponseMessage( self, msg: Response ) -> str:
         request_args = [ msg.id(), msg.message() ]
@@ -272,7 +273,8 @@ class EDASPortal:
                 if parts[1] == "execute":
                     self.sendResponseMessage( self.execute(parts) )
                 elif parts[1] == "util":
-                    self.sendResponseMessage( self.execUtility(parts));
+                    if len(parts) <= 2: raise Exception( "Missing parameters to utility request")
+                    self.sendResponseMessage( self.execUtility(parts[2:]) )
                 elif parts[1] == "quit" or parts[1] == "shutdown":
                     self.sendResponseMessage( Message(parts[0], "quit", "Terminating") )
                     self.logger.info("@@Portal: Received Shutdown Message")

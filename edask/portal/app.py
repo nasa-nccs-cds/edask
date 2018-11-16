@@ -30,12 +30,25 @@ class EDASapp(EDASPortal):
         capabilities = edasOpManager.getCapabilities(type)
         return Message( type, "capabilities", capabilities )
 
+    def getVariableSpec(self, collId: str, varId: str  ) -> Message:
+        from edask.collections.agg import Collection
+        col = Collection.new( collId )
+        varSpec = col.getVariableSpec( varId )
+        return  Message( "var", "VariableSpec", varSpec )
+
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
         description = edasOpManager.describeProcess( module, op )
         return Message( utilSpec[0], "capabilities", description )
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message:
+        uType = utilSpec[0].lower()
+        for capType in [ 'col', 'ker' ]:
+            if uType.startswith( capType ):
+                return self.getCapabilities( uType )
+        if uType.startswith( "var" ):
+            if len( utilSpec ) <= 2: raise Exception( "Missing parameter(s) to getVariableSpec" )
+            return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         return Message("","","")
 
     def getRunArgs( self, taskSpec: Sequence[str] )-> Dict[str,str]:
