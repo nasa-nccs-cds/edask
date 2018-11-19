@@ -158,7 +158,7 @@ class ExecHandler(ExecHandlerBase):
 
     def getErrorReport(self, ex ):
         errMsg = getattr( ex, 'message', repr(ex) )
-        return errMsg + ":" +  str( self.getTbStr(ex) )
+        return errMsg + ">~>" +  str( self.getTbStr(ex) )
 
     def failureCallback(self, ex: Exception ):
         try: error_message = self.getErrorReport( ex )
@@ -176,7 +176,7 @@ class ExecHandler(ExecHandlerBase):
           result: EDASDataset = resultFuture.result()
           self.results.append(result)
       else:
-          try:                      self.failureCallback( Exception("status = " + status + "\n" + str( traceback.format_tb(resultFuture.traceback(60)) ) ) )
+          try:                      self.failureCallback( Exception("status = " + status + "\n>~>" + str( traceback.format_tb(resultFuture.traceback(60)) ) ) )
           except TimeoutError:
               try:                  self.failureCallback( Exception("status = " + status + ", Exception = " + str( resultFuture.exception(60) )  ) )
               except TimeoutError:
