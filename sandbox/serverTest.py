@@ -138,6 +138,8 @@ class AppTests:
         operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
+
+
     def plotPerformanceXa(self, filePath: str):
         while True:
             if os.path.isfile(filePath):
