@@ -131,6 +131,10 @@ class KernelManager:
         elif( type.lower().startswith("col") ):
             specs = Collection.getCollectionsList()
             return '<collections> {} </collections>'.format( " ".join( specs ) )
+        elif (type.lower().startswith("var")):
+            type_toks = type.split("|")
+            collection = Collection.new( type_toks[1] )
+            return collection.getVariableSpec( type_toks[2] )
         else:
             raise Exception( "Unknown capabilities type: " + type )
 

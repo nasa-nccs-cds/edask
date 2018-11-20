@@ -263,10 +263,10 @@ class Aggregation:
 
     def toXml(self, varName: str )-> str:
         specs = []
-        specs.extend( [ axis.toXml() for axis in self.axes.values() ] )
         specs.append( self.vars[ varName ].toXml() )
+        specs.extend( [ axis.toXml() for axis in self.axes.values() ] )
         specs.extend( [ '<parm name="{}" value="{}"/>'.format(name,value) for name,value in self.parms.items() ] )
-        return '<variable name="{}"> {} </variable>'.format( self.name, " ".join( specs ))
+        return '<dataset name="{}">\n\t{}\n</dataset>'.format( self.name, "\n\t".join( specs ))
 
     def parm(self, key ):
         return self.parms.get( key, "" )
@@ -289,6 +289,9 @@ class Aggregation:
 
 
 if __name__ == "__main__":
-    AggProcessing.changeBasePaths( "/dass/adm/edas/cache/collections/agg",
-                                   "/dass/dassnsd/data01/sys/edas/cache/collections/agg",
-                                   { "/dass/pubrepo": "/dass/dassnsd/data01/cldra/data/pubrepo" }  )
+# AggProcessing.changeBasePaths( "/dass/adm/edas/cache/collections/agg",
+#                                "/dass/dassnsd/data01/sys/edas/cache/collections/agg",
+#                                { "/dass/pubrepo": "/dass/dassnsd/data01/cldra/data/pubrepo" }  )
+#    print( str( Collection.getCollectionsList() ) )
+    c: Collection = Collection.new( "cip_cfsr_mon_1980-1995" )
+    print( c.getVariableSpec("tas") )
