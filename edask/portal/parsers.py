@@ -25,7 +25,7 @@ class WpsCwtParser:
     float = (Optional("-") + Word(nums + ".") + Optional(CaselessLiteral("E") + Optional("-") + Word(nums))).setParseAction(str2float)
     numval = integer ^ float
     key = QuotedString('"')
-    name = Word(alphanums)
+    name = Word(alphanums+"-")
     token = key ^ numval
     delim = Word(",") ^ Word(";")
     vsep = Word("|") ^ Word(":")

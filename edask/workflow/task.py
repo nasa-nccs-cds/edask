@@ -52,7 +52,7 @@ class Task:
             return raw_axes
 
     def varNames(self) -> List[str]:
-        return [ inputId.split('-')[0] for inputId in self.inputs ]
+        return list(self.inputs)
 
     @classmethod
     def _getCoordName( cls, index: int, nAxes: int ) -> str:

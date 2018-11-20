@@ -289,7 +289,7 @@ class DomainManager:
 
     @classmethod
     def new(cls, domainSpecs: List[Dict[str, Any]] ):
-        domains = [ Domain.new(domainSpec) for domainSpec in domainSpecs ]
+        domains = [ Domain.new(domainSpec) for domainSpec in domainSpecs ] if domainSpecs else []
         return DomainManager( { d.name.lower(): d for d in domains } )
 
     def __init__(self, _domains: Dict[str,Domain] ):

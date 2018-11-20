@@ -184,4 +184,19 @@ def test_ave3() :
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
+def test_ave_dash_in_input():
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
+                                "lon":  { "start":100, "end":130, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v-0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v-0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
+def test_ave_no_domain() :
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"t", "resample": "t.season" } ]
+    results = mgr.testExec( [], variables, operations )
+    mgr.print(results)
+
 
