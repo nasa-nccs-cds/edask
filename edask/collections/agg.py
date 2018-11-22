@@ -76,6 +76,7 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
+        assert os.path.isfile(self.spec), "Unknown Collection: " + os.path.basename(self.spec)
         with open( self.spec, "r" ) as file:
             for line in file.readlines():
                 if not line: break
@@ -244,6 +245,7 @@ class Aggregation:
         self._parseAggFile()
 
     def _parseAggFile(self):
+        assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
         self.logger.info( "Parsing Agg file: " + self.spec )
         with open(self.spec, "r") as file:
             for line in file.readlines():
