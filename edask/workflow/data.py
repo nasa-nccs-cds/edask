@@ -204,7 +204,6 @@ class EDASArray:
         return rv
 
     def align( self, other: "EDASArray", assume_sorted=True ):
-        assert self.domId == other.domId, "Cannot align variable with different domains: {} vs {}".format( self.xr.name, other.xr.name, )
         if self.aligned( other ): return self
         new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
         return self.updateXa(new_data,"align")
