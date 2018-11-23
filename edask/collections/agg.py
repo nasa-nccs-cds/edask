@@ -254,7 +254,7 @@ class Aggregation:
                     try:
                         type = line[0]
                         value = line[2:].split(";")
-                        if type == 'P': self.parms[ value[0].strip() ] = ";".join( value[1:] ).strip()
+                        if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
                         elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
                         elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
                         elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
