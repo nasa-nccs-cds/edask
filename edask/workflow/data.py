@@ -315,22 +315,18 @@ class EDASArray:
         return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), "sum" )
 
     def __sub__(self, other: "EDASArray") -> "EDASArray":
-        assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.xr - other.xr
         return self.updateXa(result, "diff")
 
     def __add__(self, other: "EDASArray") -> "EDASArray":
-        assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.xr + other.xr
         return self.updateXa(result, "sum")
 
     def __mul__(self, other: "EDASArray") -> "EDASArray":
-        assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.xr * other.xr
         return self.updateXa(result, "mul")
 
     def __truediv__(self, other: "EDASArray") -> "EDASArray":
-        assert self.domId == other.domId, "Can't combine arrays with different domains"
         result: xa.DataArray = self.xr / other.xr
         return self.updateXa(result, "div")
 
