@@ -164,6 +164,15 @@ def test_decycle() :
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
+def test_yearly_time_ave():
+    domains = [{ "name":"d0",   "lat":  { "start":0, "end":10,  "system":"values" },
+                                "lon":  { "start":100, "end":110, "system":"values" },
+                                "time": { "start":'1980-01-01T00:00:00', "end":'2000-01-30T23:00:00', "system":"values"  } } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { 'name': "xarray.ave", 'axes': "t", "groupby": "t.year", "input":"v0" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
 def test_detrend() :
     domains = [{ "name":"d0",   "lat":  { "start":0, "end":30,  "system":"values" },
                                 "lon":  { "start":100, "end":130, "system":"values" },

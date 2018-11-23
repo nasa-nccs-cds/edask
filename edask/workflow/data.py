@@ -121,7 +121,14 @@ class EDASArray:
         return self.loaded_data
 
     @property
-    def xr(self) -> xa.DataArray:
+    def xr(self) -> Union[xa.DataArray,DataArrayGroupBy]:
+        if self.loaded_data is not None:
+            return self.loaded_data
+        else:
+            return self._data
+
+    @property
+    def xrArray(self) -> xa.DataArray:
         if self.loaded_data is not None:
             return self.loaded_data
         else:
@@ -160,12 +167,12 @@ class EDASArray:
     def addDomain( self, d: str ):
         domains = self.domain_history
         if d is not None: domains.add( d )
-        self.xr.attrs.setdefault( "domain_history", ";".join(domains) )
+        self.xrArray.attrs.setdefault( "domain_history", ";".join(domains) )
 
     def addTransform( self, t: Transformation ):
         transforms = self.transforms
         transforms.add( t )
-        self.xr.attrs.setdefault("transforms", ";".join( [ repr(t) for t in transforms] ) )
+        self.xrArray.attrs.setdefault("transforms", ";".join( [ repr(t) for t in transforms] ) )
 
     def xarray(self, id: str ) -> xa.DataArray:
         if isinstance(self._data,DataArrayGroupBy): return self._data._obj
@@ -191,7 +198,8 @@ class EDASArray:
         return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
 
     def groupby( self, grouping: str ):
-        rv = EDASArray(self.name, self.domId, self.xr.groupby(grouping) )
+        grouped_data = self.xr.groupby(grouping)
+        rv = EDASArray(self.name, self.domId, grouped_data )
         rv.addTransform( Transformation( "groupby", group=grouping ) )
         return rv
 
@@ -330,10 +338,10 @@ class EDASArray:
         result: xa.DataArray = self.xr / other.xr
         return self.updateXa(result, "div")
 
-    def get(self, key: str, default: Optional[str] ) -> str: return self.xr.attrs.get( key, default )
+    def get(self, key: str, default: Optional[str] ) -> str: return self.xrArray.attrs.get( key, default )
 
-    def __getitem__( self, key: str ) -> str: return self.xr.attrs.get( key )
-    def __setitem__(self, key: str, value: str ): self.xr.attrs[key] = value
+    def __getitem__( self, key: str ) -> str: return self.xrArray.attrs.get( key )
+    def __setitem__(self, key: str, value: str ): self.xrArray.attrs[key] = value
 
 class PlotType:
     EOF: int = 0
