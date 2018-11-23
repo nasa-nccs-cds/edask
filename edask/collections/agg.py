@@ -6,6 +6,7 @@ from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.source import VID
 from edask.config import EdaskEnv
+import xml.etree.ElementTree as ET
 from edask.util.logging import EDASLogger
 def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
 
@@ -267,7 +268,13 @@ class Aggregation:
         specs = []
         specs.append( self.vars[ varName ].toXml() )
         specs.extend( [ axis.toXml() for axis in self.axes.values() ] )
-        specs.extend( [ '<parm name="{}" value="{}"/>'.format(name,value) for name,value in self.parms.items() ] )
+        for name, value in self.parms.items():
+            xml_str = '<parm name="{}" value="{}"/>'.format(name, value)
+            try:
+                xml_elem = ET.fromstring( xml_str )
+                specs.append( xml_str )
+            except Exception as err:
+                self.logger.warn( "Skipping parm due to xml error: " + xml_str + ", error = " + getattr(err, 'message', repr(err))  )
         return '<dataset name="{}">\n\t{}\n</dataset>'.format( self.name, "\n\t".join( specs ))
 
     def parm(self, key ):
