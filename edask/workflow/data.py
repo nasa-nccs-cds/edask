@@ -114,10 +114,12 @@ class EDASArray:
     @product.setter
     def product(self, value: str ): self["product"] = value
 
-    def persist(self) -> xa.DataArray:
+    def persist(self) -> Union[xa.DataArray,DataArrayGroupBy]:
+        xrd = self.xr
+        if isinstance(xrd,DataArrayGroupBy): return xrd
         if self.loaded_data is None:
             client = None # Client.current()
-            self.loaded_data = self.xr.load().persist() if client is None else Client.persist( self.xr.load() )
+            self.loaded_data = xrd.load().persist() if client is None else Client.persist( xrd.load() )
         return self.loaded_data
 
     @property
@@ -279,7 +281,7 @@ class EDASArray:
         return { tuple(var.xr.shape) for var in inputs }
 
     def coord(self, axis: Axis):
-        return self.xr.coords.get( axis.name.lower() )
+        return self.xrArray.coords.get( axis.name.lower() )
 
     def max( self, axes: List[str] ) -> "EDASArray":
         return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), "max" )
