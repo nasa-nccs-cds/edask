@@ -11,8 +11,12 @@ import abc
 class TimeConversions:
 
     @staticmethod
-    def toDatetime( dt64: np.datetime64 ) -> datetime:
-        return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
+    def toDatetime( dt64: Union[np.datetime64,pd.Timestamp] ) -> datetime:
+        if isinstance( dt64, np.datetime64 ):
+            return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
+        else:
+            ts: pd.Timestamp = dt64
+            return ts
 
     @staticmethod
     def parseDate( sdate: str ) -> datetime:
