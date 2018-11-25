@@ -111,6 +111,7 @@ class Collection:
         bins = {}
         for vid in vids:
             agg_id = self.aggs.get(vid.name)
+            assert agg_id is not None, "Can't find aggregation for variable " + vid.name
             bin = bins.setdefault( agg_id, [] )
             bin.append( vid.name )
         return bins

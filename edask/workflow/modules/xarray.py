@@ -150,7 +150,7 @@ class LowpassKernel(OpKernel):
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
         dim = variable.xr.dims[axisIndex]
         window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
-        lowpass_args = { dim:window_size, "center":True, "min_periods": 1 }
+        lowpass_args = { dim:int(window_size), "center":True, "min_periods": 1 }
         lowpass = variable.xr.rolling(**lowpass_args).mean()
         return [lowpass]
 
