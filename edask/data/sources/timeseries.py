@@ -22,7 +22,7 @@ class TimeConversions:
     def parseDate( sdate: str ) -> datetime:
         from dateutil.parser import parse
         if( sdate[-1] == "T" ): sdate = sdate + "00Z"
-        elif not sdate[-1].isalpha():  sdate = sdate + "Z" if "T" in sdate else sdate + "T00Z"
+        elif not ( sdate[-1].isalpha() or ("+" in sdate) ):  sdate = sdate + "Z" if "T" in sdate else sdate + "T00Z"
         return  parse( sdate )
 
 class TimeseriesData(object):

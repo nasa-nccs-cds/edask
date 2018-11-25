@@ -176,6 +176,19 @@ def test_seasonal_cycle() :
         assert result.shape == (4,)
     mgr.print(results)
 
+def test_seasonal_means() :
+    domains = [ {'name': 'd0', 'lat': {'start': 20, 'end': 60, 'crs': 'values'},
+                               'lon': {'start': 200, 'end': 260, 'crs': 'values'},
+                               'time': {'start': '1980-01-01T00:00:00Z', 'end': '2012-12-31T23:59:00Z', 'crs': 'timestamps'}}]
+    variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
+    operations = [ { 'name': "xarray.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "xarray.ave", 'axes': "t", 'resample': "t.season", "input":"v1" } ]
+    results = mgr.testExec( domains, variables, operations )
+    for variable in results.inputs:
+        result: xa.DataArray = variable.xr.load()
+        assert result.shape == (133,)
+    mgr.print(results)
+
+
 def test_yearly_time_ave():
     domains = [{ "name":"d0",   "lat":  { "start":0, "end":10,  "system":"values" },
                                 "lon":  { "start":100, "end":110, "system":"values" },
