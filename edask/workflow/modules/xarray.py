@@ -152,7 +152,7 @@ class LowpassKernel(OpKernel):
         window_size = node.getParm("wsize", variable.xr.shape[axisIndex]//8 )
         lowpass_args = { dim:int(window_size), "center":True, "min_periods": 1 }
         lowpass = variable.xr.rolling(**lowpass_args).mean()
-        return [lowpass]
+        return [ EDASArray( variable.name, variable.domId, lowpass ) ]
 
 class EofKernel(TimeOpKernel):
     def __init__( self ):
