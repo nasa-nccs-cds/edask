@@ -10,16 +10,16 @@ import abc
 
 class TimeConversions:
 
-    @staticmethod
-    def toDatetime( dt64: Union[np.datetime64,pd.Timestamp] ) -> datetime:
+    @classmethod
+    def toDatetime( cls, dt64: Union[np.datetime64,pd.Timestamp,str] ) -> datetime:
         from dateutil.parser import parse
         if isinstance( dt64, np.datetime64 ):
             return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
         else:
-            return parse( str(dt64) )
+            return cls.parseDate( str(dt64) )
 
-    @staticmethod
-    def parseDate( sdate: str ) -> datetime:
+    @classmethod
+    def parseDate( cls, sdate: str ) -> datetime:
         from dateutil.parser import parse
         if( sdate[-1] == "T" ): sdate = sdate + "00Z"
         elif not ( sdate[-1].isalpha() or ("+" in sdate) ):  sdate = sdate + "Z" if "T" in sdate else sdate + "T00Z"

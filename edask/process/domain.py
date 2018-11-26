@@ -116,8 +116,8 @@ class AxisBounds:
         self.logger.info( " cropTime: start = {}, end = {}".format( self.start, self.end ) )
         minTime: datetime = TimeConversions.toDatetime( minVal )
         maxTime: datetime = TimeConversions.toDatetime( maxVal )
-        startTime: datetime = TimeConversions.parseDate( self.start )
-        endTime: datetime   = TimeConversions.parseDate( self.end )
+        startTime: datetime = TimeConversions.toDatetime( self.start )
+        endTime: datetime   = TimeConversions.toDatetime( self.end )
         if (maxTime < startTime) or (minTime > endTime): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
         newStart = minTime if minTime > startTime else startTime
         newEnd =   maxTime if maxTime < endTime else endTime
@@ -176,7 +176,7 @@ class AxisBounds:
 
     def offsetBounds( self ) -> (datetime,datetime):
         assert self.isValueType, "Must use 'system=values' with the 'offset' option"
-        return ( TimeConversions.parseDate( self.start ) + self._timeDelta, TimeConversions.parseDate( self.end ) + self._timeDelta )
+        return ( TimeConversions.toDatetime( self.start ) + self._timeDelta, TimeConversions.toDatetime( self.end ) + self._timeDelta )
 
     def intersect(self, other: "AxisBounds", allow_broadcast: bool = True ) -> "AxisBounds":
         if other is None: return None if (allow_broadcast and self.canBroadcast()) else self
