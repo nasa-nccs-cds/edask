@@ -113,6 +113,8 @@ class KernelManager:
         return self.operation_modules[ op.module ]
 
     def getKernel(self, node: WorkflowNode):
+        if node.module.lower() in [ "cdspark", "sparkml", "sparksql" ]:
+            raise Exception( "The EDAS server has been updated (the 'CDSpark' module is no longer active, use 'xarray' instead), your scripts need to be updated for compatibility, see: https://www.nccs.nasa.gov/services/Analytics")
         assert node.module in self.operation_modules.keys(), "Unknown Kernel Module: " + node.module
         module = self.operation_modules[ node.module ]
         return module.getKernel(node)
