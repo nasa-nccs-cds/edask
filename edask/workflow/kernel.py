@@ -246,7 +246,9 @@ class InputKernel(Kernel):
                 collection = Collection.new( dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 for ( aggId, vars ) in aggs.items():
-                    dset = xr.open_mfdataset(collection.pathList(aggId), autoclose=True, data_vars=vars, parallel=True)
+                    pathList = collection.pathList(aggId)
+                    self.logger.info("---> open_mfdataset, files: {}, vars: {}".format( str(pathList), str(vars) ) )
+                    dset = xr.open_mfdataset( pathList, autoclose=True, data_vars=vars, parallel=True)
                     self.importToDatasetCollection( results, request, snode, dset )
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
