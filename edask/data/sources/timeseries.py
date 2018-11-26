@@ -12,11 +12,11 @@ class TimeConversions:
 
     @staticmethod
     def toDatetime( dt64: Union[np.datetime64,pd.Timestamp] ) -> datetime:
+        from dateutil.parser import parse
         if isinstance( dt64, np.datetime64 ):
             return datetime.fromtimestamp(dt64.astype(int) * 1e-9, tz=timezone.utc)
         else:
-            ts: pd.Timestamp = dt64
-            return ts
+            return parse( str(dt64) )
 
     @staticmethod
     def parseDate( sdate: str ) -> datetime:
