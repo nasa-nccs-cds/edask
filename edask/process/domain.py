@@ -118,7 +118,8 @@ class AxisBounds:
         maxTime: datetime = TimeConversions.toDatetime( maxVal )
         startTime: datetime = TimeConversions.toDatetime( self.start )
         endTime: datetime   = TimeConversions.toDatetime( self.end )
-        if (maxTime < startTime) or (minTime > endTime): raise Exception( "Empty intersection between roi and data domain, axis = " + self.name )
+        if (maxTime < startTime) or (minTime > endTime):
+            raise Exception( "Empty intersection between roi and data domain, axis = {}, axis bounds = ( {}, {} ), data bounds =  ( {}, {} )".format( self.name, str(startTime), str(endTime), str(minTime), str(maxTime) ) )
         newStart = minTime if minTime > startTime else startTime
         newEnd =   maxTime if maxTime < endTime else endTime
         return AxisBounds( self.name, str(newStart), str(newEnd), self.step, self.system, self.metadata, self._timeDelta )
