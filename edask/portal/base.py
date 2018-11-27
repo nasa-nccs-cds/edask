@@ -45,7 +45,7 @@ class DataPacket(Response):
         self._data = data
 
     def hasData(self) -> bool:
-        return len( self._data ) > 0
+        return ( self._data is not None ) and ( len( self._data ) > 0 )
 
     def getTransferHeader(self) -> bytes:
         return bytearray( self.clientId + ":" + self._body, 'utf-8' )
