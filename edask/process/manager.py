@@ -77,12 +77,13 @@ class SubmissionThread(Thread):
 
 class ExecHandler(ExecHandlerBase):
 
-    def __init__( self, clientId: str, jobId: str, portal: Optional[EDASPortal]=None, **kwargs ):
-        super(ExecHandler, self).__init__(clientId, jobId, **kwargs)
+    def __init__( self, clientId: str, _job: Job, portal: Optional[EDASPortal]=None, **kwargs ):
+        super(ExecHandler, self).__init__(clientId, _job.requestId, **kwargs)
         self.portal = portal
         self.sthread = None
         self._processResults = True
         self.results: List[EDASDataset] = []
+        self.job = _job
 
     def execJob(self, job: Job ) -> SubmissionThread:
         self.sthread = SubmissionThread(job,self)
@@ -117,7 +118,8 @@ class ExecHandler(ExecHandlerBase):
                 result = self.mergeResults()
                 savePath = result.save()
                 if self.portal:
-                    self.portal.sendFile( self.clientId, self.jobId, result.id, savePath, True )
+                    sendData = bool( self.job.runargs.get( "sendData", "true" ) )
+                    self.portal.sendFile( self.clientId, self.jobId, result.id, savePath, sendData )
                 else:
                     self.printResult(savePath)
             except Exception as err:

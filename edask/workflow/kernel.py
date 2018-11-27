@@ -247,7 +247,6 @@ class InputKernel(Kernel):
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId)
-                    self.logger.info("---> open_mfdataset, files: {}, vars: {}".format( str(pathList), str(vars) ) )
                     dset = xr.open_mfdataset( pathList, autoclose=True, data_vars=vars, parallel=True)
                     self.importToDatasetCollection( results, request, snode, dset )
             elif dataSource.type == SourceType.file:

@@ -1,5 +1,5 @@
 import traceback
-import atexit
+import atexit, ast
 from edask.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
@@ -67,7 +67,7 @@ class EDASapp(EDASPortal):
           return new_runargs
 
     def parseMap( self, serialized_map: str )-> Dict[str,str]:
-        return {}
+        return ast.literal_eval(serialized_map)
 
     def defaultResponseType( self, runargs:  Dict[str, Any] )-> str:
          status = bool(str(runargs.get("status","false")))
@@ -85,7 +85,7 @@ class EDASapp(EDASPortal):
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
         try:
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
-          execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, jobId, self, workers=job.workers))
+          execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
           execHandler.execJob( job )
           return Message( clientId, jobId, execHandler.filePath )
         except Exception as err:
@@ -96,7 +96,7 @@ class EDASapp(EDASPortal):
 
     def runJob( self, job: Job, clientId: str = "local" )-> Response:
         try:
-          execHandler: ExecHandler = self.addHandler(clientId, job.process, ExecHandler(clientId, job.process, workers=job.workers))
+          execHandler: ExecHandler = self.addHandler(clientId, job.process, ExecHandler(clientId, job, workers=job.workers))
           execHandler.execJob( job )
           return Message(clientId, job.process, execHandler.filePath)
         except Exception as err:
