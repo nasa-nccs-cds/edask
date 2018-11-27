@@ -58,14 +58,12 @@ class EDASapp(EDASPortal):
           responseType = runargs.get( "response", self.defaultResponseType(runargs) )
           rv = { k: str(v) for k, v in runargs.items() }
           rv["response"] = responseType
-          rv["sendData"] = "false"
           return rv
         else:
           responseToks = responseForm.split(':')
           new_runargs = { k: str(v) for k, v in runargs.items() }
           new_runargs["response" ] = responseToks[0]
           if( responseToks[0].lower() == "collection" and len(responseToks) > 1  ): new_runargs["cid"] = responseToks[-1]
-          new_runargs["sendData"] = "false"
           return new_runargs
 
     def parseMap( self, serialized_map: str )-> Dict[str,str]:

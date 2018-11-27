@@ -119,7 +119,6 @@ class ExecHandler(ExecHandlerBase):
                 savePath = result.save()
                 if self.portal:
                     sendData = self.job.runargs.get( "sendData", "true" ).lower().startswith("t")
-                    self.logger.info( " sendData: " + str(sendData) + ", runargs: " + str( self.job.runargs ) )
                     self.portal.sendFile( self.clientId, self.jobId, result.id, savePath, sendData )
                 else:
                     self.printResult(savePath)
