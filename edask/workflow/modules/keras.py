@@ -12,6 +12,7 @@ from collections import OrderedDict
 from edask.process.operation import WorkflowConnector
 from edask.collections.agg import Archive
 from keras.optimizers import SGD
+import keras.backend as K
 from keras.callbacks import TensorBoard, History, Callback
 from edask.workflow.learning import FitResult, PerformanceTracker, KerasModel
 
@@ -44,14 +45,10 @@ class NetworkKernel(OpKernel):
         masterNode["layerNodes"] = orderedLayerNodes
         return inputDset
 
-class ModelKernel(OpKernel):
+class ModelOps:
 
-    def __init__( self ):
-        Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
-
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
-        modelId = node.getParm( "model", "model" )
-        modelPath = self.archivePath( modelId )
+    @classmethod
+    def loadModel(cls, modelPath: str ) -> Model:
         modelData: EDASDataset = EDASDataset.open_dataset( modelPath )
         layersSpec = modelData["layers"]
         assert layersSpec, "Missing levels spec in model data"
@@ -64,10 +61,43 @@ class ModelKernel(OpKernel):
         print( "INITIAL WEIGHTS: " + str( initial_weights ) )
         print( "INPUT WEIGHTS: " + str( weights ) )
         model.set_weights( weights )
-        print( "MODEL WEIGHTS: " + str(model.get_weights()))
+        return model
+
+class ModelPredictionKernel(OpKernel):
+
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
+
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+        modelId = node.getParm( "model", "model" )
+        model = ModelOps.loadModel( self.archivePath( modelId, {} ) )
+        weights = model.get_weights()
+        print( "MODEL WEIGHTS: " + str(weights))
         input_size = weights[0].shape[0]
         input = KerasModel.getNetworkInput( node, variable, input_size )
         return [ KerasModel.map( "predict", model, input ) ]
+
+class BackProjectionMap(OpKernel):
+
+    def __init__( self ):
+        Kernel.__init__( self, KernelSpec("backProject", "Back project model node","Generates patterns that maximally activate each output node." ) )
+
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+        modelId = node.getParm( "model", "model" )
+        model: Model = ModelOps.loadModel( self.archivePath( modelId, {} ) )
+
+        out_diff = K.mean((model.layers[-1].output - 1) ** 2)
+        grad = K.gradients(out_diff, [model.input])[0]
+        grad /= K.maximum(K.sqrt(K.mean(grad ** 2)), K.epsilon())
+        iterate = K.function( [model.input, K.learning_phase()], [out_diff, grad] )
+        input_img_data = np.zeros( shape=variable.xrArray.shape )
+
+        self.logger.info("Back Projection Map, Iterations:")
+        for i in range(20):
+            out_loss, out_grad = iterate([input_img_data, 0])
+            input_img_data -= out_grad * 0.1
+            self.logger.info( str(i) + ": loss = " + str(out_loss) )
+        return [ EDASArray( "Back Projection Map", variable.domId, xa.DataArray(input_img_data) ) ]
 
 class TrainKernel(OpKernel):
     def __init__( self ):

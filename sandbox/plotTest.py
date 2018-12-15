@@ -261,6 +261,14 @@ class PlotTESTS:
         results = self.mgr.testExec( domains, variables, operations )
         plotter.plotPrediction(results, "20crv-ts")
 
+    def test_back_projection(self):
+        domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
+        variables = [ {"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"} ]
+        operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
+                        { "name": "keras.backProject", "input": "v0f", "model":"model-20crv-ts", "product":"prediction" } ]
+        results = self.mgr.testExec( domains, variables, operations )
+        results.plotMaps(1)
+
     def test_dask_workflow(self):
         domains =    [ {"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"},  "lon": {"start": 0, "end": 100, "system": "values"} } ]
         variables =  [ {"uri": self.mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"} ]
@@ -277,5 +285,5 @@ class PlotTESTS:
 
 if __name__ == '__main__':
     tester = PlotTESTS()
-    result = tester.test_diff()
+    result = tester.test_back_projection()
     plt.show()
