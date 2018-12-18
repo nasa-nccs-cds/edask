@@ -1,4 +1,4 @@
-import zmq, traceback, time, logging, xml, cdms2, socket
+import zmq, traceback, time, logging, xml, socket
 from typing import List, Dict, Sequence, Set
 from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime
