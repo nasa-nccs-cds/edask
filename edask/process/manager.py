@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, cdms2, socket, defusedxml, abc
+import zmq, traceback, time, logging, xml, socket, defusedxml, abc
 from xml.etree.ElementTree import Element, ElementTree
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job

@@ -1,6 +1,5 @@
-import zmq, traceback, time, logging, xml, cdms2
+import zmq, traceback, time, logging, xml
 from threading import Thread
-from cdms2.variable import DatasetVariable
 from typing import Sequence, List, Dict, Mapping, Optional
 from edask.util.logging import EDASLogger
 from edask.process.task import UID
@@ -187,38 +186,38 @@ class ResponseManager(Thread):
             self.log("Terminating wait for response")
             return []
 
-    def getResponseVariables(self, rId: str, wait=True):
-        """  :rtype: list[DatasetVariable] """
-        responses = self.getResponses( rId, wait )
-        gridFileDir = self.getFileCacheDir("gridfile")
-        vars = []
-        for response in responses:
-            self.log( "Processing response node: " + response )
-            e = xml.etree.ElementTree.fromstring( response )
-            for data_node in e.iter('data'):
-                resultUri = data_node.get("href","")
-                if resultUri:
-                    self.log( "Processing response: " + resultUri )
-                    resultId = resultUri.split("/")[-1]
-                    result_arrays = self.cached_arrays.get( resultId, [] )
-                    if result_arrays:
-                        for result_array in result_arrays:
-                            gridFilePath = os.path.join(gridFileDir, result_array.gridFile )
-                            vars.append( result_array.getVariable( gridFilePath ) )
-                    else:
-                        from cdms2.dataset import Dataset
-                        resultFilePath = self.filePaths.get( rId, data_node.get("file", "") )
-                        self.log( "Processing file: " + resultFilePath )
-                        if resultFilePath:
-                            dset = cdms2.open( resultFilePath ); """:type : Dataset """
-                            for fvar in dset.variables:
-                                vars.append( dset(fvar) )
-                        else:
-                            self.logger.error( "Empty response node: " + str(data_node) )
-                else :
-                    self.logger.error( "Empty response node: " + str(data_node) )
-
-            return vars
+    # def getResponseVariables(self, rId: str, wait=True):
+    #     """  :rtype: list[DatasetVariable] """
+    #     responses = self.getResponses( rId, wait )
+    #     gridFileDir = self.getFileCacheDir("gridfile")
+    #     vars = []
+    #     for response in responses:
+    #         self.log( "Processing response node: " + response )
+    #         e = xml.etree.ElementTree.fromstring( response )
+    #         for data_node in e.iter('data'):
+    #             resultUri = data_node.get("href","")
+    #             if resultUri:
+    #                 self.log( "Processing response: " + resultUri )
+    #                 resultId = resultUri.split("/")[-1]
+    #                 result_arrays = self.cached_arrays.get( resultId, [] )
+    #                 if result_arrays:
+    #                     for result_array in result_arrays:
+    #                         gridFilePath = os.path.join(gridFileDir, result_array.gridFile )
+    #                         vars.append( result_array.getVariable( gridFilePath ) )
+    #                 else:
+    #                     from cdms2.dataset import Dataset
+    #                     resultFilePath = self.filePaths.get( rId, data_node.get("file", "") )
+    #                     self.log( "Processing file: " + resultFilePath )
+    #                     if resultFilePath:
+    #                         dset = cdms2.open( resultFilePath ); """:type : Dataset """
+    #                         for fvar in dset.variables:
+    #                             vars.append( dset(fvar) )
+    #                     else:
+    #                         self.logger.error( "Empty response node: " + str(data_node) )
+    #             else :
+    #                 self.logger.error( "Empty response node: " + str(data_node) )
+    #
+    #         return vars
 
 class EDASPortalClient:
 
