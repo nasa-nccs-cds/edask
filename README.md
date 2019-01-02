@@ -8,9 +8,9 @@ EDASK is a high performance big data analytics and machine learning framework. T
 
 To install:
 ```
-    > conda create -n edask -c conda-forge python=3.6 libnetcdf nco eofs dask distributed xarray matplotlib scipy bottleneck paramiko netCDF4 defusedxml python-graphviz bokeh pyparsing pillow scikit-learn keras zeromq pyzmq pytest cartopy paramiko dateparser
+    > conda create -n edask -c conda-forge python=3.6 bokeh bottleneck dask dateparser defusedxml distributed eofs keras libnetcdf matplotlib netCDF4 nco paramiko pillow pyparsing pydap python-graphviz pytest pyzmq scikit-learn scipy xarray zeromqcartopy 
     > source activate edask
-    > pip install pydap sklearn_xarray
+    > pip install  sklearn_xarray
 
     > git clone https://github.com/nasa-nccs-cds/edask.git
     > cd edask
