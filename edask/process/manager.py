@@ -1,6 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, defusedxml, abc
-from xml.etree.ElementTree import Element, ElementTree
+import zmq, traceback, time, logging, xml, socket, abc
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job
 from edask.workflow.data import EDASDataset
@@ -195,10 +194,10 @@ class GenericProcessManager:
   def submitProcess(self, service: str, job: Job, resultHandler: ExecHandler)-> str: pass
 
   @abc.abstractmethod
-  def getResult( self, service: str, resultId: str )-> Element: pass
+  def getResult( self, service: str, resultId: str ): pass
 
   @abc.abstractmethod
-  def getResultStatus( self, service: str, resultId: str )-> Element: pass
+  def getResultStatus( self, service: str, resultId: str ): pass
 
   @abc.abstractmethod
   def hasResult( self, service: str, resultId: str )-> bool: pass

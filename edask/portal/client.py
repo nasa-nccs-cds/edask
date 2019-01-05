@@ -193,7 +193,7 @@ class ResponseManager(Thread):
     #     vars = []
     #     for response in responses:
     #         self.log( "Processing response node: " + response )
-    #         e = xml.etree.ElementTree.fromstring( response )
+    #         e = defusedxml.ElementTree.fromstring( response )
     #         for data_node in e.iter('data'):
     #             resultUri = data_node.get("href","")
     #             if resultUri:

@@ -6,7 +6,7 @@ from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
 from edask.process.source import VID
 from edask.config import EdaskEnv
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from edask.util.logging import EDASLogger
 def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
 

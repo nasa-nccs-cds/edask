@@ -1,0 +1,8 @@
+client.address=0.0.0.0
+sources.allowed=collection
+request.port=0000
+response.port=0000
+dap.engine=pydap
+dask.scheduler=0.0.0.0:0000
+cache.size.max=500M
+edask.cache.dir=/foo/bar

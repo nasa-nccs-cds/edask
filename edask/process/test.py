@@ -82,8 +82,9 @@ class TestManager:
 
 class LocalTestManager(TestManager):
 
-    def __init__(self, _proj: str, _exp: str):
+    def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(LocalTestManager, self).__init__(_proj, _exp)
+        EdaskEnv.update( appConf )
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
         t0 = time.time()
@@ -98,11 +99,10 @@ class LocalTestManager(TestManager):
 
 class DistributedTestManager(TestManager):
 
-    def __init__(self, _proj: str, _exp: str, appConfiguration=None):
+    def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
-        if appConfiguration is None:
-            appConfiguration = {}
-        self.processManager = ProcessManager({**EdaskEnv.parms, **appConfiguration})
+        EdaskEnv.update(appConf)
+        self.processManager = ProcessManager( EdaskEnv.parms )
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )

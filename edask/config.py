@@ -14,6 +14,9 @@ class ParameterManager:
         for cpath in [ self.CONFIG_DIR, self.COLLECTIONS_DIR ]:
             if not os.path.exists(cpath): os.makedirs(cpath)
 
+    def update(self, parms: Dict[str,str] = None, **kwargs ):
+        self._parms.update( parms if parms else {}, **kwargs )
+
     @property
     def parms(self)-> Dict[str,str]: return self._parms
 
@@ -36,5 +39,7 @@ EdaskEnv = ParameterManager()
 
 if __name__ == '__main__':
     print(EdaskEnv['dap.engine'])
+
+
 
 

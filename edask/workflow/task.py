@@ -1,5 +1,6 @@
 from portal.messageParser import mParse
 from typing import List, Dict, Sequence, Any
+from edask.process.source import DataSource
 import xarray as xa
 
 class Task:
@@ -30,15 +31,14 @@ class Task:
 
     def processUrl(self):
         url = self.metadata.get("url")
+        scheme, path = DataSource.validate( url )
         if url:
-            toks = url.split(":")
-            scheme = toks[0].lower()
             if scheme == "collection":
-               self.metadata["collection"] = toks[1].strip("/")
+               self.metadata["collection"] = path.strip("/")
             elif scheme == "http":
                self.metadata["dap"] = url
             elif scheme == "file":
-               self.metadata["file"] = toks[1]
+               self.metadata["file"] = path
             else:
                 raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,url) )
 

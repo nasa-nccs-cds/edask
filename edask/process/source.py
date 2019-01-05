@@ -2,6 +2,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tupl
 from enum import Enum, auto
 from edask.process.node import Node
 from edask.portal.parsers import WpsCwtParser
+from edask.config import EdaskEnv
 
 class SourceType(Enum):
     UNKNOWN = auto()
@@ -22,24 +23,32 @@ class DataSource:
         raise Exception( "Can't find data source in variableSpec: " + str( variableSpec ) )
 
     def __init__(self, address: str,  type: SourceType = SourceType.UNKNOWN ):
-        self.processUri( type, address )
+        self.processUri( address, type )
 
-    def processUri( self, stype: SourceType, _address: str ):
+    @classmethod
+    def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
+        allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection").split(",") ]
+        toks = _address.split(":")
+        scheme = toks[0].lower()
+        if (stype.name.lower() == "uri") and (scheme in allowed_sources):
+            return scheme, toks[1]
+        else: raise Exception( "Unallowed scheme '{}' in url: {}".format(scheme,_address) )
+
+    def processUri( self, _address: str, stype: SourceType ):
+        scheme, path = self.validate( _address, stype )
         if stype.name.lower() == "uri":
-            toks = _address.split(":")
-            scheme = toks[0].lower()
             if scheme == "collection":
                 self.type = SourceType.collection
-                self.address =  toks[1].strip("/")
+                self.address =  path.strip("/")
             elif scheme.startswith("http"):
                 self.type = SourceType.dap
                 self.address = _address
             elif scheme == "file":
                 self.type = SourceType.file
-                self.address = toks[1]
+                self.address = path
             elif scheme == "archive":
                 self.type = SourceType.archive
-                self.address = toks[1]
+                self.address = path
             else:
                 raise Exception( "Unrecognized scheme '{}' in url: {}".format(scheme,_address) )
         else:
