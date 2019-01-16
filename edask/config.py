@@ -8,7 +8,8 @@ class ParameterManager:
     def __init__(self):
         self.logger =  EDASLogger.getLogger()
         self.path = os.path.expanduser("~/.edask/conf/app.conf" )
-        self._parms: Dict[str,str] = self.getAppConfiguration()
+        aliases = { "client.address": "wps.server.address" }
+        self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
         self.CONFIG_DIR = self._parms.get( "edask.cache.dir", os.path.expanduser("~/.edask/conf") )
         self.COLLECTIONS_DIR = self._parms.get("edask.coll.dir", self.CONFIG_DIR )
         for cpath in [ self.CONFIG_DIR, self.COLLECTIONS_DIR ]:
@@ -20,13 +21,17 @@ class ParameterManager:
     @property
     def parms(self)-> Dict[str,str]: return self._parms
 
-    def getAppConfiguration(self) ->  Dict[str,str]:
+    def getAppConfiguration(self, aliases: Dict[str,str] ) ->  Dict[str,str]:
         appConfig: Dict[str,str] = {}
         try:
             config_FILE = open( self.path )
             for line in config_FILE.readlines():
                 toks = line.split("=")
                 if len( toks ) == 2: appConfig[toks[0].strip()] = toks[1].strip()
+            for key,value in aliases.items():
+                result = appConfig.get( value )
+                if result and not appConfig.get(key):
+                    appConfig[key] = result
         except Exception as err:
             self.logger.warning( "Can't load app config file 'app.conf' from config dir: " + self.path )
             self.logger.warning( str(err) )

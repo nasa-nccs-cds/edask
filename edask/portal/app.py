@@ -17,7 +17,7 @@ class EDASapp(EDASPortal):
          return array[index] if( len(array) > index ) else default
 
     def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
-        super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("client.address", "127.0.0.1")),
+        super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("wps.server.address", "127.0.0.1")),
                                         get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
                                         get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
         self.processManager = ProcessManager(EdaskEnv.parms)

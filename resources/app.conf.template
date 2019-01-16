@@ -1,4 +1,4 @@
-client.address=0.0.0.0
+wps.server.address=0.0.0.0
 sources.allowed=collection
 request.port=0000
 response.port=0000
