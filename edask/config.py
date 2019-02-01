@@ -8,7 +8,7 @@ class ParameterManager:
     def __init__(self):
         self.logger =  EDASLogger.getLogger()
         self.path = os.path.expanduser("~/.edask/conf/app.conf" )
-        aliases = { "client.address": "wps.server.address" }
+        aliases = { "wps.server.address": "client.address" }
         self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
         self.CONFIG_DIR = self._parms.get( "edask.cache.dir", os.path.expanduser("~/.edask/conf") )
         self.COLLECTIONS_DIR = self._parms.get("edask.coll.dir", self.CONFIG_DIR )
