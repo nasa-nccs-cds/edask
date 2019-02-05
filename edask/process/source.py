@@ -27,11 +27,18 @@ class DataSource:
 
     @classmethod
     def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
-        allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection").split(",") ]
+        allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection,https").split(",") ]
+
         toks = _address.split(":")
         scheme = toks[0].lower()
         if (stype.name.lower() == "uri") and (scheme in allowed_sources):
-            return scheme, toks[1]
+            if scheme == "https":
+                trusted_servers = [ r.strip() for r in EdaskEnv.get("trusted.dap.servers", "").split(",") ]
+                for trusted_server in trusted_servers:
+                    if _address.startswith( trusted_server ): return scheme, toks[1]
+                raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )
+            else:
+                return scheme, toks[1]
         else: raise Exception( "Unallowed scheme '{}' in url: {}".format(scheme,_address) )
 
     def processUri( self, _address: str, stype: SourceType ):
