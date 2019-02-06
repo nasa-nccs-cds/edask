@@ -276,12 +276,12 @@ class InputKernel(Kernel):
             openid = EdaskEnv.get("esgf.openid", "")
             password = EdaskEnv.get("esgf.password", "")
             username = EdaskEnv.get("esgf.username", openid.split("/")[-1] )
-            session = setup_session( openid, password, username ) # , check_url=dataSource.address )
+            session = setup_session( openid, password, username, check_url=dataSource.address )
         elif dataSource.auth == "urs":
             from pydap.cas.urs import setup_session
             username = EdaskEnv.get("urs.username", "")
             password = EdaskEnv.get("urs.password", "")
-            session = setup_session( username, password ) # , check_url=dataSource.address )
+            session = setup_session( username, password, check_url=dataSource.address )
         elif dataSource.auth == "cookie":
             from pydap.cas.get_cookies import setup_session
             username = EdaskEnv.get("auth.username", "")
