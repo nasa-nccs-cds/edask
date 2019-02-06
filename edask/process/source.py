@@ -17,13 +17,15 @@ class DataSource:
     @classmethod
     def new(cls, variableSpec: Dict[str, Any] ):
         for type in SourceType:
-           spec = variableSpec.get( type.name, None )
-           if spec is not None:
-                return DataSource( spec, type )
+            spec = variableSpec.get( type.name, None )
+            if spec is not None:
+                auth = variableSpec.get( "auth", None )
+                return DataSource( spec, type, auth )
         raise Exception( "Can't find data source in variableSpec: " + str( variableSpec ) )
 
-    def __init__(self, address: str,  type: SourceType = SourceType.UNKNOWN ):
+    def __init__(self, address: str,  type: SourceType = SourceType.UNKNOWN, auth = None ):
         self.processUri( address, type )
+        self.auth = auth
 
     @classmethod
     def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
@@ -36,7 +38,7 @@ class DataSource:
                 trusted_servers = [ r.strip() for r in EdaskEnv.get("trusted.dap.servers", "").split(",") ]
                 for trusted_server in trusted_servers:
                     if _address.startswith( trusted_server ): return scheme, toks[1]
-                raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )
+                raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' in app.conf to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )
             else:
                 return scheme, toks[1]
         else: raise Exception( "Unallowed scheme '{}' in url: {}".format(scheme,_address) )

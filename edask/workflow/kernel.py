@@ -14,6 +14,7 @@ from edask.util.logging import EDASLogger
 from edask.data.cache import EDASKCacheMgr
 from edask.process.domain import Domain, Axis
 from collections import OrderedDict
+from requests import Session
 
 class Kernel:
 
@@ -260,12 +261,35 @@ class InputKernel(Kernel):
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
                 engine = EdaskEnv.get("dap.engine", "netcdf4")
-                self.logger.info(" --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
-                dset = xr.open_dataset(dataSource.address, engine=engine, autoclose=True)
-                self.importToDatasetCollection(results, request, snode, dset)
+                self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
+                session = self.getSession( dataSource )
+                dap_engine = engine if session is None else "pydap"
+                dset = xr.open_dataset(dataSource.address, engine=dap_engine, autoclose=True, backend_kwargs=dict(session=session) )
+                self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
         return results
 
+    def getSession( self, dataSource: DataSource ) -> Session:
+        session: Session = None
+        if dataSource.auth == "esgf":
+            from pydap.cas.esgf import setup_session
+            openid = EdaskEnv.get("esgf.openid", "")
+            password = EdaskEnv.get("esgf.password", "")
+            session = setup_session( openid, password, check_url=dataSource.address )
+        elif dataSource.auth == "urs":
+            from pydap.cas.urs import setup_session
+            username = EdaskEnv.get("urs.username", "")
+            password = EdaskEnv.get("urs.password", "")
+            session = setup_session( username, password, check_url=dataSource.address )
+        elif dataSource.auth == "cookie":
+            from pydap.cas.get_cookies import setup_session
+            username = EdaskEnv.get("auth.username", "")
+            password = EdaskEnv.get("auth.password", "")
+            auth_url = EdaskEnv.get("auth.url", "")
+            session = setup_session( auth_url, username, password )
+        elif dataSource.auth is not None:
+            raise Exception( "Unknown authentication method: " + dataSource.auth )
+        return session
 
     def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
