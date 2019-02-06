@@ -9,3 +9,4 @@ cache.size.max=500M
 edask.cache.dir=/foo/bar
 esgf.openid=
 esgf.password=
+esgf.username=
