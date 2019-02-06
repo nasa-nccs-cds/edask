@@ -19,7 +19,11 @@ class DataSource:
         for type in SourceType:
             spec = variableSpec.get( type.name, None )
             if spec is not None:
-                auth = variableSpec.get( "auth", None )
+                toks = spec.split('@')
+                auth = None
+                if len( toks ) > 1:
+                  auth = toks[0]
+                  spec = toks[1]
                 return DataSource( spec, type, auth )
         raise Exception( "Can't find data source in variableSpec: " + str( variableSpec ) )
 
@@ -30,7 +34,6 @@ class DataSource:
     @classmethod
     def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
         allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection,https").split(",") ]
-
         toks = _address.split(":")
         scheme = toks[0].lower()
         if (stype.name.lower() == "uri") and (scheme in allowed_sources):
