@@ -5,7 +5,7 @@ from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.process.task import Job
-from edask.process.manager import ProcessManager, ExecHandler
+from edask.process.manager import ExecHandler
 from edask.config import EdaskEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -86,6 +86,7 @@ class EDASapp(EDASPortal):
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
           execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
           execHandler.execJob( job )
+          self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str( self.processManager.client.scheduler_info()) )
           return Message( clientId, jobId, execHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
