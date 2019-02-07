@@ -3,7 +3,7 @@ import zmq, traceback, time, logging, xml, socket, abc
 from edask.workflow.module import edasOpManager
 from edask.process.task import Job
 from edask.workflow.data import EDASDataset
-from edask.portal.base import EDASPortal, Message, Response
+from edask.portal.base import EDASPortal
 from dask.distributed import Client, Future, LocalCluster
 from edask.util.logging import EDASLogger
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
@@ -76,9 +76,10 @@ class SubmissionThread(Thread):
 
 class ExecHandler(ExecHandlerBase):
 
-    def __init__( self, clientId: str, _job: Job, portal: Optional[EDASPortal]=None, **kwargs ):
+    def __init__( self, clientId: str, _job: Job, portal: EDASPortal, **kwargs ):
         super(ExecHandler, self).__init__(clientId, _job.requestId, **kwargs)
         self.portal = portal
+        self.client = portal.processManager.client
         self.sthread = None
         self._processResults = True
         self.results: List[EDASDataset] = []

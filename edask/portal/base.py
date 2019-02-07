@@ -1,6 +1,9 @@
 import zmq, traceback, time, logging, xml, socket
 from typing import List, Dict, Sequence, Set
 from edask.util.logging import EDASLogger
+from dask.distributed import Client
+from edask.config import EdaskEnv
+from edask.process.manager import ProcessManager
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
@@ -65,7 +68,7 @@ class DataPacket(Response):
 
 class Responder:
 
-    def __init__( self,  _context: zmq.Context,  _client_address: str,  _response_port: int ):
+    def __init__( self,  _context: zmq.Context,  _client_address: str,  _response_port: int, dask_cluster: Client ):
         super(Responder, self).__init__()
         self.logger =  EDASLogger.getLogger()
         self.context: zmq.Context =  _context
@@ -74,6 +77,7 @@ class Responder:
         self.status_reports: Dict[str,str] = {}
         self.clients: Set[str] = set()
         self.client_address = _client_address
+        self.dask_cluster = dask_cluster
         self.initSocket()
 
     def registerClient( self, client: str ):
@@ -141,6 +145,7 @@ class Responder:
                 hb_msg = Message( str(client), "status", "heartbeat" )
                 self.doSendMessage( hb_msg )
             except Exception: pass
+        self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str( self.dask_cluster.scheduler_info() ) )
 
     def initSocket(self):
         self.socket: zmq.Socket   = self.context.socket(zmq.PUSH)
@@ -163,13 +168,15 @@ class EDASPortal:
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
         self.logger =  EDASLogger.getLogger()
         self.active = True
+        self.processManager = ProcessManager(EdaskEnv.parms)
         try:
             self.request_port = request_port
             self.zmqContext: zmq.Context = zmq.Context()
             self.request_socket: zmq.Socket = self.zmqContext.socket(zmq.REP)
-            self.responder = Responder( self.zmqContext, client_address, response_port)
+            self.responder = Responder( self.zmqContext, client_address, response_port, self.processManager.client )
             self.handlers = {}
             self.initSocket( client_address, request_port )
+
 
         except Exception as err:
             self.logger.error( "@@Portal:  ------------------------------- EDAS Init error: {} ------------------------------- ".format( err ) )

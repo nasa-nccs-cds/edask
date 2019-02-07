@@ -20,7 +20,6 @@ class EDASapp(EDASPortal):
         super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("wps.server.address", "*")),
                                         get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
                                         get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
-        self.processManager = ProcessManager(EdaskEnv.parms)
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
 
@@ -94,16 +93,16 @@ class EDASapp(EDASPortal):
             return Message( clientId, jobId, str(err) )
 
 
-    def runJob( self, job: Job, clientId: str = "local" )-> Response:
-        try:
-          execHandler: ExecHandler = self.addHandler(clientId, job.process, ExecHandler(clientId, job, workers=job.workers))
-          execHandler.execJob( job )
-          return Message(clientId, job.process, execHandler.filePath)
-        except Exception as err:
-            self.logger.error( "Caught execution error: " + str(err) )
-            traceback.print_exc()
-            return Message(clientId, job.process, str(err))
-
+    # def runJob( self, job: Job, clientId: str = "local" )-> Response:
+    #     try:
+    #       execHandler: ExecHandler = self.addHandler(clientId, job.process, ExecHandler(clientId, job, workers=job.workers))
+    #       execHandler.execJob( job )
+    #       return Message(clientId, job.process, execHandler.filePath)
+    #     except Exception as err:
+    #         self.logger.error( "Caught execution error: " + str(err) )
+    #         traceback.print_exc()
+    #         return Message(clientId, job.process, str(err))
+    #
 
     # def sendErrorReport( self, clientId: str, responseId: str, exc: Exception ):
     #     err = WPSExceptionReport(exc)
