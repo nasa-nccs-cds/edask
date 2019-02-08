@@ -4,8 +4,7 @@ from edask.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
-from edask.portal.scheduler import SchedulerThread
-from edask.portal.cluster import EDASKClusterThread
+from edask.portal.cluster import EDASCluster
 from edask.process.task import Job
 from edask.process.manager import ExecHandler, ProcessManager
 from edask.config import EdaskEnv
@@ -25,11 +24,8 @@ class EDASapp(EDASPortal):
         self.process = "edas"
         self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
-        self.schedulerThread = SchedulerThread()
-        self.schedulerThread.start()
-        self.clusterThread = EDASKClusterThread()
-        self.clusterThread.start()
-        self.processManager = ProcessManager(EdaskEnv.parms)
+        self.cluster = EDASCluster()
+        self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
@@ -127,8 +123,7 @@ class EDASapp(EDASPortal):
 
 
     def shutdown(self):
-        self.schedulerThread.shutdown()
-        self.clusterThread.shutdown()
+        self.cluster.shutdown()
         if self.processManager is not None:
             self.processManager.term()
 

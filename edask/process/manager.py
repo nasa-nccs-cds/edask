@@ -5,6 +5,8 @@ from edask.process.task import Job
 from edask.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
 from edask.util.logging import EDASLogger
+from distributed.deploy import Cluster
+from edask.config import EdaskEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
 from threading import Thread
 from enum import Enum
@@ -217,14 +219,13 @@ class GenericProcessManager:
 
 class ProcessManager(GenericProcessManager):
 
-  def __init__( self, serverConfiguration: Dict[str,str] ):
+  def __init__( self, serverConfiguration: Dict[str,str], cluster: Cluster = None ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
       self.submitters = []
-      scheduler: str="127.0.0.1"
-      if scheduler is not None:
-          self.logger.info( "Initializing Dask cluster with scheduler {}".format(scheduler) )
-          self.client = Client(scheduler)
+      if cluster is not None:
+          self.logger.info( "Initializing Dask cluster with cluster" )
+          self.client = Client(cluster)
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )

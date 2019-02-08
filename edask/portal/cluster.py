@@ -4,6 +4,8 @@ from distributed.deploy.ssh import start_worker
 from .scheduler import getHost
 from threading import Thread
 from edask.config import EdaskEnv
+from distributed.deploy import Cluster
+from edask.portal.scheduler import SchedulerThread
 
 def get_private_key():
     pkey_opts = os.environ.get('PKEY_OPTS', None)
@@ -80,6 +82,12 @@ class EDASKClusterThread(Thread):
                                          self.nanny_port,
                                          self.remote_python))
 
+    def scale_up(self, n: int ):
+         pass
+
+    def scale_down( self, workers ):
+        pass
+
     def shutdown(self):
         self.active = False
         all_processes = self.workers
@@ -94,5 +102,24 @@ class EDASKClusterThread(Thread):
     def __exit__(self, *args):
         self.shutdown()
 
-if __name__ == '__main__':
-    go()
+class EDASCluster(Cluster):
+
+    def __init__(self):
+        self.schedulerThread = SchedulerThread()
+        self.schedulerThread.start()
+        self.clusterThread = EDASKClusterThread()
+        self.clusterThread.start()
+
+    @property
+    def scheduler(self):
+        return self.schedulerThread.scheduler
+
+    def scale_up(self, n: int ):
+         self.clusterThread.scale_up(n)
+
+    def scale_down( self, workers ):
+         self.clusterThread.scale_down( workers )
+
+    def shutdown(self):
+        self.schedulerThread.shutdown()
+        self.clusterThread.shutdown()
