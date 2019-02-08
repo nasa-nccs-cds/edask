@@ -32,7 +32,7 @@ class EDASKClusterThread(Thread):
         self.threads = []
 
     def getHosts( self ):
-        hostfile = EdaskEnv.get("hostfile.path", os.path.expanduser( "~/.edask/conf/hostfile") )
+        hostfile = EdaskEnv.get("hostfile.path", os.path.expanduser( "~/.edask/conf/hosts") )
         with open(hostfile) as f:
            return f.read().split()
 

@@ -134,7 +134,7 @@ class SchedulerThread(Thread):
         self.scheduler.add_plugin(self.plugin)
         self.logger.info('Local Directory: %26s', self.local_directory)
         self.logger.info('-' * 47)
-        install_signal_handlers(self.loop)
+#        install_signal_handlers(self.loop)
 
         try:
             self.loop.start()
