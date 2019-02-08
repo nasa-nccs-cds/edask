@@ -1,10 +1,11 @@
 import traceback
-import atexit, ast
+import atexit, ast, os
 from edask.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
 from edask.portal.scheduler import SchedulerThread
+from edask.portal.cluster import EDASKClusterThread
 from edask.process.task import Job
 from edask.process.manager import ExecHandler, ProcessManager
 from edask.config import EdaskEnv
@@ -26,6 +27,8 @@ class EDASapp(EDASPortal):
         self.processManager = ProcessManager(EdaskEnv.parms)
         self.schedulerThread = SchedulerThread()
         self.schedulerThread.start()
+        self.clusterThread = EDASKClusterThread()
+        self.clusterThread.start()
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
@@ -124,6 +127,8 @@ class EDASapp(EDASPortal):
 
     def shutdown(self):
         self.processManager.term()
+        self.schedulerThread.shutdown()
+        self.clusterThread.shutdown()
 
     def sendFileResponse( self, clientId: str, jobId: str, response: str  ) -> Dict[str,str]:
         return {}

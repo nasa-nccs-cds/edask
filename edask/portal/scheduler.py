@@ -4,11 +4,12 @@ from tornado.ioloop import IOLoop
 from distributed import Scheduler
 from distributed.diagnostics.plugin import SchedulerPlugin
 from distributed.security import Security
+from distributed.scheduler import ( TaskState, WorkerState )
 from edask.util.logging import EDASLogger
 from distributed.cli.utils import (install_signal_handlers, uri_from_host_port)
 from distributed.proctitle import (enable_proctitle_on_children,enable_proctitle_on_current)
 from threading import Thread
-
+from edask.config import EdaskEnv
 
 def getHost():
     return [l for l in (
@@ -21,15 +22,20 @@ class EDASSchedulerPlugin(SchedulerPlugin):
 
      def __init__( self ):
          self.logger = EDASLogger.getLogger()
+         self.scheduler: Scheduler = None
 
      def transition( self, key, start, finish, *args, **kwargs):
          self.logger.info( "@SP: transition[{}]: {} -> {}".format( key, start, finish ))
+         if self.scheduler: SchedulerThread.log_metrics( self.logger, self.scheduler )
 
-     def restart(self, scheduler, **kwargs ):
+     def restart(self, scheduler: Scheduler, **kwargs ):
          self.logger.info("@SP: restart " )
+         self.scheduler = scheduler
 
-     def update_graph(self, scheduler, dsk=None, keys=None, restrictions=None, **kwargs):
+     def update_graph(self, scheduler: Scheduler, dsk=None, keys=None, restrictions=None, **kwargs):
         self.logger.info("@SP: update_graph ")
+        self.scheduler = scheduler
+        SchedulerThread.log_metrics( self.logger, self.scheduler )
 
 class SchedulerThread(Thread):
 
@@ -37,8 +43,8 @@ class SchedulerThread(Thread):
         Thread.__init__(self)
         self.logger = EDASLogger.getLogger()
         self.host = getHost()
-        self.port = kwargs.get( "port", 8786 )
-        self.bokeh_port = kwargs.get( "bokeh_port", 8787 )
+        self.port = int( EdaskEnv.get("scheduler.port", 8786 ) )
+        self.bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
         self.launch_dashboard = kwargs.get( "launch_dashboard", True )
         self.bokeh_whitelist = []
         self.bokeh_prefix  = kwargs.get( "bokeh_prefix", '' )
@@ -49,8 +55,31 @@ class SchedulerThread(Thread):
         self.tls_cert = None
         self.tls_key = None
         self.plugin = EDASSchedulerPlugin()
-        self.scheduler = None
+        self.scheduler: Scheduler = None
+        self.local_directory_created = False
+        self.loop = None
 
+    @staticmethod
+    def log_metrics( logger, scheduler ):
+        if scheduler is not None:
+            logger.info( "SCHEDULER METRICS:")
+            logger.info( " * total_ncores: {}".format( str(scheduler.total_ncores) ) )
+            logger.info( " * total_occupancy: {}".format( str(scheduler.total_occupancy) ))
+            for task in scheduler.tasks:
+                worker_name = task.processing_on.name if task.processing_on is not None else "None"
+                logger.info(" --- TASK[{}]: state={}, processing_on={}".format(task.key, task.state, worker_name ))
+            for worker in scheduler.workers:
+                processing = "; ".join( [ task.key + ": " + str(cost) for (task,cost) in worker.processing.items() ] )
+                logger.info(" ------ WORKER[{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format(worker.name, worker.address, worker.ncores, worker.nbytes, processing, str(worker.metrics) ))
+
+    def shutdown(self):
+        if self.scheduler is not None:
+            self.loop.stop()
+            self.scheduler.stop()
+            if self.local_directory_created:
+                shutil.rmtree(self.local_directory)
+            self.logger.info("End scheduler at %r", str(self.scheduler.address) )
+            self.scheduler = None
 
     def run(self):
         enable_proctitle_on_current()
@@ -69,11 +98,10 @@ class SchedulerThread(Thread):
                     os.remove(self.pid_file)
             atexit.register(del_pid_file)
 
-        local_directory_created = False
         if self.local_directory:
             if not os.path.exists(self.local_directory):
                 os.mkdir(self.local_directory)
-                local_directory_created = True
+                self.local_directory_created = True
         else:
             self.local_directory = tempfile.mkdtemp(prefix='scheduler-')
             self.local_directory_created = True
@@ -87,7 +115,7 @@ class SchedulerThread(Thread):
             resource.setrlimit(resource.RLIMIT_NOFILE, (limit, hard))
 
         addr = uri_from_host_port(self.host, self.port, 8786)
-        loop = IOLoop.current()
+        self.loop = IOLoop.current()
         self.logger.info('-' * 47)
 
         services = {}
@@ -101,19 +129,21 @@ class SchedulerThread(Thread):
                 else:
                     self.logger.info('Unable to import bokeh: %s' % str(error))
 
-        self.scheduler = Scheduler(loop=loop, services=services, scheduler_file=self.scheduler_file, security=sec)
+        self.scheduler = Scheduler(loop=self.loop, services=services, scheduler_file=self.scheduler_file, security=sec)
         self.scheduler.start(addr)
         self.scheduler.add_plugin(self.plugin)
         self.logger.info('Local Directory: %26s', self.local_directory)
         self.logger.info('-' * 47)
-        install_signal_handlers(loop)
+        install_signal_handlers(self.loop)
 
         try:
-            loop.start()
-            loop.close()
+            self.loop.start()
+            self.loop.close()
         finally:
-            self.scheduler.stop()
-            if local_directory_created:
-                shutil.rmtree(self.local_directory)
-            self.logger.info("End scheduler at %r", addr)
+            self.shutdown()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.shutdown()
