@@ -239,6 +239,7 @@ class EDASClient(Client):
                      serializers=None, deserializers=None,
                      extensions=[], direct_to_workers=False,
                      **kwargs ):
+        self.logger = EDASLogger.getLogger()
         self.cluster = cluster
         self.scheduler = cluster.scheduler
         if timeout == no_default:
@@ -331,6 +332,14 @@ class EDASClient(Client):
         self.start(timeout=timeout)
         from distributed.recreate_exceptions import ReplayExceptionClient
         ReplayExceptionClient(self)
+
+    def _update_scheduler_info(self):
+        if self.status not in ('running', 'connecting'):
+            return
+        try:
+            self._scheduler_identity = self.scheduler.identity()
+        except EnvironmentError:
+            self.logger.debug("Not able to query scheduler for identity")
 
 class ProcessManager(GenericProcessManager):
 

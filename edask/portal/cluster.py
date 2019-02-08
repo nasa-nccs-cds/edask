@@ -113,8 +113,9 @@ class EDASCluster(Cluster):
 
     @property
     def scheduler(self):
-        while self.schedulerThread.scheduler is None:
-            time.sleep(0.1)
+        for iTry in range(100):
+            if self.schedulerThread.scheduler is not None: break
+            time.sleep(0.2)
         return self.schedulerThread.scheduler
 
     def scale_up(self, n: int ):
