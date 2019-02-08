@@ -105,14 +105,12 @@ class EDASKClusterThread(Thread):
 class EDASCluster(Cluster):
 
     def __init__(self):
+        Cluster.__init__(self)
         self.schedulerThread = SchedulerThread()
         self.schedulerThread.start()
         self.clusterThread = EDASKClusterThread()
         self.clusterThread.start()
-
-    @property
-    def scheduler(self):
-        return self.schedulerThread.scheduler
+        self.scheduler = self.schedulerThread.scheduler
 
     def scale_up(self, n: int ):
          self.clusterThread.scale_up(n)
