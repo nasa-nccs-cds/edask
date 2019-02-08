@@ -5,7 +5,7 @@ from edask.process.task import Job
 from edask.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
 from edask.util.logging import EDASLogger
-from distributed.deploy import Cluster
+from edask.portal.cluster import EDASCluster
 from edask.config import EdaskEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno
 from threading import Thread
@@ -216,16 +216,22 @@ class GenericProcessManager:
   def waitUntilJobCompletes( self, service: str, resultId: str  ):
     while( not self.hasResult(service,resultId) ): time.sleep(0.5)
 
+class EDASClient(Client):
+
+    def __init__(self, cluster: EDASCluster ):
+        super(EDASClient, self).__init__( cluster )
+        self.cluster = cluster
+        self.scheduler = cluster.scheduler
 
 class ProcessManager(GenericProcessManager):
 
-  def __init__( self, serverConfiguration: Dict[str,str], cluster: Cluster = None ):
+  def __init__( self, serverConfiguration: Dict[str,str], cluster: EDASCluster = None ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
       self.submitters = []
       if cluster is not None:
           self.logger.info( "Initializing Dask cluster with cluster" )
-          self.client = Client(cluster)
+          self.client = EDASClient(cluster)
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )
