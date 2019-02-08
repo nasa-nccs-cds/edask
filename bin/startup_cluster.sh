@@ -8,7 +8,7 @@ while IFS=$': \t' read -a line ;do
 
 if [ $# -eq 0 ]
   then
-    edask-ssh --hostfile $DIR/../resources/hosts --scheduler $myip:8786
+    $DIR/edask-ssh --hostfile $DIR/../resources/hosts --scheduler $myip:8786
   else
-    edask-ssh --nprocs $1 --hostfile $DIR/../resources/hosts --scheduler $myip:8786
+    $DIR/edask-ssh --nprocs $1 --hostfile $DIR/../resources/hosts --scheduler $myip:8786
 fi
