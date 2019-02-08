@@ -7,10 +7,7 @@ from .scheduler import getHost
 
 class EDASKCluster(object):
 
-    def __init__(self, worker_addrs, scheduler_port=8786, nthreads=0, nprocs=1,
-                 ssh_username=None, ssh_port=22, ssh_private_key=None,
-                 nohost=False, remote_python=None,
-                 memory_limit=None, worker_port=None, nanny_port=None ):
+    def __init__(self, worker_addrs, scheduler_port=8786, nthreads=0, nprocs=1, ssh_username=None, ssh_port=22, ssh_private_key=None, nohost=False, remote_python=None, memory_limit=None, worker_port=None, nanny_port=None ):
         self.logger = EDASLogger.getLogger()
         self.nthreads = nthreads
         self.nprocs = nprocs
