@@ -24,11 +24,11 @@ class EDASapp(EDASPortal):
                                         get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
-        self.processManager = ProcessManager(EdaskEnv.parms)
         self.schedulerThread = SchedulerThread()
         self.schedulerThread.start()
         self.clusterThread = EDASKClusterThread()
         self.clusterThread.start()
+        self.processManager = ProcessManager(EdaskEnv.parms)
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
