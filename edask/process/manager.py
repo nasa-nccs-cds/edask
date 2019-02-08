@@ -221,7 +221,7 @@ class ProcessManager(GenericProcessManager):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
       self.submitters = []
-      scheduler = self.config.get( "dask.scheduler", None )
+      scheduler: str="127.0.0.1"
       if scheduler is not None:
           self.logger.info( "Initializing Dask cluster with scheduler {}".format(scheduler) )
           self.client = Client(scheduler)

@@ -23,6 +23,7 @@ class EDASapp(EDASPortal):
                                         get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
                                         get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
         self.process = "edas"
+        self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
         self.schedulerThread = SchedulerThread()
         self.schedulerThread.start()
@@ -126,9 +127,10 @@ class EDASapp(EDASPortal):
 
 
     def shutdown(self):
-        self.processManager.term()
         self.schedulerThread.shutdown()
         self.clusterThread.shutdown()
+        if self.processManager is not None:
+            self.processManager.term()
 
     def sendFileResponse( self, clientId: str, jobId: str, response: str  ) -> Dict[str,str]:
         return {}
