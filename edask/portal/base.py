@@ -2,7 +2,6 @@ import zmq, traceback, time, logging, xml, socket
 from typing import List, Dict, Sequence, Set
 from edask.util.logging import EDASLogger
 from edask.config import EdaskEnv
-from edask.process.manager import ProcessManager
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
@@ -165,7 +164,7 @@ class EDASPortal:
     def __init__( self,  client_address: str, request_port: int, response_port: int ):
         self.logger =  EDASLogger.getLogger()
         self.active = True
-        self.processManager = ProcessManager(EdaskEnv.parms)
+
         try:
             self.request_port = request_port
             self.zmqContext: zmq.Context = zmq.Context()

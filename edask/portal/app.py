@@ -4,8 +4,9 @@ from edask.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
 from edask.portal.parsers import WpsCwtParser
+from edask.portal.scheduler import SchedulerThread
 from edask.process.task import Job
-from edask.process.manager import ExecHandler
+from edask.process.manager import ExecHandler, ProcessManager
 from edask.config import EdaskEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -22,6 +23,11 @@ class EDASapp(EDASPortal):
                                         get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
         self.process = "edas"
         atexit.register( self.term, "ShutdownHook Called" )
+        self.processManager = ProcessManager(EdaskEnv.parms)
+        self.schedulerThread = SchedulerThread()
+        self.schedulerThread.start()
+        self.scheduler_info = self.processManager.client.scheduler_info()
+        self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
     def start( self ): self.run()
 
@@ -86,7 +92,6 @@ class EDASapp(EDASPortal):
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
           execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
           execHandler.execJob( job )
-          self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str( self.processManager.client.scheduler_info()) )
           return Message( clientId, jobId, execHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
