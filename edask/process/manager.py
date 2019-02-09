@@ -54,26 +54,6 @@ class ExecHandlerBase:
             if e.errno != errno.EEXIST: raise
         return dir
 
-class SubmissionThread(Thread):
-
-    def __init__(self, job: Job, resultHandler: ExecHandlerBase):
-        Thread.__init__(self)
-        self.job = job
-        self.resultHandler = resultHandler
-        self.logger =  EDASLogger.getLogger()
-
-    def run(self):
-        start_time = time.time()
-        try:
-            self.logger.info( "Running workflow for requestId " + self.job.requestId)
-            result = edasOpManager.buildTask( self.job )
-            self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
-            self.resultHandler.processResult( result )
-        except Exception as err:
-            self.logger.error( "Execution error: " + str(err))
-            self.logger.error( traceback.format_exc() )
-            self.resultHandler.failureCallback(err)
-
 class ExecHandler(ExecHandlerBase):
 
     def __init__( self, clientId: str, _job: Job, portal, **kwargs ):
@@ -81,23 +61,24 @@ class ExecHandler(ExecHandlerBase):
         super(ExecHandler, self).__init__(clientId, _job.requestId, **kwargs)
         self.portal: EDASPortal = portal
         self.client = portal.processManager.client
-        self.sthread = None
         self._processResults = True
         self.results: List[EDASDataset] = []
+        self._completed = False
         self.job = _job
 
-    def execJob(self, job: Job ) -> SubmissionThread:
-        self.sthread = SubmissionThread(job,self)
-        self.sthread.start()
-        self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
-        return self.sthread
+    def execJob( self ):
+        resultFuture: Future = self.client.submit( edasOpManager.buildTask, self.job )
+        resultFuture.add_done_callback( self.processResult )
+        self.logger.info( " ----------------->>> Submitted request for job " + self.job.requestId )
 
-    def getResult(self, timeout=None):
+    def getResult(self):
         self._processResults = False
-        self.sthread.join(timeout)
+        while self._completed == False:
+            time.sleep(0.2)
         return self.mergeResults()
 
-    def processResult( self, result: EDASDataset ):
+    def processResult( self, resultFuture: Future ):
+        result: EDASDataset = resultFuture.result()
         self.results.append( result )
         self._processFinalResult( )
         if self.portal: self.portal.removeHandler( self.clientId, self.jobId )
@@ -127,6 +108,7 @@ class ExecHandler(ExecHandlerBase):
                 self.logger.error( "Error processing final result: " + str(err) )
                 self.logger.info(traceback.format_exc())
                 self.portal.sendFile(self.clientId, self.jobId, result.id, "", False )
+        self._completed = True
 
     def printResult( self, filePath: str ):
         dset = xa.open_dataset(filePath)
@@ -195,9 +177,6 @@ class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def submitProcess(self, service: str, job: Job, resultHandler: ExecHandler)-> str: pass
-
-  @abc.abstractmethod
   def getResult( self, service: str, resultId: str ): pass
 
   @abc.abstractmethod
@@ -234,24 +213,24 @@ class ProcessManager(GenericProcessManager):
   def term(self):
       self.client.close()
 
-  def runProcess( self, job: Job ) -> EDASDataset:
-    start_time = time.time()
-    try:
-        self.logger.info( " @SW: Submitting workflow using client for requestId " + job.requestId)
-        future_result = self.client.submit( edasOpManager.buildTask, job )
-        self.cluster.logMetrics()
-        result = future_result.result()
-        self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
-        return result
-    except Exception as err:
-        self.logger.error( "Execution error: " + str(err))
-        traceback.print_exc()
+  # def runProcess( self, job: Job ) -> EDASDataset:
+  #   start_time = time.time()
+  #   try:
+  #       self.logger.info( " @SW: Submitting workflow using client for requestId " + job.requestId)
+  #       future_result = self.client.submit( edasOpManager.buildTask, job )
+  #       self.cluster.logMetrics()
+  #       result = future_result.result()
+  #       self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+  #       return result
+  #   except Exception as err:
+  #       self.logger.error( "Execution error: " + str(err))
+  #       traceback.print_exc()
 
 
-  def submitProcess(self, service: str, job: Job, resultHandler: ExecHandler):
-      self.logger.info(" @SW: Submitting workflow using resultHandler for requestId " + job.requestId)
-      submitter: SubmissionThread = SubmissionThread( job, resultHandler )
-      self.submitters.append( submitter )
-      submitter.start()
+  # def submitProcess(self, service: str, job: Job, resultHandler: ExecHandler):
+  #     self.logger.info(" @SW: Submitting workflow using resultHandler for requestId " + job.requestId)
+  #     submitter: SubmissionThread = SubmissionThread( job, resultHandler )
+  #     self.submitters.append( submitter )
+  #     submitter.start()
 
 
