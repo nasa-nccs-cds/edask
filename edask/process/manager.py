@@ -65,6 +65,7 @@ class ExecHandler(ExecHandlerBase):
         self.results: List[EDASDataset] = []
         self._completed = False
         self.job = _job
+        self.startTime = time.time()
 
     def execJob( self ):
         resultFuture: Future = self.client.submit( edasOpManager.buildTask, self.job )
@@ -82,6 +83,9 @@ class ExecHandler(ExecHandlerBase):
         self.results.append( result )
         self._processFinalResult( )
         if self.portal: self.portal.removeHandler( self.clientId, self.jobId )
+        self.logger.info("-" * 50 )
+        self.logger.info(" Completed job in " + str( time.time() - self.startTime ) + " seconds")
+        self.logger.info("-" * 50)
 
     def successCallback(self, resultFuture: Future):
       status = resultFuture.status
