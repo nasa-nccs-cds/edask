@@ -237,7 +237,7 @@ class ProcessManager(GenericProcessManager):
   def runProcess( self, job: Job ) -> EDASDataset:
     start_time = time.time()
     try:
-        self.logger.info( "Running workflow for requestId " + job.requestId)
+        self.logger.info( " @SW: Submitting workflow using client for requestId " + job.requestId)
         future_result = self.client.submit( edasOpManager.buildTask, job )
         self.cluster.logMetrics()
         result = future_result.result()
