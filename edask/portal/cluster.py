@@ -112,7 +112,7 @@ class EDASCluster(Cluster):
 
     @property
     def scheduler(self) -> Scheduler:
-        return self.schedulerThread._scheduler
+        return self.schedulerThread.scheduler
 
     def scale_up(self, n: int ):
          self.clusterThread.scale_up(n)
