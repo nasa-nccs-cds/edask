@@ -249,6 +249,7 @@ class ProcessManager(GenericProcessManager):
 
 
   def submitProcess(self, service: str, job: Job, resultHandler: ExecHandler):
+      self.logger.info(" @SW: Submitting workflow using resultHandler for requestId " + job.requestId)
       submitter: SubmissionThread = SubmissionThread( job, resultHandler )
       self.submitters.append( submitter )
       submitter.start()
