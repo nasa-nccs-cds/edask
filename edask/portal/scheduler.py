@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import
-import atexit, os, socket, shutil, sys, tempfile
+import atexit, os, socket, shutil, sys, tempfile, time
 from tornado.ioloop import IOLoop
 from distributed import Scheduler
 from distributed.diagnostics.plugin import SchedulerPlugin
@@ -55,7 +55,7 @@ class SchedulerThread(Thread):
         self.tls_cert = None
         self.tls_key = None
         self.plugin = EDASSchedulerPlugin()
-        self.scheduler: Scheduler = None
+        self._scheduler: Scheduler = None
         self.local_directory_created = False
         self.loop = None
 
@@ -73,13 +73,20 @@ class SchedulerThread(Thread):
                 logger.info(" ------ WORKER[{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format(worker.name, worker.address, worker.ncores, worker.nbytes, processing, str(worker.metrics) ))
 
     def shutdown(self):
-        if self.scheduler is not None:
+        if self._scheduler is not None:
             self.loop.stop()
-            self.scheduler.stop()
+            self._scheduler.stop()
             if self.local_directory_created:
                 shutil.rmtree(self.local_directory)
-            self.logger.info("End scheduler at %r", str(self.scheduler.address) )
-            self.scheduler = None
+            self.logger.info("End scheduler at %r", str(self._scheduler.address))
+            self._scheduler = None
+
+    @property
+    def scheduler(self) -> Scheduler:
+        for iTry in range(100):
+            if self._scheduler is not None: break
+            time.sleep(0.2)
+        return self._scheduler
 
     def run(self):
         enable_proctitle_on_current()
@@ -129,9 +136,9 @@ class SchedulerThread(Thread):
                 else:
                     self.logger.info('Unable to import bokeh: %s' % str(error))
 
-        self.scheduler = Scheduler(loop=self.loop, services=services, scheduler_file=self.scheduler_file, security=sec)
-        self.scheduler.start(addr)
-        self.scheduler.add_plugin(self.plugin)
+        self._scheduler = Scheduler(loop=self.loop, services=services, scheduler_file=self.scheduler_file, security=sec)
+        self._scheduler.start(addr)
+        self._scheduler.add_plugin(self.plugin)
         self.logger.info('Local Directory: %26s', self.local_directory)
         self.logger.info('-' * 47)
 #        install_signal_handlers(self.loop)

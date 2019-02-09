@@ -6,16 +6,15 @@ from threading import Thread
 from edask.config import EdaskEnv
 from distributed.deploy import Cluster
 from edask.portal.scheduler import SchedulerThread
+from distributed import Scheduler
 
 def get_private_key():
     pkey_opts = os.environ.get('PKEY_OPTS', None)
     if pkey_opts is not None:
         for toks in [opts.split("=") for opts in pkey_opts.split(" ")]:
             if "ssh-private-key" in toks[0]:
-                print( " ----------------------------------------------------> GOT PKEY_OPTS" )
                 return toks[1]
     user = os.environ.get('USER', "")
-    print(" ----------------------------------------------------> CONSTRUCTED DEFAULT KEY ")
     return os.path.expanduser("~/.ssh/id_" + user)
 
 class EDASKClusterThread(Thread):
@@ -112,11 +111,8 @@ class EDASCluster(Cluster):
         self.clusterThread.start()
 
     @property
-    def scheduler(self):
-        for iTry in range(100):
-            if self.schedulerThread.scheduler is not None: break
-            time.sleep(0.2)
-        return self.schedulerThread.scheduler
+    def scheduler(self) -> Scheduler:
+        return self.schedulerThread._scheduler
 
     def scale_up(self, n: int ):
          self.clusterThread.scale_up(n)
