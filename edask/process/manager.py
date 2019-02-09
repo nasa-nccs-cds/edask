@@ -238,8 +238,9 @@ class ProcessManager(GenericProcessManager):
     start_time = time.time()
     try:
         self.logger.info( "Running workflow for requestId " + job.requestId)
-        result = edasOpManager.buildTask( job )
+        future_result = self.client.submit( edasOpManager.buildTask, job )
         self.cluster.logMetrics()
+        result = future_result.result()
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
         return result
     except Exception as err:
