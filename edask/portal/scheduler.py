@@ -137,8 +137,8 @@ class SchedulerThread(Thread):
                     self.logger.info('Unable to import bokeh: %s' % str(error))
 
         self._scheduler = Scheduler(loop=self.loop, services=services, scheduler_file=self.scheduler_file, security=sec)
-        self._scheduler.start(addr)
         self._scheduler.add_plugin(self.plugin)
+        self._scheduler.start(addr)
         self.logger.info('Local Directory: %26s', self.local_directory)
         self.logger.info('-' * 47)
 #        install_signal_handlers(self.loop)

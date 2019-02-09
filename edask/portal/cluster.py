@@ -105,6 +105,7 @@ class EDASCluster(Cluster):
 
     def __init__(self):
         Cluster.__init__(self)
+        self.logger = EDASLogger.getLogger()
         self.schedulerThread = SchedulerThread()
         self.schedulerThread.start()
         self.clusterThread = EDASKClusterThread()
@@ -123,6 +124,9 @@ class EDASCluster(Cluster):
     def shutdown(self):
         self.schedulerThread.shutdown()
         self.clusterThread.shutdown()
+
+    def logMetrics(self):
+        SchedulerThread.log_metrics( self.logger, self.schedulerThread.scheduler)
 
 
 

@@ -220,10 +220,11 @@ class ProcessManager(GenericProcessManager):
   def __init__( self, serverConfiguration: Dict[str,str], cluster: EDASCluster = None ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
+      self.cluster = cluster
       self.submitters = []
-      if cluster is not None:
+      if self.cluster is not None:
           self.logger.info( "Initializing Dask cluster with cluster" )
-          self.client = Client( cluster.scheduler.address )
+          self.client = Client( self.cluster.scheduler.address )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )
@@ -238,6 +239,7 @@ class ProcessManager(GenericProcessManager):
     try:
         self.logger.info( "Running workflow for requestId " + job.requestId)
         result = edasOpManager.buildTask( job )
+        self.cluster.logMetrics()
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
         return result
     except Exception as err:
