@@ -107,7 +107,7 @@ class DistributedTestManager(TestManager):
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         execHandler = ExecHandler("local", job, workers=job.workers)
-        execHandler.execJob()
+        execHandler.execJob(job)
         return execHandler.getResult()
 
 

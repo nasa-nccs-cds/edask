@@ -1,6 +1,6 @@
 from edask.process.test import LocalTestManager, DistributedTestManager
 import numpy.ma as ma
-LOCAL_TESTS = True
+LOCAL_TESTS = False
 appConf = { "sources.allowed": "collection,https" }
 mgr = LocalTestManager( "PyTest", "test_suite", appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest", "test_suite", appConf )
 
