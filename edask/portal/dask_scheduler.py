@@ -4,6 +4,7 @@ from edask.util.logging import EDASLogger
 import os, shutil, socket, sys, tempfile, click
 from distributed.diagnostics.plugin import SchedulerPlugin
 from tornado.ioloop import IOLoop
+from edask.config import EdaskEnv
 from distributed import Scheduler
 from distributed.security import Security
 from distributed.utils import get_ip_interface
@@ -11,43 +12,8 @@ from distributed.cli.utils import (check_python_3, install_signal_handlers, uri_
 from distributed.preloading import preload_modules, validate_preload_argv
 from distributed.proctitle import (enable_proctitle_on_children, enable_proctitle_on_current)
 from edask.portal.cluster import get_private_key, getHost
+from edask.portal.scheduler import EDASSchedulerPlugin
 pem_file_option_type = click.Path(exists=True, resolve_path=True)
-
-class EDASSchedulerPlugin(SchedulerPlugin):
-
-    def __init__(self):
-        self.logger = EDASLogger.getLogger()
-        self.scheduler: Scheduler = None
-
-    def transition(self, key, start, finish, *args, **kwargs):
-        if finish in [ "processing" ]:
-            self.logger.info("@SP: transition[{}]: {} -> {}".format(key, start, finish))
-            self.log_metrics()
-
-    def restart(self, scheduler: Scheduler, **kwargs):
-        self.logger.info("@SP: restart ")
-        self.scheduler = scheduler
-
-    def update_graph(self, scheduler: Scheduler, dsk=None, keys=None, restrictions=None, **kwargs):
-        self.logger.info("@SP: update_graph ")
-        self.scheduler = scheduler
-        self.log_metrics()
-
-    def log_metrics(self):
-        if self.scheduler is not None:
-            self.logger.info("SCHEDULER METRICS:")
-            self.logger.info(" * total_ncores: {}".format(str(self.scheduler.total_ncores)))
-            self.logger.info(" * total_occupancy: {}".format(str(self.scheduler.total_occupancy)))
-            for (tkey, task) in self.scheduler.tasks.items():
-                if task.state in [ "processing", "waiting", "memory" ]:
-                    worker_name = task.processing_on.name if task.processing_on is not None else "None"
-                    self.logger.info(" --- TASK[{}]: state={}, processing_on={}".format(tkey, task.state, worker_name))
-            for (wkey, worker) in self.scheduler.workers.items():
-                if len(worker.processing.items()) > 0:
-                    processing = "\n  ----*** ".join([task.key + ": " + str(cost) for (task, cost) in worker.processing.items()])
-                    self.logger.info( " ------ WORKER[{}:{}]({}): ncores={}, nbytes={}".format( wkey, worker.name, worker.address, worker.ncores, worker.nbytes ) )
-                    self.logger.info(" -> Processing:\n  ----*** {} ".format( processing ) )
-                    self.logger.info(" -> METRICS: {}".format(str( worker.metrics))
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option('--host', type=str, default='',
@@ -92,7 +58,8 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
     logger = EDASLogger.getLogger()
     enable_proctitle_on_current()
     enable_proctitle_on_children()
-    plugins = [ EDASSchedulerPlugin() ]
+    log_metrics = EdaskEnv.getBool( "log.metrics", False )
+    plugins = [ EDASSchedulerPlugin() ] if log_metrics else []
 
     sec = Security(tls_ca_file=tls_ca_file,
                    tls_scheduler_cert=tls_cert,
