@@ -69,8 +69,9 @@ class SchedulerThread(Thread):
                 worker_name = task.processing_on.name if task.processing_on is not None else "None"
                 logger.info(" --- TASK[{}]: state={}, processing_on={}".format( tkey, task.state, worker_name ))
             for (wkey,worker) in scheduler.workers.items():
-                processing = "; ".join( [ task.key + ": " + str(cost) for (task,cost) in worker.processing.items() ] )
-                logger.info(" ------ WORKER[{}:{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format( wkey, worker.name, worker.address, worker.ncores, worker.nbytes, processing, str(worker.metrics) ))
+                if len(worker.processing) > 0:
+                    processing = "; ".join( [ task.key + ": " + str(cost) for (task,cost) in worker.processing.items() ] )
+                    logger.info(" ------ WORKER[{}:{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format( wkey, worker.name, worker.address, worker.ncores, worker.nbytes, processing, str(worker.metrics) ))
 
     def shutdown(self):
         if self._scheduler is not None:
