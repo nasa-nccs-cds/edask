@@ -118,7 +118,7 @@ class EDASArray:
         xrd = self.xr
         if isinstance(xrd,DataArrayGroupBy): return xrd
         if self.loaded_data is None:
-            client = Client.current()
+            client = None # Client.current()
             if client is None:
                 self.loaded_data = xrd.load().persist()
             else:
