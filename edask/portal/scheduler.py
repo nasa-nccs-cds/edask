@@ -54,7 +54,7 @@ class SchedulerThread(Thread):
         self.tls_ca_file = None
         self.tls_cert = None
         self.tls_key = None
-        self.plugin = EDASSchedulerPlugin()
+        self.plugins = [ EDASSchedulerPlugin() ]
         self._scheduler: Scheduler = None
         self.local_directory_created = False
         self.loop = None

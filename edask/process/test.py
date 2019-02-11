@@ -6,7 +6,7 @@ from edask.workflow.module import edasOpManager
 from edask.util.logging import EDASLogger
 from edask.process.manager import ProcessManager, ExecHandler
 from edask.config import EdaskEnv
-from dask.distributed import Future
+from edask.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
@@ -102,7 +102,8 @@ class DistributedTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdaskEnv.update(appConf)
-        self.processManager = ProcessManager( EdaskEnv.parms )
+        self.cluster = EDASCluster()
+        self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )

@@ -1,12 +1,10 @@
-import os, time
+import os, time, socket, sys
 from edask.util.logging import EDASLogger
 from distributed.deploy.ssh import start_worker
-from .scheduler import getHost
 from threading import Thread
+import subprocess
 from edask.config import EdaskEnv
 from distributed.deploy import Cluster
-from edask.portal.scheduler import SchedulerThread
-from distributed import Scheduler
 
 def get_private_key():
     pkey_opts = os.environ.get('PKEY_OPTS', None)
@@ -15,7 +13,15 @@ def get_private_key():
             if "ssh-private-key" in toks[0]:
                 return toks[1]
     user = os.environ.get('USER', "")
-    return os.path.expanduser("~/.ssh/id_" + user)
+    for pkey in  [ os.path.expanduser("~/.ssh/id_" + user), os.path.expanduser("~/.ssh/id_rsa") ]:
+        if os.path.isfile(pkey):  return pkey
+    return None
+
+def getHost():
+    return [l for l in (
+    [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
+        [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in
+         [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
 class EDASKClusterThread(Thread):
 
@@ -102,18 +108,21 @@ class EDASKClusterThread(Thread):
         self.shutdown()
 
 class EDASCluster(Cluster):
+    EDASK_HOME = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    SCHEDULER_SCRIPT = os.path.join( EDASK_HOME, 'bin', 'startup_scheduler')
 
     def __init__(self):
         Cluster.__init__(self)
         self.logger = EDASLogger.getLogger()
-        self.schedulerThread = SchedulerThread()
-        self.schedulerThread.start()
+        self.scheduler_host = getHost()
+        self.scheduler_port =  int( EdaskEnv.get("scheduler.port", 8786 ) )
+#        self.schedulerProcess = self.startup_scheduler( )
         self.clusterThread = EDASKClusterThread()
         self.clusterThread.start()
 
     @property
-    def scheduler(self) -> Scheduler:
-        return self.schedulerThread.scheduler
+    def scheduler_address(self) -> str:
+        return self.scheduler_host + ":" + str( self.scheduler_port )
 
     def scale_up(self, n: int ):
          self.clusterThread.scale_up(n)
@@ -122,11 +131,14 @@ class EDASCluster(Cluster):
          self.clusterThread.scale_down( workers )
 
     def shutdown(self):
-        self.schedulerThread.shutdown()
+#        self.schedulerProcess.terminate()
         self.clusterThread.shutdown()
 
-    def logMetrics(self):
-        SchedulerThread.log_metrics( self.logger, self.schedulerThread.scheduler)
+    def startup_scheduler( self  ):
+        os.environ["PKEY_OPTS"]  = "--ssh-private-key=" + get_private_key()
+        bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
+        args = [ sys.executable, self.SCHEDULER_SCRIPT, "--host", self.scheduler_host, "--port", str(self.scheduler_port), "--bokeh-port", str(bokeh_port) ]
+        return subprocess.Popen( args )
 
 
 

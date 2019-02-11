@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time
+import logging, random, string, time, socket, threading, os
 from edask.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edask.process.operation import WorkflowNode, SourceNode, OpNode
@@ -267,6 +267,7 @@ class InputKernel(Kernel):
                 dset = xr.open_dataset(dataSource.address, engine=dap_engine, autoclose=True, backend_kwargs=dict(session=session) )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
+            self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
         return results
 
     def getSession( self, dataSource: DataSource ) -> Session:

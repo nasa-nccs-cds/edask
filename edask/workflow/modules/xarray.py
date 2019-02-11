@@ -109,20 +109,26 @@ class DetrendKernel(OpKernel):
         data = variable.persist()
         axisIndex = variable.getAxisIndex( node.axes, 0, 0 )
         dim = data.dims[axisIndex]
-        method = node.getParm("method", "highpass")
-        if method == "highpass":
-            window_size = node.getParm("wsize", data.shape[axisIndex]//8 )
-            detrend_args = { dim:int(window_size), "center":True, "min_periods": 1 }
-            trend = data.rolling(**detrend_args).mean()
-            detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
-            return [detrend]
-        elif method == "linear":
-            nbreaks = node.getParm("nbreaks", 0 )
-            data = variable.nd
-            segSize = data.shape[0]/(nbreaks + 1.0)
-            breaks = [ round(ix*segSize) for ix in range(nbreaks) ]
-            detrended_data = signal.detrend( data, axis=axisIndex, bp=breaks )
-            return [ variable.updateNp( detrended_data ) ]
+        window_size = node.getParm("wsize", data.shape[axisIndex] // 8)
+        detrend_args = {dim: int(window_size), "center": True, "min_periods": 1}
+        trend = data.rolling(**detrend_args).mean()
+        detrend: EDASArray = variable - variable.updateXa(trend, "trend")
+        return [detrend]
+
+        # method = node.getParm("method", "highpass")
+        # if method == "highpass":
+        #     window_size = node.getParm("wsize", data.shape[axisIndex]//8 )
+        #     detrend_args = { dim:int(window_size), "center":True, "min_periods": 1 }
+        #     trend = data.rolling(**detrend_args).mean()
+        #     detrend: EDASArray = variable - variable.updateXa( trend, "trend" )
+        #     return [detrend]
+        # elif method == "linear":
+        #     nbreaks = node.getParm("nbreaks", 0 )
+        #     data = variable.nd
+        #     segSize = data.shape[0]/(nbreaks + 1.0)
+        #     breaks = [ round(ix*segSize) for ix in range(nbreaks) ]
+        #     detrended_data = signal.detrend( data, axis=axisIndex, bp=breaks )
+        #     return [ variable.updateNp( detrended_data ) ]
 
 class TeleconnectionKernel(OpKernel):
     def __init__( self ):

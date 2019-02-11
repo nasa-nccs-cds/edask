@@ -76,11 +76,10 @@ class SubmissionThread(Thread):
 
 class ExecHandler(ExecHandlerBase):
 
-    def __init__( self, clientId: str, _job: Job, portal, **kwargs ):
+    def __init__( self, clientId: str, _job: Job, portal = None, **kwargs ):
         from edask.portal.base import EDASPortal
         super(ExecHandler, self).__init__(clientId, _job.requestId, **kwargs)
         self.portal: EDASPortal = portal
-        self.client = portal.processManager.client
         self.sthread = None
         self._processResults = True
         self.results: List[EDASDataset] = []
@@ -126,7 +125,8 @@ class ExecHandler(ExecHandlerBase):
             except Exception as err:
                 self.logger.error( "Error processing final result: " + str(err) )
                 self.logger.info(traceback.format_exc())
-                self.portal.sendFile(self.clientId, self.jobId, result.id, "", False )
+                if self.portal:
+                    self.portal.sendFile(self.clientId, self.jobId, result.id, "", False )
 
     def printResult( self, filePath: str ):
         dset = xa.open_dataset(filePath)
@@ -223,8 +223,8 @@ class ProcessManager(GenericProcessManager):
       self.cluster = cluster
       self.submitters = []
       if self.cluster is not None:
-          self.logger.info( "Initializing Dask cluster with cluster" )
-          self.client = Client( self.cluster.scheduler.address )
+          self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.cluster.scheduler_address )
+          self.client = Client( self.cluster.scheduler_address )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )

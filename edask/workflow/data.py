@@ -118,8 +118,12 @@ class EDASArray:
         xrd = self.xr
         if isinstance(xrd,DataArrayGroupBy): return xrd
         if self.loaded_data is None:
-            client = None # Client.current()
-            self.loaded_data = xrd.load().persist() if client is None else Client.persist( xrd.load() )
+            client = Client.current()
+            if client is None:
+                self.loaded_data = xrd.load().persist()
+            else:
+                client.persist( xrd )
+                self.loaded_data = xrd
         return self.loaded_data
 
     @property
@@ -139,8 +143,8 @@ class EDASArray:
     @property
     def xrp(self) -> xa.DataArray: return self.persist()
 
-    @property
-    def nd(self) -> np.ndarray: return self.xr.values
+#    @property
+#    def nd(self) -> np.ndarray: return self.xr.values
 
     @property
     def T(self) -> "EDASArray":
@@ -176,9 +180,9 @@ class EDASArray:
         transforms.add( t )
         self.xrArray.attrs.setdefault("transforms", ";".join( [ repr(t) for t in transforms] ) )
 
-    def xarray(self, id: str ) -> xa.DataArray:
-        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
-        else:  return xa.DataArray(self._data.data, self._data.coords, self._data.dims, id, self._data.attrs, self._data.encoding )
+#    def xarray(self, id: str ) -> xa.DataArray:
+#        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
+#        else:  return xa.DataArray(self._data.data, self._data.coords, self._data.dims, id, self._data.attrs, self._data.encoding )
 
     def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
         return xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
@@ -223,9 +227,9 @@ class EDASArray:
             rename_dict = {}
         return EDASArray( self.rname(name), self.domId, new_data.rename(rename_dict)  )
 
-    def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
-        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
-        return EDASArray(self.name, self.domId, xrdata  )
+#    def updateNp(self, np_data: np.ndarray, **kwargs) -> "EDASArray":
+#        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
+#        return EDASArray(self.name, self.domId, xrdata  )
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         from edask.portal.parsers import WpsCwtParser
