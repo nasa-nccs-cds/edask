@@ -39,8 +39,9 @@ class EDASSchedulerPlugin(SchedulerPlugin):
             self.logger.info(" * total_ncores: {}".format(str(self.scheduler.total_ncores)))
             self.logger.info(" * total_occupancy: {}".format(str(self.scheduler.total_occupancy)))
             for (tkey, task) in self.scheduler.tasks.items():
-                worker_name = task.processing_on.name if task.processing_on is not None else "None"
-                self.logger.info(" --- TASK[{}]: state={}, processing_on={}".format(tkey, task.state, worker_name))
+                if task.state in [ "processing", "waiting", "memory" ]:
+                    worker_name = task.processing_on.name if task.processing_on is not None else "None"
+                    self.logger.info(" --- TASK[{}]: state={}, processing_on={}".format(tkey, task.state, worker_name))
             for (wkey, worker) in self.scheduler.workers.items():
                 if len(worker.processing.items()) > 0:
                     processing = "; ".join([task.key + ": " + str(cost) for (task, cost) in worker.processing.items()])
