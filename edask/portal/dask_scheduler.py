@@ -20,8 +20,9 @@ class EDASSchedulerPlugin(SchedulerPlugin):
         self.scheduler: Scheduler = None
 
     def transition(self, key, start, finish, *args, **kwargs):
-        self.logger.info("@SP: transition[{}]: {} -> {}".format(key, start, finish))
-        self.log_metrics()
+        if finish in [ "processing" ]:
+            self.logger.info("@SP: transition[{}]: {} -> {}".format(key, start, finish))
+            self.log_metrics()
 
     def restart(self, scheduler: Scheduler, **kwargs):
         self.logger.info("@SP: restart ")

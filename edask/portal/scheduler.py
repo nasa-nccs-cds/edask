@@ -17,29 +17,10 @@ def getHost():
         [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in
          [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
-
-class EDASSchedulerPlugin(SchedulerPlugin):
-
-     def __init__( self ):
-         self.logger = EDASLogger.getLogger()
-         self.scheduler: Scheduler = None
-
-     def transition( self, key, start, finish, *args, **kwargs):
-         self.logger.info( "@SP: transition[{}]: {} -> {}".format( key, start, finish ))
-         if self.scheduler: SchedulerThread.log_metrics( self.logger, self.scheduler )
-
-     def restart(self, scheduler: Scheduler, **kwargs ):
-         self.logger.info("@SP: restart " )
-         self.scheduler = scheduler
-
-     def update_graph(self, scheduler: Scheduler, dsk=None, keys=None, restrictions=None, **kwargs):
-        self.logger.info("@SP: update_graph ")
-        self.scheduler = scheduler
-        SchedulerThread.log_metrics( self.logger, self.scheduler )
-
-class SchedulerThread(Thread):
+class SchedulerThread(Thread):    #  Never got this working properly
 
     def __init__(self, **kwargs ):
+        from edask.portal.dask_scheduler import EDASSchedulerPlugin
         Thread.__init__(self)
         self.logger = EDASLogger.getLogger()
         self.host = getHost()
