@@ -108,9 +108,8 @@ class EDASKClusterThread(Thread):
         self.shutdown()
 
 class EDASCluster(Cluster):
-#    EDASK_HOME = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-#    SCHEDULER_SCRIPT = os.path.join( EDASK_HOME, 'bin', 'startup_scheduler')
-    SCHEDULER_SCRIPT = 'startup_scheduler'
+    EDASK_BIN_DIR = os.path.dirname( sys.executable )
+    SCHEDULER_SCRIPT =  os.path.join( EDASK_BIN_DIR, 'startup_scheduler' )
 
     def __init__(self):
         Cluster.__init__(self)
@@ -137,6 +136,7 @@ class EDASCluster(Cluster):
 
     def startup_scheduler( self  ):
 #        os.environ["PKEY_OPTS"]  = "--ssh-private-key=" + get_private_key()
+        os.environ["PATH"] = ":".join( [ self.EDASK_BIN_DIR, os.environ["PATH"] ] )
         bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
         args = [ sys.executable, self.SCHEDULER_SCRIPT, "--host", self.scheduler_host, "--port", str(self.scheduler_port), "--bokeh-port", str(bokeh_port) ]
         return subprocess.Popen( args )
