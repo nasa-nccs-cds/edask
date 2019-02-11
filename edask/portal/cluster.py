@@ -116,7 +116,7 @@ class EDASCluster(Cluster):
         self.logger = EDASLogger.getLogger()
         self.scheduler_host = getHost()
         self.scheduler_port =  int( EdaskEnv.get("scheduler.port", 8786 ) )
-#        self.schedulerProcess = self.startup_scheduler( )
+        self.schedulerProcess = self.startup_scheduler( )
         self.clusterThread = EDASKClusterThread()
         self.clusterThread.start()
 
@@ -131,7 +131,7 @@ class EDASCluster(Cluster):
          self.clusterThread.scale_down( workers )
 
     def shutdown(self):
-#        self.schedulerProcess.terminate()
+        self.schedulerProcess.terminate()
         self.clusterThread.shutdown()
 
     def startup_scheduler( self  ):
