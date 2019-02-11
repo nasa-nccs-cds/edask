@@ -41,16 +41,11 @@ class EDASSchedulerPlugin(SchedulerPlugin):
                 worker_name = task.processing_on.name if task.processing_on is not None else "None"
                 self.logger.info(" --- TASK[{}]: state={}, processing_on={}".format(tkey, task.state, worker_name))
             for (wkey, worker) in self.scheduler.workers.items():
-                processing = "; ".join([task.key + ": " + str(cost) for (task, cost) in worker.processing.items()])
-                self.logger.info(
-                    " ------ WORKER[{}:{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format(wkey,
-                                                                                                         worker.name,
-                                                                                                         worker.address,
-                                                                                                         worker.ncores,
-                                                                                                         worker.nbytes,
-                                                                                                         processing,
-                                                                                                         str(
-                                                                                                             worker.metrics)))
+                if len(worker.processing.items()) > 0:
+                    processing = "; ".join([task.key + ": " + str(cost) for (task, cost) in worker.processing.items()])
+                    self.logger.info(
+                        " ------ WORKER[{}:{}]({}): ncores={}, nbytes={}, processing= {}, metrics={}".format(
+                     wkey, worker.name, worker.address, worker.ncores, worker.nbytes, processing, str( worker.metrics)))
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option('--host', type=str, default='',
