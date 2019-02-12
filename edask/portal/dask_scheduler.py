@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
-import atexit, dask
+from typing import Sequence, List, Dict, Mapping, Optional
+import atexit, dask, sys, json
+from threading import  Thread
 from edask.util.logging import EDASLogger
 import os, shutil, socket, sys, tempfile, click
 from distributed.diagnostics.plugin import SchedulerPlugin
@@ -14,6 +16,49 @@ from distributed.proctitle import (enable_proctitle_on_children, enable_proctitl
 from edask.portal.cluster import get_private_key, getHost
 from edask.portal.scheduler import EDASSchedulerPlugin
 pem_file_option_type = click.Path(exists=True, resolve_path=True)
+
+class Comm(Thread):
+
+    def __init__(self, scheduler: Scheduler ):
+        Thread.__init__(self)
+        self.scheduler = scheduler
+        self.active = True
+
+    def run(self):
+        while self.active:
+            for request in sys.stdin:
+                print( json.dumps( self.processRequest( json.loads(request) ) ) )
+
+
+    def processRequest( self, request: Dict ) -> Dict:
+        op = request["op"]
+        if op == "metrics":
+            return self.getMetrics( request["type"] )
+        else:
+            return { "error": "Unrecognized Request: " + op }
+
+
+    def getMetrics( self, type: str ) -> Dict:
+        from distributed.scheduler import ( TaskState, WorkerState )
+        response = {}
+        response["total_ncores"] = str( self.scheduler.total_ncores )
+        response["total_occupancy"] = str( self.scheduler.total_occupancy )
+        task: TaskState = None
+        worker: WorkerState = None
+        for (tkey, task) in self.scheduler.tasks.items():
+            if task.state in [ "processing", "waiting", "memory" ]:
+                worker_name = task.processing_on.name if task.processing_on is not None else "None"
+                response["task-"+tkey] = { "state": task.state, "worker": worker_name, "bytes": str(task.get_nbytes()) }
+        for (wkey, worker) in self.scheduler.workers.items():
+            if len(worker.processing.items()) > 0:
+
+                processing = { (task.key, cost) for (task, cost) in worker.processing.items() }
+                response["worker-"+wkey] = { "name": worker.name, "total.ncores": worker.ncores, "total.nbytes": worker.nbytes,
+                                             "processing": processing, "memory_limit": worker.memory_limit, "occupancy": worker.occupancy }.update( worker.metrics )
+
+    def terminate(self):
+        self.active = False
+
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
 @click.option('--host', type=str, default='',
@@ -124,6 +169,8 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
 
     for plugin in plugins: scheduler.add_plugin( plugin )
     scheduler.start(addr)
+    comm = Comm( scheduler )
+    comm.start()
     if not preload:
         preload = dask.config.get('distributed.scheduler.preload',{})
     if not preload_argv:
@@ -135,6 +182,7 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
     install_signal_handlers(loop)
 
     def shutdown_scheduler():
+        comm.terminate()
         scheduler.stop()
         if local_directory_created:
             shutil.rmtree(local_directory)
