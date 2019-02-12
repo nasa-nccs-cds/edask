@@ -1,5 +1,5 @@
 import traceback
-import atexit, ast, os
+import atexit, ast, os, json
 from edask.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edask.workflow.module import edasOpManager
@@ -54,6 +54,10 @@ class EDASapp(EDASPortal):
         if uType.startswith( "var" ):
             if len( utilSpec ) <= 2: raise Exception( "Missing parameter(s) to getVariableSpec" )
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
+        if uType.startswith( "metrics" ):
+            mtype = utilSpec[1].lower()
+            metrics = self.cluster.getMetrics( mtype)
+            return Message("metrics",mtype, json.dumps( metrics ) )
         return Message("","","")
 
     def getRunArgs( self, taskSpec: Sequence[str] )-> Dict[str,str]:

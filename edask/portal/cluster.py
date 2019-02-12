@@ -1,5 +1,6 @@
-import os, time, socket, sys
+import os, time, socket, sys, json
 from edask.util.logging import EDASLogger
+from typing import Sequence, List, Dict, Mapping, Optional
 from distributed.deploy.ssh import start_worker
 from threading import Thread
 import subprocess
@@ -141,6 +142,13 @@ class EDASCluster(Cluster):
         bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
         args = [ sys.executable, self.SCHEDULER_SCRIPT, "--host", self.scheduler_host, "--port", str(self.scheduler_port), "--bokeh-port", str(bokeh_port) ]
         return subprocess.Popen( args )
+
+    def schedulerRequest( self, **kwargs ) -> Dict:
+        self.schedulerProcess.stdin.writelines( [ json.dumps(kwargs) ] )
+        return json.loads( self.schedulerProcess.stdout.readline() )
+
+    def getMetrics( self, mtype: str ) -> Dict:
+        return self.schedulerRequest( op="metrics", type=mtype )
 
 
 
