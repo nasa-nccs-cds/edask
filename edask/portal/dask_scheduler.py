@@ -1,8 +1,7 @@
 from __future__ import print_function, division, absolute_import
 from typing import Sequence, List, Dict, Mapping, Optional
-import atexit, dask, sys, json
+import atexit, dask, sys, json, logging, time
 from threading import  Thread
-from edask.util.logging import EDASLogger
 import os, shutil, socket, sys, tempfile, click
 from distributed.diagnostics.plugin import SchedulerPlugin
 from tornado.ioloop import IOLoop
@@ -16,6 +15,24 @@ from distributed.proctitle import (enable_proctitle_on_children, enable_proctitl
 from edask.portal.cluster import get_private_key, getHost
 from edask.portal.scheduler import EDASSchedulerPlugin
 pem_file_option_type = click.Path(exists=True, resolve_path=True)
+
+class SchedulerLogger:
+    logger = None
+
+    @classmethod
+    def getLogger(cls):
+        if cls.logger is None:
+            LOG_DIR = os.path.expanduser("~/.edask/logs")
+            if not os.path.exists(LOG_DIR):  os.makedirs(LOG_DIR)
+            timestamp = time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
+            cls.logger = logging.getLogger()
+            cls.logger.setLevel(logging.DEBUG)
+            fh = logging.FileHandler("{}/scheduler-{}.log".format(LOG_DIR, timestamp))
+            fh.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fh.setFormatter(formatter)
+            cls.logger.addHandler(fh)
+        return cls.logger
 
 class Comm(Thread):
 
@@ -37,7 +54,6 @@ class Comm(Thread):
         else:
             return { "error": "Unrecognized Request: " + op }
 
-
     def getMetrics( self, type: str ) -> Dict:
         from distributed.scheduler import ( TaskState, WorkerState )
         response = {}
@@ -51,10 +67,10 @@ class Comm(Thread):
                 response["task-"+tkey] = { "state": task.state, "worker": worker_name, "bytes": str(task.get_nbytes()) }
         for (wkey, worker) in self.scheduler.workers.items():
             if len(worker.processing.items()) > 0:
-
                 processing = { (task.key, cost) for (task, cost) in worker.processing.items() }
                 response["worker-"+wkey] = { "name": worker.name, "total.ncores": worker.ncores, "total.nbytes": worker.nbytes,
                                              "processing": processing, "memory_limit": worker.memory_limit, "occupancy": worker.occupancy }.update( worker.metrics )
+        return response
 
     def terminate(self):
         self.active = False
@@ -100,7 +116,7 @@ class Comm(Thread):
 def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
         use_xheaders, pid_file, scheduler_file, interface,
         local_directory, preload, preload_argv, tls_ca_file, tls_cert, tls_key):
-    logger = EDASLogger.getLogger()
+    logger = SchedulerLogger.getLogger()
     enable_proctitle_on_current()
     enable_proctitle_on_children()
     log_metrics = EdaskEnv.getBool( "log.metrics", False )
