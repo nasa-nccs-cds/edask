@@ -9,7 +9,7 @@ client = None
 dataset_month = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/01/*.nc4'
 dataset_year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/1980/*/*.nc4'
 dataset_35year = '/pubrepo/MERRA2/M2I1NXINT.5.12.4/*/*/*.nc4'
-dataset_ncml = '/dass/adm/edas/cache/collections/agg/merra2_inst1_2d_int_Nx-M2I1NXINT.5.12.4MOfZ.ncml'
+dataset_ncml = '/dass/adm/edas/cache/collection/agg/merra2_inst1_2d_int_Nx-M2I1NXINT.5.12.4MOfZ.ncml'
 start = time.time()
 
 dataset = dataset_35year

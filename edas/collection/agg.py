@@ -51,7 +51,7 @@ class Archive:
 class Collection:
 
     cacheDir = EdaskEnv.COLLECTIONS_DIR
-    baseDir = os.path.join( cacheDir, "collections", "agg" )
+    baseDir = os.path.join( cacheDir, "collection", "agg" )
 
     @classmethod
     def getCollectionsList(cls):
@@ -299,8 +299,8 @@ class Aggregation:
 
 
 if __name__ == "__main__":
-# AggProcessing.changeBasePaths( "/dass/adm/edas/cache/collections/agg",
-#                                "/dass/dassnsd/data01/sys/edas/cache/collections/agg",
+# AggProcessing.changeBasePaths( "/dass/adm/edas/cache/collection/agg",
+#                                "/dass/dassnsd/data01/sys/edas/cache/collection/agg",
 #                                { "/dass/pubrepo": "/dass/dassnsd/data01/cldra/data/pubrepo" }  )
 #    print( str( Collection.getCollectionsList() ) )
     c: Collection = Collection.new( "cip_cfsr_mon_1980-1995" )

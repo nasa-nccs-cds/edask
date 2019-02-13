@@ -36,7 +36,7 @@ class EDASapp(EDASPortal):
         return Message( type, "capabilities", capabilities )
 
     def getVariableSpec(self, collId: str, varId: str  ) -> Message:
-        from edas.collections.agg import Collection
+        from edas.collection.agg import Collection
         col = Collection.new( collId )
         varSpec = col.getVariableSpec( varId )
         return  Message( "var", "VariableSpec", varSpec )

@@ -10,7 +10,7 @@ import copy, sys, logging, random, numpy as np
 from keras.models import Sequential, Model
 from collections import OrderedDict
 from edas.process.operation import WorkflowConnector
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 from keras.optimizers import SGD
 import keras.backend as K
 from keras.callbacks import TensorBoard, History, Callback

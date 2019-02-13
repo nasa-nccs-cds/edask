@@ -125,14 +125,14 @@ class KernelManager:
         return module.createKernel( op )
 
     def getCapabilities(self, type: str ) -> str:
-        from edas.collections.agg import Collection
+        from edas.collection.agg import Collection
         self.logger.info( " GetCapabilities --> type: " + type )
         if( type.lower().startswith("ker") ):
             specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
             return '<modules> {} </modules>'.format( " ".join( specs ) )
         elif( type.lower().startswith("col") ):
             specs = Collection.getCollectionsList()
-            return '<collections> {} </collections>'.format( " ".join( specs ) )
+            return '<collection> {} </collection>'.format( " ".join( specs ) )
         elif (type.lower().startswith("var")):
             type_toks = type.split("|")
             collection = Collection.new( type_toks[1] )

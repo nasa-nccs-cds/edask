@@ -3,12 +3,12 @@ import logging, random, string, time, socket, threading, os
 from edas.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 import xarray as xr
 from edas.workflow.data import KernelSpec, EDASDataset, EDASArray, EDASDatasetCollection
 from edas.process.source import SourceType, DataSource
 from edas.process.node import Param, Node
-from edas.collections.agg import Collection
+from edas.collection.agg import Collection
 from edas.config import EdaskEnv
 from edas.util.logging import EDASLogger
 from edas.data.cache import EDASKCacheMgr

@@ -3,7 +3,7 @@ from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView
 from edas.process.domain import Domain, Axis
 import string, random, os, re, traceback
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 import abc, math, time
 import xarray as xa
 from dask.distributed import Client

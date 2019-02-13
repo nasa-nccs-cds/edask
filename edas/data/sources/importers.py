@@ -4,7 +4,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tupl
 import logging
 from edas.data.sources.timeseries import DataSource, CTimeRange, TimeseriesData
 import xarray as xa
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 from edas.util.logging import EDASLogger
 
 class IITMDataSource(DataSource):

@@ -4,7 +4,7 @@ from edas.process.operation import WorkflowNode, OpNode
 from edas.process.task import TaskRequest
 from edas.workflow.data import EDASArray, EDASDatasetCollection
 from edas.process.node import Param, Node
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 from typing import List, Optional, Dict, Any
 from  scipy import stats, signal
 from edas.process.domain import Axis, DomainManager

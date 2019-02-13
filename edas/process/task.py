@@ -8,7 +8,7 @@ from edas.process.source import VariableManager
 from edas.process.operation import OperationManager, WorkflowNode
 from edas.portal.parsers import WpsCwtParser
 from edas.workflow.data import EDASDataset, EDASArray, EDASDatasetCollection
-from edas.collections.agg import Archive
+from edas.collection.agg import Archive
 
 class UID:
     ndigits = 6
