@@ -1,7 +1,7 @@
 import xarray as xa
 import time, traceback
 from dask.distributed import Client
-from edask.collections.agg import Collection
+from edas.collections.agg import Collection
 
 print ( "STARTUP" )
 client = None

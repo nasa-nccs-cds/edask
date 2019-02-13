@@ -1,12 +1,12 @@
-from edask.process.manager import ProcessManager, ExecHandler
-from edask.portal.base import Message, Response
+from edas.process.manager import ProcessManager, ExecHandler
+from edas.portal.base import Message, Response
 from dask.distributed import Future
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import matplotlib.pyplot as plt
-from edask.util.logging import EDASLogger
-from edask.portal.plotters import plotter
-from edask.process.task import Job
-from edask.process.test import TestDataManager
+from edas.util.logging import EDASLogger
+from edas.portal.plotters import plotter
+from edas.process.task import Job
+from edas.process.test import TestDataManager
 import xarray as xa
 import logging, traceback, time, os
 

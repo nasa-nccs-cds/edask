@@ -1,8 +1,8 @@
-from edask.process.test import LocalTestManager
+from edas.process.test import LocalTestManager
 import matplotlib.pyplot as plt
-from edask.workflow.data import EDASDataset, PlotType
-from edask.portal.plotters import plotter
-from edask.util.logging import EDASLogger
+from edas.workflow.data import EDASDataset, PlotType
+from edas.portal.plotters import plotter
+from edas.util.logging import EDASLogger
 import numpy.ma as ma
 import xarray as xa
 import logging, math
@@ -71,7 +71,7 @@ class PlotTESTS:
         print( "\n\n     Test passed!" )
 
     def test_filter0(self):
-        from edask.data.sources.timeseries import TimeIndexer
+        from edas.data.sources.timeseries import TimeIndexer
         domains = [{"name": "d0", "lat": {"start": 50, "end": 50, "system": "values"},
                     "lon": {"start": 100, "end": 100, "system": "values"} ,
                     "time": {"start": '1980-01-01', "end": '1990-01-01', "system": "values"}}]
@@ -120,7 +120,7 @@ class PlotTESTS:
         results.plot()
 
     def cwt_request_test(self):
-        from edask.portal.parsers import WpsCwtParser
+        from edas.portal.parsers import WpsCwtParser
         request = """[  variable = [{"domain": "d0", "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", "id": "tas|c44a5e"}];
                         domain = [{"id": "d0", "time": {"start": "1980-01-01T00:00:00Z", "step": 1, "end": "1980-12-31T23:59:00Z","crs": "timestamps"}}];
                         operation = [{"input": ["c44a5e"], "domain": "d0", "axes": "tyx", "name": "xarray.ave", "result": "bee960"}]

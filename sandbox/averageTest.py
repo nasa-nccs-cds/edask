@@ -1,5 +1,5 @@
-from edask.portal.client import EDASPortalClient
-from edask.process.test import LocalTestManager
+from edas.portal.client import EDASPortalClient
+from edas.process.test import LocalTestManager
 
 edas_server: str="127.0.0.1"
 request_port: int=4556

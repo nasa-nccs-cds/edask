@@ -1,6 +1,6 @@
-from edask.process.test import LocalTestManager
-from edask.workflow.data import EDASDataset
-from edask.util.logging import EDASLogger
+from edas.process.test import LocalTestManager
+from edas.workflow.data import EDASDataset
+from edas.util.logging import EDASLogger
 import logging, time
 
 class CacheTESTS:

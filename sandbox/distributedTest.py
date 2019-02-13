@@ -4,10 +4,10 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging
 import numpy as np
-from edask.workflow.modules.xarray import *
-from edask.util.logging import EDASLogger
-from edask.workflow.module import edasOpManager
-from edask.portal.parsers import WpsCwtParser
+from edas.workflow.modules.xarray import *
+from edas.util.logging import EDASLogger
+from edas.workflow.module import edasOpManager
+from edas.portal.parsers import WpsCwtParser
 
 if __name__ == '__main__':
     logger = EDASLogger.getLogger()

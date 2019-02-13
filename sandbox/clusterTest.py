@@ -1,6 +1,6 @@
-from edask.process.test import DistributedTestManager, ExecHandler
-from edask.workflow.data import EDASDataset
-from edask.util.logging import EDASLogger
+from edas.process.test import DistributedTestManager, ExecHandler
+from edas.workflow.data import EDASDataset
+from edas.util.logging import EDASLogger
 import numpy.ma as ma
 import xarray as xa
 import logging, time

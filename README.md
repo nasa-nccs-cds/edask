@@ -12,39 +12,45 @@ To install:
     > source activate edas
     > pip install  sklearn_xarray
 
-    > git clone https://github.com/nasa-nccs-cds/edask.git
-    > cd edask
+    > git clone https://github.com/nasa-nccs-cds/edas.git edas
+    > cd edas
     > python setup.py install
 
 ```
 
 #### Configuration
 
-The edas configuration files are found in the edask/resources direcory.
-To set up a cluster, copy the edask/resources/hosts.template file to edask/resources/hosts and edit to enter the names of the workers in your cluster.
-To setup EDASK server configuration, copy the edask/resources/app.conf file to ~/.edask/conf/app.conf and edit.
-Log files will be written to ~/.edask/logs.
+The edas configuration files are found in the edas/resources direcory.
+To set up a cluster, copy the edas/resources/hosts.template file to edas/resources/hosts and edit to enter the names of the workers in your cluster.
+To setup EDAS server configuration, copy the edas/resources/app.conf file to ~/.edas/conf/app.conf and edit.
+Log files will be written to ~/.edas/logs.
 
 #### Startup
 
-The edask/bin directory contains scripts for starting up the EDASK server and a dask cluster.  For example, to start up a dask cluster with 8 worker nodes, one would execute the following:
+The edas/bin directory contains scripts for starting up the EDASK server.
 
-> startup_cluster.sh 8
-
-Then in a separate shell one would start up the EDAS server by executing:
-
-> startup_server.sh
+     * By default the scheduler runs on the head node as a subprocess from the server.
+     * The script edas/bin/startup_server.sh starts up the server, which in turn starts up the scheduler and workers.
+     * The workers are started up using ssh to the nodes in the hosts file.
+     * The scheduler and workers are shut down by the server when it shuts down.
+     * To manage the scheduler (cluster) outside of edas, set the edas.manage.scheduler (edas.manage.cluster) parameter to false.
 
 #### Parameters
-  The following parameters are defined in the **app.conf** file which is created in the *~/.edask/conf/* directory during the configuration process.
+  The following parameters are defined in the **app.conf** file which is created in the *~/.edas/conf/* directory during the configuration process.
 ```
-* wps.server.address: The network address of the wps web application server -CDWPS- front end (default: "127.0.0.1")
-* request.port:       The port on the EDASK head node for the request socket (default: 4556)
-* response.port:      The port on the EDASK head node for the response socket (default: 4557)
-* sources.allowed:    Comma-separated list of allowed input sources, possible values: collection, http, file
-* dap.engine:         Python package used for dap access, possible values: pydap, netcdf4
-* dask.scheduler:     The network address of the dask scheduler node (typically the first worker node)
-* cache.size.max:     Max size in bytes of internal variable cache (default: 500M)
-* edask.cache.dir:    Direcory for EDASK internal saved files (default: ~/.edask/conf) 
-* edask.coll.dir:     Directory containing EDASK collection definition files (defaults to cache dir)
+* wps.server.address:  The network address of the wps web application server -CDWPS- front end (default: "127.0.0.1")
+* request.port:        The port on the EDASK head node for the request socket (default: 4556)
+* trusted.dap.servers: Comma-separated whitelist of trusted OpenDAP servers, e.g. "https://aims3.llnl.gov/thredds/dodsC"
+* response.port:       The port on the EDASK head node for the response socket (default: 4557)
+* sources.allowed:     Comma-separated list of allowed input sources, possible values: collection, http, file
+* dap.engine:          Python package used for dap access, possible values: pydap, netcdf4
+* dask.scheduler:      The network address of the dask scheduler node (typically the first worker node)
+* cache.size.max:      Max size in bytes of internal variable cache (default: 500M)
+* edas.cache.dir:      Direcory for EDASK internal saved files (default: ~/.edas/conf) 
+* edas.coll.dir:       Directory containing EDASK collection definition files (defaults to cache dir)
+* esgf.openid:         OpenID for ESGF authentication.
+* esgf.password:       Password for ESGF authentication.
+* esgf.username:       Username for ESGF authentication.
+* edas.manage.cluster:  Allow edas to start up & shut down the cluster (using ssh to nodes in the hosts file)
+* edas.manage.scheduler Allow edas to start up & shut down the scheduler (as a subprocess on the head node)
 ```

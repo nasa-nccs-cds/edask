@@ -1,4 +1,4 @@
-from edask.process.test import LocalTestManager
+from edas.process.test import LocalTestManager
 import xarray as xr
 from xarray.core.resample import DatasetResample
 

@@ -1,11 +1,13 @@
 wps.server.address=0.0.0.0
 sources.allowed=collection,https
 trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/
+edas.manage.cluster=true
+edas.manage.scheduler=true
 request.port=0000
 response.port=0000
 dap.engine=pydap
 cache.size.max=500M
-edask.cache.dir=/foo/bar
+edas.cache.dir=/foo/bar
 esgf.openid=
 esgf.password=
 esgf.username=

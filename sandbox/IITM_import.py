@@ -1,3 +1,3 @@
-from edask.data.sources.importers import IITMDataSource
+from edas.data.sources.importers import IITMDataSource
 
 IITMDataSource.archive()
