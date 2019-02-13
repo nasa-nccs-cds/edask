@@ -52,6 +52,7 @@ class EDASKClusterThread(Thread):
 
     def getHosts( self ):
         hostfile = EdaskEnv.get("hostfile.path", os.path.expanduser( "~/.edas/conf/hosts") )
+        assert os.path.isfile( hostfile ), "Error, the EDAS hosts file '{}' does not exist.  Copy edas/resourses/hosts.template to '{}' and edit.".format( hostfile, hostfile )
         with open(hostfile) as f:
            return f.read().split()
 
