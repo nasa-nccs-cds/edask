@@ -10,7 +10,7 @@ To install:
 ```
     > conda create -n edas -c conda-forge python=3.6 bokeh bottleneck dask dateparser defusedxml distributed eofs keras libnetcdf matplotlib netCDF4 nco paramiko pillow pydap pyparsing pytest python-graphviz pyzmq scikit-learn scipy xarray zeromq cartopy 
     > source activate edas
-    > pip install  sklearn_xarray
+    > pip install  sklearn_xarray stratus-endpoint
 
     > git clone https://github.com/nasa-nccs-cds/edas.git edas
     > cd edas
