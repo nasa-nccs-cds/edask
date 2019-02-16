@@ -78,7 +78,7 @@ class EDASEndpoint(Endpoint):
             exp = kwargs.get("exp",  "exp-" + Job.randomStr(4) )
             clientId = kwargs.get("client", "")
             try:
-              job = Job.new( jobId, proj, exp, 'exe', kwargs, {}, 1.0 )
+              job = Job.create( jobId, proj, exp, 'exe', kwargs, {}, 1.0 )
               execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
               execHandler.execJob( job )
               return dict( jobId=jobId, result=execHandler.filePath )

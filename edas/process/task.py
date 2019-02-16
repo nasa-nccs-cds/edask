@@ -43,6 +43,10 @@ class Job:
     return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
 
   @staticmethod
+  def create( requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str,List[Dict[str,Any]]], runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, datainputs, runargs, priority )
+
+  @staticmethod
   def randomStr(length) -> str:
       tokens = string.ascii_uppercase + string.ascii_lowercase + string.digits
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
