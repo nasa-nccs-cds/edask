@@ -85,7 +85,7 @@ class TaskRequest:
     logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(job.process, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
-    variableManager = VariableManager.new( job.dataInputs.get("variable") )
+    variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ) )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
     rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager)
     return rv
