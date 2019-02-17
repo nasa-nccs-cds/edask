@@ -109,7 +109,7 @@ class DistributedTestManager(TestManager):
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         execHandler = ExecHandler("local", job, workers=job.workers)
         execHandler.execJob( job )
-        return execHandler.getResult()
+        return execHandler.getEDASResult()
 
 
 

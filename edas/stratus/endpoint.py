@@ -1,4 +1,4 @@
-from stratus.handlers.endpoint.base import Endpoint
+from stratus.handlers.endpoint.base import Endpoint, Task, Status
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.portal.app import EDASapp
 import traceback
@@ -87,10 +87,10 @@ class EDASEndpoint(Endpoint):
     def sendErrorReport( self, clientId: str, responseId: str, msg: str ):
         self.logger.info("@@Portal-----> SendErrorReport[" + clientId +":" + responseId + "]: " + msg )
 
-    def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
+    def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ):
         self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
 
-    def request(self, type: str, **kwargs ) -> Dict:
+    def request(self, type: str, **kwargs ) -> Task:
         if type == "exe":
             jobId = kwargs.get( "jobId", Job.randomStr(8) )
             proj = kwargs.get("proj", "proj-" + Job.randomStr(4) )
@@ -100,11 +100,11 @@ class EDASEndpoint(Endpoint):
               job = Job.create( jobId, proj, exp, 'exe', kwargs, {}, 1.0 )
               execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
               execHandler.execJob( job )
-              return dict( jobId=jobId, result=execHandler.filePath )
+              return execHandler
             except Exception as err:
                 self.logger.error( "Caught execution error: " + str(err) )
                 traceback.print_exc()
-                return dict( jobId=jobId, error=str(err) )
+                return Task( status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
 
     def shutdown( self, arg ):
         print( "Shutdown: " + str(arg) )
@@ -124,8 +124,12 @@ if __name__ == '__main__':
         input = [ {"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"} ],
         operation = [ { "name": "xarray.subset", "input": "v0" } ]
     )
-    response = ep.request( "exe", **request )
-    print( str(response) )
+    task = ep.request( "exe", **request )
+
+    if task.status == Status.COMPLETED:
+        result = task.getResult( block = True )
+        print ( "Received result: " + str(result) )
+
 
 
 
