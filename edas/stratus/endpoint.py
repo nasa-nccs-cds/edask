@@ -1,4 +1,4 @@
-from stratus.handlers.endpoint.base import Endpoint, Task, Status
+from stratus_endpoint.handler.base import Endpoint, Task, Status
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.portal.app import EDASapp
 import traceback
@@ -37,34 +37,38 @@ class EDASEndpoint(Endpoint):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def getCapabilities(self, type: str  ) -> Message:
-        capabilities = edasOpManager.getCapabilities(type)
-        return Message( type, "capabilities", capabilities )
+    def capabilities(self, type: str, **kwargs  ) -> Dict:
+        if type == "epas":
+            return dict( epas = "edas\.[A-Za-z0-9._]+" )
+        elif type == "capabilities":
+            capabilities = edasOpManager.getCapabilities(type)
+            return Message( type, "capabilities", capabilities ).dict()
+        elif type == "util":
+            utilSpec = kwargs.get( "spec" )
+            (module, op) = WpsCwtParser.split([":", "."], utilSpec[1])
+            description = edasOpManager.describeProcess(module, op)
+            return Message(utilSpec[0], "capabilities", description).dict()
 
-    def getVariableSpec(self, collId: str, varId: str  ) -> Message:
+    def getVariableSpec(self, collId: str, varId: str  ) -> Dict:
         from edas.collection.agg import Collection
         col = Collection.new( collId )
         varSpec = col.getVariableSpec( varId )
-        return  Message( "var", "VariableSpec", varSpec )
+        return  Message( "var", "VariableSpec", varSpec ).dict()
 
-    def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
-        ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
-        description = edasOpManager.describeProcess( module, op )
-        return Message( utilSpec[0], "capabilities", description )
 
-    def execUtility( self, utilSpec: Sequence[str] ) -> Message:
+    def execUtility( self, utilSpec: Sequence[str] ) -> Dict:
         uType = utilSpec[0].lower()
         for capType in [ 'col', 'ker' ]:
             if uType.startswith( capType ):
-                return self.getCapabilities( uType )
+                return self.capabilities( uType )
         if uType.startswith( "var" ):
             if len( utilSpec ) <= 2: raise Exception( "Missing parameter(s) to getVariableSpec" )
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         if uType.startswith( "metrics" ):
             mtype = utilSpec[1].lower()
             metrics = self.cluster.getMetrics( mtype)
-            return Message("metrics",mtype, json.dumps( metrics ) )
-        return Message("","","")
+            return Message("metrics",mtype, json.dumps( metrics ) ).dict()
+        return Message("","","").dict()
 
     def addHandler(self, clientId, jobId, handler ):
         self.handlers[ clientId + "-" + jobId ] = handler
@@ -128,7 +132,7 @@ if __name__ == '__main__':
 
     if task.status == Status.COMPLETED:
         result = task.getResult( block = True )
-        print ( "Received result: " + str(result) )
+        print( "Received result: " + str(result) )
 
 
 

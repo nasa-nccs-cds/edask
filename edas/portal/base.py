@@ -25,6 +25,9 @@ class Response:
 
     def __str__(self) -> str: return self.__class__.__name__ + "[" + self.id() + "]: " + str(self._body)
 
+    def dict(self) -> Dict:
+        return dict( clientId = self.clientId, responseId = self.responseId, rtype = self.rtype, data = self._body )
+
 class Message ( Response ):
 
     def __init__(self,  _clientId: str,  _responseId: str,  _message: str ):
