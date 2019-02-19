@@ -5,7 +5,7 @@ from edas.workflow.modules.xarray import *
 from edas.workflow.module import edasOpManager
 from edas.util.logging import EDASLogger
 from edas.process.manager import ProcessManager, ExecHandler
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -84,7 +84,7 @@ class LocalTestManager(TestManager):
 
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(LocalTestManager, self).__init__(_proj, _exp)
-        EdaskEnv.update( appConf )
+        EdasEnv.update(appConf)
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
         t0 = time.time()
@@ -101,9 +101,9 @@ class DistributedTestManager(TestManager):
 
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
-        EdaskEnv.update(appConf)
+        EdasEnv.update(appConf)
         self.cluster = EDASCluster()
-        self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
+        self.processManager = ProcessManager(EdasEnv.parms, self.cluster)
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )

@@ -52,8 +52,8 @@ class WpsCwtParser:
     @classmethod
     def isoDateStr(cls, dTime: str)-> str:
         import dateparser
-        dt: datetime.datetime = dateparser.parse(dTime, settings={'TIMEZONE': 'UTC'} )
-        return dt.replace(microsecond=0).isoformat(" ")
+        dt: datetime.datetime = dateparser.parse(dTime) # , settings={'TIMEZONE': 'UTC'} )
+        return dt.replace(microsecond=0).isoformat( "T", timespec="seconds" ).split("+")[0]
 
     @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:

@@ -11,7 +11,7 @@ from edas.portal.cluster import EDASCluster
 from edas.util.logging import EDASLogger
 from edas.process.task import Job
 from edas.process.manager import ExecHandler, ProcessManager
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
@@ -29,7 +29,7 @@ class EDASEndpoint(Endpoint):
     def epas( self ) -> List[str]: pass
 
     def init( self, cluster = None ):
-        self.processManager = ProcessManager( EdaskEnv.parms, cluster )
+        self.processManager = ProcessManager(EdasEnv.parms, cluster)
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
@@ -119,13 +119,42 @@ class EDASEndpoint(Endpoint):
 
 
 if __name__ == '__main__':
-    from edas.process.test import TestManager
-    mgr = TestManager("stratus.endpoint","edas")
+
+    CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
+    CIP_addresses = {
+        "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
+        "merra": CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
+        "ecmwf": CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
+        "cfsr": CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",
+        "20crv": CreateIPServer + "/reanalysis/20CRv2c/mon/atmos/{}.ncml",
+        "jra": CreateIPServer + "/reanalysis/JMA/JRA-55/mon/atmos/{}.ncml",
+    }
+    def CIP( model: str, varName: str) -> str:
+        return CIP_addresses[model.lower()].format(varName)
+
+    TAS = [
+        'https://aims3.llnl.gov/thredds/dodsC/css03_data/CMIP6/CMIP/NASA-GISS/GISS-E2-1-G/amip/r1i1p1f1/Amon/tas/gn/v20181016/tas_Amon_GISS-E2-1-G_amip_r1i1p1f1_gn_185001-190012.nc',
+        'https://aims3.llnl.gov/thredds/dodsC/css03_data/CMIP6/CMIP/NASA-GISS/GISS-E2-1-G/amip/r1i1p1f1/Amon/tas/gn/v20181016/tas_Amon_GISS-E2-1-G_amip_r1i1p1f1_gn_190101-195012.nc',
+        'https://aims3.llnl.gov/thredds/dodsC/css03_data/CMIP6/CMIP/NASA-GISS/GISS-E2-1-G/amip/r1i1p1f1/Amon/tas/gn/v20181016/tas_Amon_GISS-E2-1-G_amip_r1i1p1f1_gn_195101-200012.nc',
+        'https://aims3.llnl.gov/thredds/dodsC/css03_data/CMIP6/CMIP/NASA-GISS/GISS-E2-1-G/amip/r1i1p1f1/Amon/tas/gn/v20181016/tas_Amon_GISS-E2-1-G_amip_r1i1p1f1_gn_200101-201412.nc',
+    ]
+
+    TAS_ESGF = [
+        'esgf@https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_185001-190012.nc'
+        'esgf@https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_190101-195012.nc',
+        'esgf@https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_195101-200512.nc',
+    ]
+
+    TAS_NASA = [
+        'https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_185001-190012.nc'
+        'https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_190101-195012.nc',
+        'https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_195101-200512.nc',
+    ]
 
     ep = EDASEndpoint()
     request = dict(
-        domain = [{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"}, "lon": {"start": 40, "end": 42, "system": "values"},  "time": {"start": 10, "end": 15, "system": "indices"}} ],
-        input = [ {"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"} ],
+        domain = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"}, "lon": {"start": 40, "end": 60, "system": "values"},  "time": {"start": "1980-01-01", "end":  "1981-12-31", "crs": "timestamps"}} ],
+        input = [ {"uri": CIP("merra2","tas"), "name": "tas:v0", "domain": "d0"} ],
         operation = [ { "name": "xarray.subset", "input": "v0" } ]
     )
     task = ep.request( "exe", **request )

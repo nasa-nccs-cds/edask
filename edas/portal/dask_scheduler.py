@@ -5,7 +5,7 @@ from threading import  Thread
 import os, shutil, socket, sys, tempfile, click
 from distributed.diagnostics.plugin import SchedulerPlugin
 from tornado.ioloop import IOLoop
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from distributed import Scheduler
 from distributed.security import Security
 from distributed.utils import get_ip_interface
@@ -119,7 +119,7 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
     logger = SchedulerLogger.getLogger()
     enable_proctitle_on_current()
     enable_proctitle_on_children()
-    log_metrics = EdaskEnv.getBool( "log.metrics", False )
+    log_metrics = EdasEnv.getBool("log.metrics", False)
     plugins = [ EDASSchedulerPlugin() ] if log_metrics else []
 
     sec = Security(tls_ca_file=tls_ca_file,

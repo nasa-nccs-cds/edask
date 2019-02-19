@@ -9,7 +9,7 @@ from edas.util.logging import EDASLogger
 from distributed.cli.utils import (install_signal_handlers, uri_from_host_port)
 from distributed.proctitle import (enable_proctitle_on_children,enable_proctitle_on_current)
 from threading import Thread
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 def getHost():
     return [l for l in (
@@ -59,8 +59,8 @@ class SchedulerThread(Thread):    #  Never got this working properly
         Thread.__init__(self)
         self.logger = EDASLogger.getLogger()
         self.host = getHost()
-        self.port = int( EdaskEnv.get("scheduler.port", 8786 ) )
-        self.bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
+        self.port = int(EdasEnv.get("scheduler.port", 8786))
+        self.bokeh_port = int(EdasEnv.get("dashboard.port", 8787))
         self.launch_dashboard = kwargs.get( "launch_dashboard", True )
         self.bokeh_whitelist = []
         self.bokeh_prefix  = kwargs.get( "bokeh_prefix", '' )

@@ -7,7 +7,7 @@ from edas.portal.parsers import WpsCwtParser
 from edas.portal.cluster import EDASCluster
 from edas.process.task import Job
 from edas.process.manager import ExecHandler, ProcessManager
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
@@ -18,14 +18,14 @@ class EDASapp(EDASPortal):
          return array[index] if( len(array) > index ) else default
 
     def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
-        super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("wps.server.address", "*")),
-                                        get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
-                                        get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
+        super( EDASapp, self ).__init__(get_or_else(client_address, EdasEnv.get("wps.server.address", "*")),
+                                        get_or_else(request_port, EdasEnv.get("request.port", 4556)),
+                                        get_or_else(response_port, EdasEnv.get("response.port", 4557)))
         self.process = "edas"
         self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
         self.cluster = EDASCluster()
-        self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
+        self.processManager = ProcessManager(EdasEnv.parms, self.cluster)
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 

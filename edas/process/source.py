@@ -2,7 +2,7 @@ from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tupl
 from enum import Enum, auto
 from edas.process.node import Node
 from edas.portal.parsers import WpsCwtParser
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 class SourceType(Enum):
     UNKNOWN = auto()
@@ -33,12 +33,12 @@ class DataSource:
 
     @classmethod
     def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
-        allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection,https").split(",") ]
+        allowed_sources = [r.strip() for r in EdasEnv.get("sources.allowed", "collection,https").split(",")]
         toks = _address.split(":")
         scheme = toks[0].lower()
         if (stype.name.lower() == "uri") and (scheme in allowed_sources):
             if scheme == "https":
-                trusted_servers = [ r.strip() for r in EdaskEnv.get("trusted.dap.servers", "").split(",") ]
+                trusted_servers = [r.strip() for r in EdasEnv.get("trusted.dap.servers", "").split(",")]
                 for trusted_server in trusted_servers:
                     if _address.startswith( trusted_server ): return scheme, toks[1]
                 raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' in app.conf to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )

@@ -7,7 +7,7 @@ from dask.distributed import Client, Future, LocalCluster
 from edas.util.logging import EDASLogger
 from edas.portal.cluster import EDASCluster
 from stratus_endpoint.handler.base import Task, Status
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno, uuid
 from threading import Thread
 import xarray as xa

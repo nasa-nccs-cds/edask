@@ -46,10 +46,10 @@ class ParameterManager:
         if rv is None: return default
         return rv.lower().startswith("t")
 
-EdaskEnv = ParameterManager()
+EdasEnv = ParameterManager()
 
 if __name__ == '__main__':
-    print(EdaskEnv['dap.engine'])
+    print(EdasEnv['dap.engine'])
 
 
 

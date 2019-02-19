@@ -5,7 +5,7 @@ import numpy as np
 from netCDF4 import MFDataset, Variable
 from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
 from edas.process.source import VID
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 import defusedxml.ElementTree as ET
 from edas.util.logging import EDASLogger
 def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
@@ -18,7 +18,7 @@ def parse_dict( dict_spec ):
 
 class Archive:
 
-    cacheDir = EdaskEnv.CONFIG_DIR
+    cacheDir = EdasEnv.CONFIG_DIR
     baseDir = os.path.join( cacheDir, "results" )
 
     @classmethod
@@ -50,7 +50,7 @@ class Archive:
 
 class Collection:
 
-    cacheDir = EdaskEnv.COLLECTIONS_DIR
+    cacheDir = EdasEnv.COLLECTIONS_DIR
     baseDir = os.path.join( cacheDir, "collection", "agg" )
 
     @classmethod

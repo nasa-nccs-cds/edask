@@ -1,7 +1,7 @@
 import zmq, traceback, time, logging, xml, socket
 from typing import List, Dict, Sequence, Set
 from edas.util.logging import EDASLogger
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
