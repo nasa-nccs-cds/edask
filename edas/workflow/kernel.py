@@ -248,23 +248,23 @@ class InputKernel(Kernel):
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId)
-                    dset = xr.open_mfdataset( pathList, autoclose=True, data_vars=vars, parallel=True)
+                    dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True)
                     self.importToDatasetCollection( results, request, snode, dset )
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
-                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids, parallel=True)
+                dset = xr.open_mfdataset(dataSource.address, data_vars=snode.varSource.ids, parallel=True)
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.archive:
                 self.logger.info( "Reading data from archive: " + dataSource.address )
                 dataPath =  request.archivePath( dataSource.address )
-                dset = xr.open_dataset(dataPath, autoclose=True)
+                dset = xr.open_dataset(dataPath)
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
                 engine = EdaskEnv.get("dap.engine", "netcdf4")
                 self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 session = self.getSession( dataSource )
                 dap_engine = engine if session is None else "pydap"
-                dset = xr.open_dataset(dataSource.address, engine=dap_engine, autoclose=True, backend_kwargs=dict(session=session) )
+                dset = xr.open_dataset(dataSource.address, engine=dap_engine, backend_kwargs=dict(session=session) )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )

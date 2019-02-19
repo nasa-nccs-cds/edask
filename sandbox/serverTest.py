@@ -143,7 +143,7 @@ class AppTests:
     def plotPerformanceXa(self, filePath: str):
         while True:
             if os.path.isfile(filePath):
-                dset = xa.open_dataset( filePath, autoclose=True )
+                dset = xa.open_dataset( filePath )
                 plotter.plotPerformanceXa(dset, "20crv-ts")
                 print("EXITING PLOT LOOP")
                 return

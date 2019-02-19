@@ -19,7 +19,7 @@ try:
 
     print( "READ " + dataset )
     
-    ds_m=xa.open_mfdataset( dataset, autoclose=True, data_vars=['KE'], parallel=True )
+    ds_m=xa.open_mfdataset( dataset, data_vars=['KE'], parallel=True )
 
     print( "COMPUTE MEAN, Result:" )
 

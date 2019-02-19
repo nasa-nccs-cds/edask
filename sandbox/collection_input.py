@@ -15,7 +15,7 @@ try:
     print ( "READ " + collection )
 
     collection = Collection.new( collection )
-    ds = xa.open_mfdataset( collection.pathList(varName), autoclose=True, data_vars=['KE'], parallel=True)
+    ds = xa.open_mfdataset( collection.pathList(varName), data_vars=['KE'], parallel=True)
 
     print ( "COMPUTE MEAN, Result:" )
 
