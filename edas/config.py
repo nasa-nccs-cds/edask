@@ -21,6 +21,10 @@ class ParameterManager:
         self._parms.update( parms if parms else {}, **kwargs )
 
     @property
+    def transientsDir(self):
+        return self._parms.get( "edas.transients.dir", self.CONFIG_DIR )
+
+    @property
     def parms(self)-> Dict[str,str]: return self._parms
 
     def getAppConfiguration(self, aliases: Dict[str,str] ) ->  Dict[str,str]:

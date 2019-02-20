@@ -18,7 +18,7 @@ def parse_dict( dict_spec ):
 
 class Archive:
 
-    cacheDir = EdaskEnv.CONFIG_DIR
+    cacheDir = EdaskEnv.transientsDir()
     baseDir = os.path.join( cacheDir, "results" )
 
     @classmethod
