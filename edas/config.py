@@ -45,7 +45,7 @@ class ParameterManager:
 
     def __getitem__( self, key: str ) -> str: return self._parms.get( key )
     def get( self, key: str, default=None ) -> str: return self._parms.get( key, default )
-    def getBool( self, key: str, default: bool = None ) -> bool:
+    def getBool( self, key: str, default: bool ) -> bool:
         rv = self._parms.get( key, None )
         if rv is None: return default
         return rv.lower().startswith("t")
