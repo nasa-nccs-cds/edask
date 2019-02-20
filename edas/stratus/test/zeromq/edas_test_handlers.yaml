@@ -1,0 +1,6 @@
+services:
+  - name: edas
+    type: endpoint
+    module: edas.stratus.endpoint
+    class: EDASEndpoint
+    priority: 1.0
