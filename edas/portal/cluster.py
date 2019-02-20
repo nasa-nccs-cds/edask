@@ -141,8 +141,9 @@ class EDASCluster(Cluster):
 #        os.environ["PKEY_OPTS"]  = "--ssh-private-key=" + get_private_key()
         os.environ["PATH"] = ":".join( [ self.EDASK_BIN_DIR, os.environ["PATH"] ] )
         bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
+        self.logger.info( "Starting up scheduler using script {} with host {} and port {}".format( self.SCHEDULER_SCRIPT, self.scheduler_host, self.scheduler_port ) )
         args = [ sys.executable, self.SCHEDULER_SCRIPT, "--host", self.scheduler_host, "--port", str(self.scheduler_port), "--bokeh-port", str(bokeh_port) ]
-        return subprocess.Popen( args )
+        return subprocess.Popen( args, stderr=subprocess.PIPE )
 
     def startup_cluster( self ):
         if not EdaskEnv.getBool("edas.manage.cluster"): return None
