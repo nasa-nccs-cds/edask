@@ -24,6 +24,7 @@ class EDASapp(EDASPortal):
         self.process = "edas"
         self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
+        self.logger.info( "STARTUP CLUSTER")
         self.cluster = EDASCluster()
         self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
         self.scheduler_info = self.processManager.client.scheduler_info()

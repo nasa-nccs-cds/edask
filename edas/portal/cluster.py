@@ -118,6 +118,7 @@ class EDASCluster(Cluster):
         self.logger = EDASLogger.getLogger()
         self.scheduler_host = getHost()
         self.scheduler_port =  int( EdaskEnv.get("scheduler.port", 8786 ) )
+        self.logger.info("STARTUP SCHEDULER")
         self.schedulerProcess = self.startup_scheduler( )
         time.sleep(14)
         self.clusterThread = self.startup_cluster()
