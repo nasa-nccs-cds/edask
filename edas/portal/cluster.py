@@ -138,7 +138,7 @@ class EDASCluster(Cluster):
         if self.clusterThread is not None: self.clusterThread.shutdown()
 
     def startup_scheduler( self  ):
-        if not EdaskEnv.getBool("edas.manage.scheduler"): return None
+        if not EdaskEnv.getBool( "edas.manage.scheduler", True ): return None
 #        os.environ["PKEY_OPTS"]  = "--ssh-private-key=" + get_private_key()
         os.environ["PATH"] = ":".join( [ self.EDASK_BIN_DIR, os.environ["PATH"] ] )
         bokeh_port = int( EdaskEnv.get("dashboard.port", 8787 ) )
@@ -147,7 +147,7 @@ class EDASCluster(Cluster):
         return subprocess.Popen( args, stderr=subprocess.PIPE )
 
     def startup_cluster( self ):
-        if not EdaskEnv.getBool("edas.manage.cluster"): return None
+        if not EdaskEnv.getBool( "edas.manage.cluster", True ): return None
         clusterThread = EDASKClusterThread()
         clusterThread.start()
         return clusterThread
