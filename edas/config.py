@@ -7,9 +7,9 @@ class ParameterManager:
 
     def __init__(self):
         self.logger =  EDASLogger.getLogger()
-        self.EDAS_CONFIG_DIR = os.environ.get('EDAS_CONFIG_DIR',os.path.expanduser("~/.edas" ) )
+        self.EDAS_CONFIG_DIR = os.environ.get('EDAS_CONFIG_DIR',os.path.expanduser("~/.edas/conf" ) )
         assert os.path.isdir( self.EDAS_CONFIG_DIR ), f"Error, the EDAS configuration directory '{self.EDAS_CONFIG_DIR}' does not exist"
-        self.path = os.path.expanduser( os.path.join( self.EDAS_CONFIG_DIR, "conf", "app.conf" ) )
+        self.path = os.path.expanduser( os.path.join( self.EDAS_CONFIG_DIR, "app.conf" ) )
         assert os.path.isfile( self.path ), f"Error, the EDAS configuration file '{self.path}' does not exist.  Copy edas/resourses/app.conf.template to '{self.path}' and edit."
         aliases = { "wps.server.address": "client.address" }
         self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
