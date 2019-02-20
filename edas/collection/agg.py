@@ -51,7 +51,7 @@ class Archive:
 class Collection:
 
     cacheDir = EdaskEnv.COLLECTIONS_DIR
-    baseDir = os.path.join( cacheDir, "collection", "agg" )
+    baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
     def getCollectionsList(cls):
