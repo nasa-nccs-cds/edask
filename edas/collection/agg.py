@@ -77,7 +77,7 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
-        assert os.path.isfile(self.spec), "Unknown Collection: " + os.path.basename(self.spec)
+        assert os.path.isfile(self.spec), "Unknown Collection: " + self.spec + ", Collections dir = " + self.baseDir
         with open( self.spec, "r" ) as file:
             for line in file.readlines():
                 if not line: break
