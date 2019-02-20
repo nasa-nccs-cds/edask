@@ -12,9 +12,9 @@ class ParameterManager:
         assert os.path.isfile( self.path ), "Error, the EDAS configuration file '{}' does not exist.  Copy edas/resourses/app.conf.template to '{}' and edit.".format( self.path, self.path )
         aliases = { "wps.server.address": "client.address" }
         self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
-        self.CONFIG_DIR = self._parms.get( "edas.cache.dir", os.path.expanduser("~/.edas/conf") )
-        self.COLLECTIONS_DIR = self._parms.get("edas.coll.dir", self.CONFIG_DIR )
-        for cpath in [ self.CONFIG_DIR, self.COLLECTIONS_DIR ]:
+        self.CACHE_DIR = self._parms.get("edas.cache.dir", os.path.expanduser("~/.edas/conf"))
+        self.COLLECTIONS_DIR = self._parms.get("edas.coll.dir", self.CACHE_DIR)
+        for cpath in [self.CACHE_DIR, self.COLLECTIONS_DIR]:
             if not os.path.exists(cpath): os.makedirs(cpath)
 
     def update(self, parms: Dict[str,str] = None, **kwargs ):
@@ -22,7 +22,7 @@ class ParameterManager:
 
     @property
     def transientsDir(self):
-        return self._parms.get( "edas.transients.dir", self.CONFIG_DIR )
+        return self._parms.get( "edas.transients.dir", self.CACHE_DIR)
 
     @property
     def parms(self)-> Dict[str,str]: return self._parms
