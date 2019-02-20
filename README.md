@@ -46,7 +46,7 @@ The edas/bin directory contains scripts for starting up the EDASK server.
 * dap.engine:          Python package used for dap access, possible values: pydap, netcdf4
 * dask.scheduler:      The network address of the dask scheduler node (typically the first worker node)
 * cache.size.max:      Max size in bytes of internal variable cache (default: 500M)
-* edas.transients.dir: Direcory for EDASK temporary saved files ( default: /tmp ) 
+* edas.transients.dir: Directory for EDASK temporary saved files ( default: /tmp ) 
 * edas.coll.dir:       Directory containing EDASK collection definition files ( default: ~/.edas )
 * esgf.openid:         OpenID for ESGF authentication.
 * esgf.password:       Password for ESGF authentication.
