@@ -18,7 +18,8 @@ def parse_dict( dict_spec ):
 
 class Archive:
 
-    cacheDir = EdasEnv.CONFIG_DIR
+
+    cacheDir = EdasEnv.TRANSIENTS_DIR
     baseDir = os.path.join( cacheDir, "results" )
 
     @classmethod
@@ -50,8 +51,9 @@ class Archive:
 
 class Collection:
 
+
     cacheDir = EdasEnv.COLLECTIONS_DIR
-    baseDir = os.path.join( cacheDir, "collection", "agg" )
+    baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
     def getCollectionsList(cls):
@@ -77,7 +79,7 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
-        assert os.path.isfile(self.spec), "Unknown Collection: " + os.path.basename(self.spec)
+        assert os.path.isfile(self.spec), "Unknown Collection: " + self.spec + ", Collections dir = " + self.baseDir
         with open( self.spec, "r" ) as file:
             for line in file.readlines():
                 if not line: break

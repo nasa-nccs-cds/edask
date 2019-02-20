@@ -233,7 +233,7 @@ class ProcessManager(GenericProcessManager):
       self.submitters = []
       if self.cluster is not None:
           self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.cluster.scheduler_address )
-          self.client = Client( self.cluster.scheduler_address )
+          self.client = Client( self.cluster.scheduler_address, timeout=60 )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )

@@ -57,7 +57,7 @@ class ResponseManager(Thread):
         self.filePaths = {}
         self.diag = bool(kwargs.get("diag",False))
         self.setDaemon(True)
-        self.cacheDir = EdasEnv.CONFIG_DIR
+        self.cacheDir = EdasEnv.CACHE_DIR
         self.log("Created RM, cache dir = " + self.cacheDir )
 
     def cacheResult(self, id: str, result: str ):

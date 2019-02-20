@@ -110,8 +110,8 @@ class EDASKClusterThread(Thread):
         self.shutdown()
 
 class EDASCluster(Cluster):
-    EDASK_BIN_DIR = os.path.dirname( sys.executable )
-    SCHEDULER_SCRIPT =  os.path.join( EDASK_BIN_DIR, 'startup_scheduler' )
+    EDAS_BIN_DIR = os.path.dirname( sys.executable )
+    SCHEDULER_SCRIPT =  os.path.join( EDAS_BIN_DIR, 'startup_scheduler' )
 
     def __init__(self):
         Cluster.__init__(self)
@@ -137,15 +137,17 @@ class EDASCluster(Cluster):
         if self.clusterThread is not None: self.clusterThread.shutdown()
 
     def startup_scheduler( self  ):
-        if not EdasEnv.getBool("edas.manage.scheduler"): return None
+        os.environ["PATH"] = ":".join( [ self.EDAS_BIN_DIR, os.environ["PATH"] ] )
+        if not EdasEnv.getBool( "edas.manage.scheduler", True ): return None
 #        os.environ["PKEY_OPTS"]  = "--ssh-private-key=" + get_private_key()
-        os.environ["PATH"] = ":".join( [ self.EDASK_BIN_DIR, os.environ["PATH"] ] )
-        bokeh_port = int(EdasEnv.get("dashboard.port", 8787))
+        os.environ["PATH"] = ":".join( [ self.EDAS_BIN_DIR, os.environ["PATH"] ] )
+        bokeh_port = int( EdasEnv.get("dashboard.port", 8787 ) )
+        self.logger.info( "Starting up scheduler using script {} with host {} and port {}".format( self.SCHEDULER_SCRIPT, self.scheduler_host, self.scheduler_port ) )
         args = [ sys.executable, self.SCHEDULER_SCRIPT, "--host", self.scheduler_host, "--port", str(self.scheduler_port), "--bokeh-port", str(bokeh_port) ]
-        return subprocess.Popen( args )
+        return subprocess.Popen( args, stderr=subprocess.PIPE )
 
     def startup_cluster( self ):
-        if not EdasEnv.getBool("edas.manage.cluster"): return None
+        if not EdasEnv.getBool( "edas.manage.cluster", True ): return None
         clusterThread = EDASKClusterThread()
         clusterThread.start()
         return clusterThread
