@@ -189,8 +189,7 @@ class KernelManager:
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
         except Exception as err:
-            self.logger.error( "BuildTask Exception: " + str(err) )
-            self.logger.info( traceback.format_exc() )
+            self.logger.error( "BuildTask Exception: " + str(err) + "\n" + traceback.format_exc() )
             raise err
 
     def testBuildTask( self, job: Job ) -> EDASDataset:
@@ -199,8 +198,7 @@ class KernelManager:
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
         except Exception as err:
-            self.logger.error( "BuildTask Exception: " + str(err) )
-            self.logger.info( traceback.format_exc() )
+            self.logger.error( "testBuildTask Exception: " + str(err) + "\n" + traceback.format_exc()  )
             raise err
 
     # def buildTasks(self, job: Job ) -> EDASDataset:

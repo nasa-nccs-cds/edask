@@ -10,14 +10,14 @@ if __name__ == "__main__":
 
     stratus = StratusCore( settings=SETTINGS_FILE )
 
-    client = handlers.getClient( "zeromq" )
+    client = handlers.getClient( "edas" )
 
     request = dict(
         domain=[{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
                  "lon": {"start": 40, "end": 42, "system": "values"},
                  "time": {"start": "1980-01-01", "end": "1981-12-31", "crs": "timestamps"}}],
         input=[{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}],
-        operation=[{"name": "xarray.subset", "input": "v0"}]
+        operation=[ { "epa": "edas.subset", "input": "v0"} ]
     )
 
     task: Task = client.request( "exe", **request )

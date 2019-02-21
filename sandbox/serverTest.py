@@ -127,15 +127,15 @@ class AppTests:
         domains = [ {"name": "d0", "lat": {"start": 0, "end": 50, "system": "values"}, "lon": {"start": 0, "end": 50, "system": "values"}, "time": { "start": '1990-01-01', "end": '2000-01-01', "system":"values" }  },
                     {"name": "d1", "lat": {"start": 20, "end": 20, "system": "values"}, "lon": {"start": 20, "end": 20, "system": "values"}}]
         variables = [{"uri":  TestDataManager.getAddress("merra2", "tas"), "name": "tas:v0", "domain":"d0"}]
-        operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
-                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
-                        {"name": "xarray.subset", "input": "dt", "domain":"d1"} ]
+        operations = [  {"name": "edas.decycle", "input": "v0", "result":"dc"},
+                        {"name": "edas.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "edas.subset", "input": "dt", "domain":"d1"} ]
         return self.exec( "test_detrend", domains, variables, operations )
 
     def test_norm(self):
         domains = [{"name": "d0", "lat": {"start": 20, "end": 40, "system": "values"}, "lon": {"start": 60, "end": 100, "system": "values"}}]
         variables = [{"uri": TestDataManager.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-        operations = [ { "name": "xarray.norm", "axis": "xy", "input": "v0" } ]
+        operations = [ { "name": "edas.norm", "axis": "xy", "input": "v0" } ]
         return self.exec( "test_detrend", domains, variables, operations )
 
 
@@ -154,11 +154,11 @@ class AppTests:
     def test_monsoon_learning(self):
         domains = [{"name": "d0",  "time": {"start": '1880-01-01T00', "end": '2005-01-01T00', "system": "values"} } ]
         variables = [{"uri": "archive:pcs-20crv-ts-TN", "name": "pcs:v0", "domain":"d0"}, {"uri": "archive:IITM/monsoon/timeseries","name":"AI:v1","domain":"d0", "offset":"1y"} ]
-        operations = [  {"name": "xarray.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
+        operations = [  {"name": "edas.filter", "input": "v0", "result": "v0f", "axis":"t", "sel": "aug"},
                         {"name": "keras.layer", "input": "v0f", "result":"L0", "axis":"m", "units":64, "activation":"relu"},
                         {"name": "keras.layer", "input": "L0", "result":"L1", "units":1, "activation":"linear" },
-                        {"name": "xarray.norm", "input": "v1", "axis":"t", "result": "dc"},
-                        {"name": "xarray.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
+                        {"name": "edas.norm", "input": "v1", "axis":"t", "result": "dc"},
+                        {"name": "edas.detrend", "input": "dc", "axis":"t", "wsize": 50, "result": "t1"},
                         {"name": "keras.train",  "axis":"t", "input": "L1,t1", "lr":0.002, "vf":0.2, "decay":0.002, "momentum":0.9, "epochs":1000, "batch":200, "iterations":50, "target":"t1", "archive":"model-20crv-ts" } ]
         return self.exec( "test_monsoon_learning", domains, variables, operations )
 

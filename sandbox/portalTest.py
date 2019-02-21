@@ -33,7 +33,7 @@ def testAvg():
             "domain":"d0"
         }],
         operation=[{
-            "name":"xarray.ave",
+            "name":"edas.ave",
             "input":"v0",
             "domain":"d0",
             "axes":"xy"

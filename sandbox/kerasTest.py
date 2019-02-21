@@ -4,7 +4,7 @@ from typing import List, Dict, Sequence, Mapping, Any
 import xarray as xa
 import time, traceback, logging
 import numpy as np
-from edas.workflow.modules.xarray import *
+from edas.workflow.modules.edas import *
 from edas.util.logging import EDASLogger
 from edas.workflow.module import edasOpManager
 from edas.portal.parsers import WpsCwtParser
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     testStr = '[ domain=[ {"name":"d0",   \n   "lat":{"start":0.0,  "end":20.0, "system":"values" }, "lon":{ "start":0.0,"end":20.0, "system":"values" }, "time":{ "start":0,"end":20, "system":"indices" } } ], ' \
               'variable=[{ "collection":"cip_merra2_mon_1980-2015", "name":"tas:v0", "domain":"d0" } ], ' \
-              'operation=[{ "name":"xarray.ave", "input":"v0", "domain":"d0","axes":"xy"}] ]'
+              'operation=[{ "name":"edas.ave", "input":"v0", "domain":"d0","axes":"xy"}] ]'
 
     try:
         tstart = time.time()

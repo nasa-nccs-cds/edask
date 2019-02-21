@@ -110,6 +110,7 @@ class WorkflowNode(Node):
         self.domain: str = _domain
         nameToks = name.split(".")
         self.module: str = nameToks[0]
+        assert len( nameToks ) > 1, "Expected '<module>.<operation>' format, received: '{}'".format(name)
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
         self._connectors: List[OperationConnector] = []
@@ -270,7 +271,8 @@ class OpNode(WorkflowNode):
 
     @classmethod
     def new(cls, operationSpec: Dict[str, Any] ):
-        name = operationSpec.get("name","")
+        name = operationSpec.get( "name", operationSpec.get("epa", None ) )
+        assert name is not None, "Operation spec must have 'name' or 'epa' parameter: " + str( operationSpec )
         domain = operationSpec.get("domain","")
         return OpNode(name, domain, operationSpec)
 
@@ -376,7 +378,7 @@ class OperationManager:
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
             for id in varSource.ids:
-                op = SourceNode( "xarray.input", varSource.domain, varSource, id, {} )
+                op = SourceNode( "edas.input", varSource.domain, varSource, id, {} )
                 self.operations.append( op )
 
     def getDomain( self, name: str ) -> Domain:

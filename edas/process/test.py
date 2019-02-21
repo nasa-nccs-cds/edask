@@ -1,7 +1,7 @@
 import logging, time
 import numpy.ma as ma
 from edas.process.task import Job
-from edas.workflow.modules.xarray import *
+from edas.workflow.modules.edas import *
 from edas.workflow.module import edasOpManager
 from edas.util.logging import EDASLogger
 from edas.process.manager import ProcessManager, ExecHandler

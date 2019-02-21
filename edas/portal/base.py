@@ -298,9 +298,9 @@ class EDASPortal:
                 # clientId = elem( self.taskSpec, 0 )
                 # runargs = self.getRunArgs( self.taskSpec )
                 # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
-                self.logger.error( "@@Portal: Execution error: " + str(ex) )
-                traceback.print_exc()
-                self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
+                msg = "@@Portal: Execution error: " + str(ex) + "\n" + traceback.format_exc()
+                self.logger.error( msg )
+                self.sendResponseMessage( Message( parts[0], "error", msg ) )
 
         self.logger.info( "@@Portal: EXIT EDASPortal")
 

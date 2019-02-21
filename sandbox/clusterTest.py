@@ -22,9 +22,9 @@ class ClusterTests:
         t0 = time.time()
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": "collection:cip_20crv2c_mth", "name": "ts:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
-                        {"name": "xarray.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-TN"  } ]
+        operations = [  {"name": "edas.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "edas.detrend", "axis": "t", "input": "dc", "wsize": 50, "result": "dt"},
+                        {"name": "edas.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-TN"  } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
@@ -33,9 +33,9 @@ class ClusterTests:
         t0 = time.time()
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{"uri": "collection:cip_20crv2c_mth", "name": "ts:v0", "domain": "d0"}]
-        operations = [  {"name": "xarray.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
-                        {"name": "xarray.norm", "axis":"xy", "input": "dc", "result":"dt" },
-                        {"name": "xarray.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
+        operations = [  {"name": "edas.decycle", "axis":"t", "input": "v0", "norm":"true", "result":"dc"},
+                        {"name": "edas.norm", "axis":"xy", "input": "dc", "result":"dt" },
+                        {"name": "edas.eof", "modes": 4, "input": "dt", "archive":"eofs-20crv-ts-SN" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
@@ -47,7 +47,7 @@ class ClusterTests:
                     "lon": {"start": 40, "end": 42, "system": "values"},
                     "time": {"start": 10, "end": 15, "system": "indices"}}]
         variables = [{"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"}]
-        operations = [ { "name": "xarray.subset", "input": "v0" } ]
+        operations = [ { "name": "edas.subset", "input": "v0" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
@@ -59,7 +59,7 @@ class ClusterTests:
                                     "lon":  { "start":40, "end":42, "system":"values" },
                                     "time": { "start":10, "end":15, "system":"indices" } } ]
         variables = [ { "uri": self.mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0"  } ]
-        operations = [ { "name":"xarray.subset", "input":"v0" } ]
+        operations = [ { "name":"edas.subset", "input":"v0" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
@@ -69,7 +69,7 @@ class ClusterTests:
         t0 = time.time()
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
-        operations = [ {"name": "xarray.ave", "input": "v0", "axis": "xy" } ]
+        operations = [ {"name": "edas.ave", "input": "v0", "axis": "xy" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Request, elapsed: {} sec, result:".format( time.time()-t0 ) )
         self.print(result)
@@ -78,7 +78,7 @@ class ClusterTests:
         t0 = time.time()
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": "collection:cip_merra2_mth", "name": "tas:v0", "domain": "d0"} ]
-        operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
+        operations = [ {"name": "edas.mean", "input": "v0", "axis": "xy" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "Submitted Async Request, elapsed: {} sec".format( time.time()-t0 ) )
 
@@ -86,7 +86,7 @@ class ClusterTests:
         t0 = time.time()
         domains =    [ { "name": "d0" } ]
         variables =  [ {"uri": self.mgr.getAddress( "merra2", "tas"), "name": "tas:v0", "domain": "d0"} ]
-        operations = [ {"name": "xarray.mean", "input": "v0", "axis": "xy" } ]
+        operations = [ {"name": "edas.mean", "input": "v0", "axis": "xy" } ]
         result: EDASDataset = self.mgr.testExec(domains, variables, operations)
         print( "---------------->>>> Completed Request, elapsed: {} sec".format( time.time()-t0 ) )
 
