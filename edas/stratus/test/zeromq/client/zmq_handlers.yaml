@@ -1,0 +1,4 @@
+services:
+  - name: edas
+    type: zeromq
+    priority: 1.0
