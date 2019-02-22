@@ -3,14 +3,14 @@ from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.portal.app import EDASapp
 import traceback
 import atexit, ast, os, json
-from edas.portal.base import EDASPortal, Message, Response
+from edas.portal.base import Message, Response
 from typing import Dict, Any, Sequence
 from edas.workflow.module import edasOpManager
 from edas.portal.parsers import WpsCwtParser
-from edas.portal.cluster import EDASCluster
 from edas.util.logging import EDASLogger
 from edas.process.task import Job
-from edas.process.manager import ExecHandler, ProcessManager
+from edas.process.manager import ProcessManager
+from edas.stratus.manager import ExecHandler
 from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -70,16 +70,15 @@ class EDASEndpoint(Endpoint):
             return Message("metrics",mtype, json.dumps( metrics ) ).dict()
         return Message("","","").dict()
 
-    def addHandler(self, clientId, jobId, handler ):
-        self.handlers[ clientId + "-" + jobId ] = handler
+    def addHandler(self, submissionId, handler ):
+        self.handlers[ submissionId ] = handler
         return handler
 
-    def removeHandler(self, clientId, jobId ):
-        handlerId = clientId + "-" + jobId
+    def removeHandler(self, submissionId ):
         try:
-            del self.handlers[ handlerId ]
+            del self.handlers[ submissionId ]
         except:
-            self.logger.error( "Error removing handler: " + handlerId + ", existing handlers = " + str(self.handlers.keys()))
+            self.logger.error( "Error removing handler: " + submissionId + ", existing handlers = " + str(self.handlers.keys()))
 
     def parseMap( self, serialized_map: str )-> Dict[str,str]:
         return ast.literal_eval(serialized_map)
@@ -96,13 +95,12 @@ class EDASEndpoint(Endpoint):
 
     def request(self, type: str, **kwargs ) -> Task:
         if type == "exe":
-            jobId = kwargs.get( "jobId", Job.randomStr(8) )
+            submissionId = kwargs.get( "id", Job.randomStr(8) )
             proj = kwargs.get("proj", "proj-" + Job.randomStr(4) )
             exp = kwargs.get("exp",  "exp-" + Job.randomStr(4) )
-            clientId = kwargs.get("client", "")
             try:
-              job = Job.create( jobId, proj, exp, 'exe', kwargs, {}, 1.0 )
-              execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
+              job = Job.create( submissionId, proj, exp, 'exe', kwargs, {}, 1.0 )
+              execHandler: ExecHandler = self.addHandler( submissionId, ExecHandler( submissionId, job ) )
               execHandler.execJob( job )
               return execHandler
             except Exception as err:
@@ -110,13 +108,12 @@ class EDASEndpoint(Endpoint):
                 traceback.print_exc()
                 return Task( status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
 
-    def shutdown( self, arg ):
-        print( "Shutdown: " + str(arg) )
+    def shutdown( self, *args ):
+        print( "Shutdown: " + str(args) )
         if self.cluster is not None:
             self.cluster.shutdown()
         if self.processManager is not None:
             self.processManager.term()
-
 
 if __name__ == '__main__':
 

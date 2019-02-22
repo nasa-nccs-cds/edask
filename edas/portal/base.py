@@ -157,7 +157,7 @@ class Responder:
     def close_connection( self ):
         try:
             for response in self.executing_jobs.values():
-                self.doSendErrorReport( self.socket, ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") );
+                self.doSendErrorReport( ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") )
             self.socket.close()
         except Exception: pass
 

@@ -4,19 +4,18 @@ from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
+from stratus_endpoint.handler.base import Status
 from edas.util.logging import EDASLogger
 from edas.portal.cluster import EDASCluster
-from stratus_endpoint.handler.base import Task, Status
 from edas.config import EdasEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno, uuid
 from threading import Thread
 import xarray as xa
 
-class ExecHandlerBase(Task):
+class ExecHandlerBase:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, clientId: str, jobId: str, **kwargs ):
-        super(ExecHandlerBase, self).__init__(**kwargs)
         self.logger = EDASLogger.getLogger()
         self.clientId = clientId
         self.jobId = jobId
