@@ -10,14 +10,13 @@ import xarray as xa
 class ExecHandler(Task):
 
     def __init__( self, submissionId: str, _job: Job, **kwargs ):
-        super(ExecHandler, self).__init__( **kwargs )
+        super(ExecHandler, self).__init__( submissionId, **kwargs )
         self.logger = EDASLogger.getLogger()
         self.sthread = None
         self._processResults = True
         self.results = queue.Queue()
         self.job = _job
         self._status = Status.IDLE
-        self.submissionId = submissionId
         self.start_time = time.time()
 
     def execJob(self, job: Job ) -> SubmissionThread:
