@@ -1,5 +1,6 @@
 from stratus.handlers.manager import handlers
-from stratus_endpoint.handler.base import Task, Status
+from stratus_endpoint.handler.base import Task, TaskResult
+from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 from stratus.handlers.app import StratusCore
 import os
@@ -21,5 +22,13 @@ if __name__ == "__main__":
     )
 
     task: Task = client.request( "exe", **request )
-    result = task.getResult( block=True )
-    print("Received result: " + str(result))
+    result: Optional[TaskResult] = task.getResult( block=True )
+    if result is None:
+        print("NO RESULT!")
+    else:
+        print("Received result:" )
+        print("HEADER: " + str(result.header))
+        if result.data is None:
+            print( "NO DATA!")
+        else:
+            print("DATA VARIABLES: " + str(result.data.variables.keys()))
