@@ -2,6 +2,7 @@ from stratus.handlers.manager import handlers
 from stratus_endpoint.handler.base import Task, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
+from xarray import Variable
 from stratus.handlers.app import StratusCore
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -31,4 +32,7 @@ if __name__ == "__main__":
         if result.data is None:
             print( "NO DATA!")
         else:
-            print("DATA VARIABLES: " + str(result.data.variables.keys()))
+            print("DATA VARIABLES AND AXES: ")
+            for v in result.data.variables.values():
+                variable: Variable = v
+                print( str( dict( variable.attrs, shape=str(variable.shape) )  ) )
