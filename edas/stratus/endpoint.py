@@ -39,7 +39,7 @@ class EDASEndpoint(Endpoint):
 
     def capabilities(self, type: str, **kwargs  ) -> Dict:
         if type == "epas":
-            return dict( epas = "edas\.[A-Za-z0-9._]+" )
+            return dict( epas = [ "edas\.[A-Za-z0-9._]+" ] )
         elif type == "capabilities":
             capabilities = edasOpManager.getCapabilities(type)
             return Message( type, "capabilities", capabilities ).dict()
