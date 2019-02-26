@@ -1,4 +1,3 @@
-from stratus.handlers.manager import handlers
 from stratus_endpoint.handler.base import Task, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
@@ -12,7 +11,7 @@ if __name__ == "__main__":
 
     stratus = StratusCore( settings=SETTINGS_FILE )
 
-    client = handlers.getClient( "edas" )
+    client = stratus.getClient( "edas" )
 
     request = dict(
         domain=[{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
