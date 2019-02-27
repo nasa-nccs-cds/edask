@@ -6,7 +6,6 @@ import string, random, os, re, traceback
 from edas.collection.agg import Archive
 import abc, math, time
 import xarray as xa
-from dask.distributed import Client
 from edas.data.sources.timeseries import TimeIndexer
 from edas.util.logging import EDASLogger
 from xarray.core.groupby import DataArrayGroupBy
@@ -14,9 +13,7 @@ from edas.process.operation import WorkflowNode, OperationConnector
 from edas.data.processing import Parser
 from collections import OrderedDict
 import xarray.plot as xrplot
-import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
-import numpy.ma as ma
 import numpy as np
 
 class Extremity(Enum):
@@ -587,6 +584,7 @@ class EDASDataset:
         plt.show()
 
     def plotMap(self, index = 0, view = "geo" ):
+        import cartopy.crs as ccrs
         if view.lower().startswith("geo"):
             ax = plt.axes( projection=ccrs.PlateCarree() )
         elif view.lower().startswith("polar"):
@@ -625,6 +623,7 @@ class EDASDataset:
         return plot_arrays
 
     def plotMaps( self, nrows=2, view = "geo", mtype = PlotType.EOF ):
+        import cartopy.crs as ccrs
         plot_arrays = self.filterArraysByType( self.segment_modes(), mtype )
         nPlots = len(plot_arrays)
         if nPlots == 1:
