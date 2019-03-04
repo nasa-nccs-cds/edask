@@ -20,7 +20,7 @@ setup(name='edas',
       long_description_content_type="text/markdown",
       scripts=['bin/startup_scheduler', 'bin/startup_cluster.sh', 'bin/startup_cluster_dask.sh'],
       packages=find_packages(),
-      install_requires=list(install_requires),
+#      install_requires=list(install_requires),
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
