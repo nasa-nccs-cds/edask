@@ -9,6 +9,7 @@ SETTINGS_FILE = os.path.join( HERE, "rest_client_settings.ini" )
 
 if __name__ == "__main__":
 
+    print("EDAS STRATUS TEST")
     stratus = StratusCore( settings=SETTINGS_FILE )
 
     client = stratus.getClient()
