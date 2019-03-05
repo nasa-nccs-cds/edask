@@ -82,7 +82,7 @@ class TaskRequest:
   @classmethod
   def new( cls, job: Job ):
     logger = EDASLogger.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(job.process, str(job.dataInputs)))
+    logger.info( "TaskRequest--> process_name: {}, requestId: {}, datainputs: {}".format(job.process, job.requestId, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
     variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ) )
@@ -93,7 +93,7 @@ class TaskRequest:
   @classmethod
   def init( cls, project: str, experiment: str, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
     logger = EDASLogger.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( identifier, str( dataInputs ) ))
+    logger.info( "TaskRequest>-> process_name: {}, requestId: {}, datainputs: {}".format( identifier, requestId, str( dataInputs ) ))
     uid = UID( requestId )
     domainManager = DomainManager.new( dataInputs.get("domain") )
     variableManager = VariableManager.new( dataInputs.get("variable") )

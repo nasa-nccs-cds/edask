@@ -60,7 +60,7 @@ class SubmissionThread(Thread):
     def run(self):
         start_time = time.time()
         try:
-            self.logger.info( "Running workflow for requestId " + self.job.requestId)
+            self.logger.info( "* Running workflow for requestId " + self.job.requestId)
             result = edasOpManager.buildTask( self.job )
             self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
             self.processResult( result )
@@ -245,7 +245,7 @@ class ProcessManager(GenericProcessManager):
   def runProcess( self, job: Job ) -> EDASDataset:
     start_time = time.time()
     try:
-        self.logger.info( "Running workflow for requestId " + job.requestId)
+        self.logger.info( "** Running workflow for requestId " + job.requestId)
         result = edasOpManager.buildTask( job )
         self.cluster.logMetrics()
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
