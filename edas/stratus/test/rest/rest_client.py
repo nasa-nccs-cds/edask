@@ -2,7 +2,7 @@ from stratus_endpoint.handler.base import Task, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 from xarray import Variable
-from stratus.handlers.app import StratusCore
+from stratus.handlers.core import StratusCore
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join( HERE, "rest_client_settings.ini" )
@@ -10,7 +10,7 @@ SETTINGS_FILE = os.path.join( HERE, "rest_client_settings.ini" )
 if __name__ == "__main__":
 
     print("EDAS STRATUS TEST")
-    stratus = StratusCore( settings=SETTINGS_FILE )
+    stratus = StratusCore( SETTINGS_FILE )
 
     client = stratus.getClient()
 

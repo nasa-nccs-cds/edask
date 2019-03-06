@@ -153,7 +153,7 @@ if __name__ == '__main__':
         input = [ {"uri": CIP("merra2","tas"), "name": "tas:v0", "domain": "d0"} ],
         operation = [ { "name": "edas.subset", "input": "v0" } ]
     )
-    task = ep.request( "exe", **request )
+    task = ep.request( **request )
 
     if task.status == Status.COMPLETED:
         result = task.getResult( block = True )
