@@ -3,7 +3,7 @@ import zmq, traceback, time, logging, xml, socket, abc, dask, threading, queue
 from edas.process.task import Job
 from edas.process.manager import SubmissionThread
 from edas.workflow.data import EDASDataset
-from stratus_endpoint.handler.base import Status, Task
+from stratus_endpoint.handler.base import Status, Task, TaskResult
 from edas.util.logging import EDASLogger
 import xarray as xa
 
@@ -30,9 +30,11 @@ class ExecHandler(Task):
     def status(self):
         return self._status
 
-    def getResult(self, timeout=None, block=False) ->  Optional[xa.Dataset]:
-        edasResult = self.results.get( block, timeout )
-        return edasResult.xr if edasResult is not None else None
+    def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
+        edasResult: EDASDataset = self.results.get( block, timeout )
+        data = None if edasResult is None else edasResult.xr
+        header = { **edasResult.attrs, **self._parms }
+        return TaskResult( header, data )
 
     def processResult( self, result: EDASDataset ):
         self.results.put( result )
@@ -57,4 +59,5 @@ class ExecHandler(Task):
         error_message = self.getErrorReport( ex )
         self.logger.error( error_message )
         self._status = Status.ERROR
-        self._parms["error"] = error_message
+        self._parms["type"] = "error"
+        self._parms["mesage"] = error_message
