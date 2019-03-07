@@ -105,7 +105,7 @@ class DistributedTestManager(TestManager):
         self.cluster = EDASCluster()
         self.processManager = ProcessManager(EdasEnv.parms, self.cluster)
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  List[EDASDataset]:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         execHandler = ExecHandler("local", job, workers=job.workers)
         execHandler.execJob( job )

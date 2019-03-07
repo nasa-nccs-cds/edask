@@ -164,7 +164,7 @@ class KernelManager:
         print( " $$$$ buildSubWorkflow[ " + op.name + "]: " + subWorkflowDatasets.arrayIds + " -> " + result.arrayIds)
         return result
 
-    def buildRequest(self, request: TaskRequest ) -> EDASDataset:
+    def buildRequest(self, request: TaskRequest ) -> List[EDASDataset]:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
@@ -172,7 +172,7 @@ class KernelManager:
         result = EDASDatasetCollection("BuildRequest")
         for op in resultOps: result += self.buildSubWorkflow( request, op )
         self.cleanup( request )
-        return result.getResultDataset()
+        return result.getResultDatasets()
 
     def cleanup(self, request: TaskRequest):
         ops: List[WorkflowNode] = request.getOperations()
@@ -183,7 +183,7 @@ class KernelManager:
     def buildIndices( self, size: int ) -> xa.DataArray:
         return xa.DataArray( range(size), coords=[('node',range(size))] )
 
-    def buildTask( self, job: Job ) -> EDASDataset:
+    def buildTask( self, job: Job ) -> List[EDASDataset]:
         try:
             self.logger.error("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )
@@ -192,7 +192,7 @@ class KernelManager:
             self.logger.error( "BuildTask Exception: " + str(err) + "\n" + traceback.format_exc() )
             raise err
 
-    def testBuildTask( self, job: Job ) -> EDASDataset:
+    def testBuildTask( self, job: Job ) -> List[EDASDataset]:
         try:
             self.logger.error("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )

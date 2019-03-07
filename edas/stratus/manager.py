@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, abc, dask, threading, queue
+import zmq, traceback, time, itertools, queue
 from edas.process.task import Job
 from edas.process.manager import SubmissionThread
 from edas.workflow.data import EDASDataset
@@ -31,15 +31,14 @@ class ExecHandler(Task):
         return self._status
 
     def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
-        edasResult: EDASDataset = self.results.get( block, timeout )
-        data = None if edasResult is None else edasResult.xr
-        header = { **edasResult.attrs, **self._parms }
-        return TaskResult( header, data )
+        edasResults: List[EDASDataset] = self.results.get( block, timeout )
+        xaResults = itertools.chain.from_iterable( [ edasResult.xr for edasResult in edasResults ] )
+        return TaskResult( self._parms, list(xaResults) )
 
     def processResult( self, result: EDASDataset ):
         self.results.put( result )
         self._status = Status.COMPLETED
-        self.logger.info(" ----------------->>> REQUEST COMPLETED "  )
+        self.logger.info(" ----------------->>> STRATUS REQUEST COMPLETED "  )
 
     @classmethod
     def getTbStr( cls, ex ) -> str:

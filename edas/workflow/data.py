@@ -1,10 +1,10 @@
 import logging
 from enum import Enum, auto
-from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView
+from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView, Iterator
 from edas.process.domain import Domain, Axis
 import string, random, os, re, traceback
 from edas.collection.agg import Archive
-import abc, math, time
+import abc, math, time, itertools
 import xarray as xa
 from edas.data.sources.timeseries import TimeIndexer
 from edas.util.logging import EDASLogger
@@ -402,15 +402,18 @@ class EDASDataset:
                selection[id] = array
         return EDASDataset( selection, self.attrs )
 
-    def standardize(self, new_attrs=None) -> "EDASDataset":
+    def standardize(self, new_attrs=None) -> List["EDASDataset"]:
         if new_attrs is None:
             new_attrs = {}
-        dataset = self.purge().xr
-        for id,val in self.StandardAxisMap.items():
-            if id in dataset.dims and val not in dataset.dims:
-                dataset = dataset.rename( {id:val}, True )
-        result_attrs = { **self.attrs, **new_attrs }
-        return self.fromXr( dataset, result_attrs )
+        datasets = self.purge().xr
+        results = []
+        for dataset in datasets:
+            for id,val in self.StandardAxisMap.items():
+                if id in dataset.dims and val not in dataset.dims:
+                    dataset = dataset.rename( {id:val}, True )
+            result_attrs = { **self.attrs, **new_attrs }
+            results.append( self.fromXr( dataset, result_attrs ) )
+        return results
 
     @classmethod
     def fromXr(cls, dataset: xa.Dataset, attrs=None) -> "EDASDataset":
@@ -445,12 +448,13 @@ class EDASDataset:
         return self
 
     def save( self, id: str = None  ):
-        dset = self.xr
-        filePath = self.archivePath( id )
-        vars: List[xa.DataArray] = dset.data_vars.values()
-        dset.to_netcdf( path=filePath )
-        self.logger.info( " SAVE: " + str([ x.name + ":" + str(x.shape) for x in vars ]) + " to file " + filePath )
-        return filePath
+        dsets: List[xa.Dataset] = self.xr
+        for index,dset in enumerate(dsets):
+            filePath = self.archivePath( id if (len(dsets) == 1) else f"{id}-{index}" )
+            vars: List[xa.DataArray] = dset.data_vars.values()
+            dset.to_netcdf( path=filePath )
+            self.logger.info( " SAVE: " + str([ x.name + ":" + str(x.shape) for x in vars ]) + " to file " + filePath )
+            return filePath
 
     @property
     def product(self):
@@ -458,7 +462,7 @@ class EDASDataset:
             if array.product: return array.product
         return self.attrs.get("product",None)
 
-    def getCoord( self, name: str ) -> xa.DataArray: return self.xr.coords[name]
+    def getCoord( self, name: str ) -> xa.DataArray: return self.xr[0].coords[name]
     def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
 
     def customArraymap(self, id: str  ) -> "OrderedDict[str,EDASArray]":
@@ -477,16 +481,26 @@ class EDASDataset:
     def id(self) -> str: return "-".join( self.arrayMap.keys() )
 
     @property
-    def xr(self) -> xa.Dataset:
-        arrays = OrderedDict()
-        for key,array in self.arrayMap.items(): arrays[key] = array.xr
-        return xa.Dataset( arrays, attrs=self.attrs )
+    def xr(self) -> List[xa.Dataset]:
+        domain_map = {}
+        for key,array in self.arrayMap.items():
+            arrays = domain_map.setdefault( array.domId, OrderedDict() )
+            arrays[key] = array.xr
+        return [ xa.Dataset( arrays, attrs={ **self.attrs, 'domid':domid } ) for domid,arrays in domain_map.items() ]
+
+    @property
+    def domArrayMap(self) -> Dict[str,Dict[str,EDASArray]]:
+        domain_map = {}
+        for key,array in self.arrayMap.items():
+            arrays: List[EDASArray] = domain_map.setdefault( array.domId, {} )
+            arrays[key] = array
+        return domain_map
 
     @property
     def vars2doms(self) -> Dict[str,str]: return { name:array.domId for ( name, array ) in self.arrayMap.items() }
 
     @staticmethod
-    def empty() -> "EDASDataset": return EDASDataset( {}, {} )
+    def empty() -> "EDASDataset": return EDASDataset( OrderedDict(), {} )
 
     @staticmethod
     def domainSet( inputs: List["EDASDataset"], opDomains: Set[str] = None ) -> Set[str]:
@@ -549,7 +563,7 @@ class EDASDataset:
       return EDASDataset.init( new_vars, self.attrs )
 
     def addDataset(self, dataset: xa.Dataset, varMap: Dict[str,str] ):
-        arrays = { vid:EDASArray( vid, domId, dataset[vid], [] ) for ( vid, domId ) in varMap.items() }
+        arrays = { vid:EDASArray( vid, domId, dataset[vid] ) for ( vid, domId ) in varMap.items() }
         self.addArrays( arrays, dataset.attrs )
 
     def splot(self, tindex: int = 0 ):
@@ -670,14 +684,16 @@ class EDASDataset:
         return result
 
     @classmethod
-    def merge(cls, dsets: List["EDASDataset"]):
-        if len( dsets ) == 1: return dsets[0]
-        arrayMap: OrderedDict[str,EDASArray] = OrderedDict()
-        attrs: Dict[str,Any] = {}
+    def merge(cls, dsets: Iterator["EDASDataset"]) -> List["EDASDataset"]:
+        datasets: Dict[str,Tuple[Dict,Dict]] = {}
         for dset in dsets:
-            arrayMap = cls.mergeArrayMaps(  arrayMap, dset.arrayMap )
-            attrs.update( dset.attrs )
-        return EDASDataset( arrayMap, attrs )
+            domArrayMap: Dict[str,Dict[str,EDASArray]] = dset.domArrayMap
+            for domId, newArrayMap in domArrayMap.items():
+                ( arrayMap, attrs ) = datasets.setdefault( domId, ( {}, {} ) )
+                merged_arrayMap:  Dict[str,EDASArray] =  cls.mergeArrayMaps( arrayMap, newArrayMap )
+                attrs.update( { **dset.attrs, "domid": domId } )
+                datasets[domId] = ( merged_arrayMap, attrs )
+        return [ EDASDataset( arrayMap, attrs ) for ( arrayMap, attrs ) in datasets.values() ]
 
     @staticmethod
     def randomStr(length) -> str:
@@ -705,7 +721,7 @@ class MergeHandler:
 
 class StandardMergeHandler(MergeHandler):
 
-    def mergeResults(self, results: List[EDASDataset] ) -> EDASDataset:
+    def mergeResults(self, results: List[EDASDataset] ) -> List[EDASDataset]:
         return EDASDataset.merge( results )
 
 class EDASDatasetCollection:
@@ -746,8 +762,8 @@ class EDASDatasetCollection:
         return [array for dset in self._datasets.values() for array in dset.arrayMap.values()]
 
     @property
-    def dataset(self) -> EDASDataset:
-        return EDASDataset.merge( list( self._datasets.values() ) )
+    def dataset(self) -> List[EDASDataset]:
+        return EDASDataset.merge( iter(self._datasets.values()) )
 
     def filterByOperation( self, op: WorkflowNode ) -> "EDASDatasetCollection":
         filteredInputDatasets = EDASDatasetCollection(self._name + "-FilterByOperation")
@@ -765,8 +781,9 @@ class EDASDatasetCollection:
         for vid in inputConnector.inputs: filteredDatasets[vid] = self[vid]
         return filteredDatasets
 
-    def getResultDataset(self)-> EDASDataset:
-        return EDASDataset.merge([dset.standardize( {"product": id} ) for id,dset in self._datasets.items()]).persist()
+    def getResultDatasets(self)-> List[EDASDataset]:
+        dset_list = itertools.chain.from_iterable( [dset.standardize( {"product": id} ) for id,dset in self._datasets.items() ] )
+        return [ dset.persist() for dset in EDASDataset.merge( dset_list ) ]
 
     def getExtremeVariable(self, ext: Extremity ) -> EDASArray:
         arrayList = self.arrays
