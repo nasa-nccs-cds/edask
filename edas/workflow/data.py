@@ -66,11 +66,11 @@ class Transformation:
         return self.type + "|" + Parser.sdict( self.parms )
 
 class EDASArray:
-    def __init__( self, name: Optional[str], _domId: Optional[str], data: Union[xa.DataArray,DataArrayGroupBy] ):
+    def __init__( self, name: Optional[str], _domId: str, data: Union[xa.DataArray,DataArrayGroupBy] ):
         self.alwaysPersist = False
         self.loaded_data = None
         self.logger = EDASLogger.getLogger()
-        self.domId = _domId
+        self.domId = _domId if _domId is not None else ""
         self._data = data
         self.name = name
         self.addDomain( _domId )
@@ -405,26 +405,26 @@ class EDASDataset:
     def standardize(self, new_attrs=None) -> List["EDASDataset"]:
         if new_attrs is None:
             new_attrs = {}
-        datasets = self.purge().xr
+        datasets: List[xa.Dataset] = self.purge().xr
         results = []
         for dataset in datasets:
+            domid: str = dataset.attrs.get("domid")
             for id,val in self.StandardAxisMap.items():
                 if id in dataset.dims and val not in dataset.dims:
                     dataset = dataset.rename( {id:val}, True )
             result_attrs = { **self.attrs, **new_attrs }
-            results.append( self.fromXr( dataset, result_attrs ) )
+            results.append( self.fromXr( dataset, domid, result_attrs ) )
         return results
 
     @classmethod
-    def fromXr(cls, dataset: xa.Dataset, attrs=None) -> "EDASDataset":
+    def fromXr(cls, dataset: xa.Dataset, domid: str, attrs: Dict ) -> "EDASDataset":
         result = OrderedDict()
-        if attrs is None: attrs = {}
         for id,v in dataset.data_vars.items():
-            result[id] = EDASArray( None, None, v )
+            result[id] = EDASArray( None, domid, v )
         return EDASDataset( result, attrs )
 
     @classmethod
-    def new(cls, dataset: xa.Dataset, varMap=None, idMap=None):
+    def new(cls, dataset: xa.Dataset, varMap: Dict[str,str]=None, idMap=None ):
         if varMap is None: varMap = {}
         if idMap is None: idMap = {}
         cls.rename( dataset, idMap )
@@ -492,8 +492,8 @@ class EDASDataset:
     def domArrayMap(self) -> Dict[str,Dict[str,EDASArray]]:
         domain_map = {}
         for key,array in self.arrayMap.items():
-            arrays: List[EDASArray] = domain_map.setdefault( array.domId, {} )
-            arrays[key] = array
+            arrays: Dict[str,EDASArray] = domain_map.setdefault( array.domId, {} )
+            arrays[ key ] = array
         return domain_map
 
     @property
@@ -691,7 +691,7 @@ class EDASDataset:
             for domId, newArrayMap in domArrayMap.items():
                 ( arrayMap, attrs ) = datasets.setdefault( domId, ( {}, {} ) )
                 merged_arrayMap:  Dict[str,EDASArray] =  cls.mergeArrayMaps( arrayMap, newArrayMap )
-                attrs.update( { **dset.attrs, "domid": domId } )
+                attrs.update( dset.attrs )
                 datasets[domId] = ( merged_arrayMap, attrs )
         return [ EDASDataset( arrayMap, attrs ) for ( arrayMap, attrs ) in datasets.values() ]
 

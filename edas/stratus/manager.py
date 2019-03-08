@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, List, Callable, Optional
+from typing import Dict, Any, Union, List, Callable, Optional, Iterable
 import zmq, traceback, time, itertools, queue
 from edas.process.task import Job
 from edas.process.manager import SubmissionThread
@@ -32,7 +32,7 @@ class ExecHandler(Task):
 
     def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
         edasResults: List[EDASDataset] = self.results.get( block, timeout )
-        xaResults = itertools.chain.from_iterable( [ edasResult.xr for edasResult in edasResults ] )
+        xaResults: Iterable[xa.Dataset] = itertools.chain.from_iterable( [ edasResult.xr for edasResult in edasResults ] )
         return TaskResult( self._parms, list(xaResults) )
 
     def processResult( self, result: EDASDataset ):
