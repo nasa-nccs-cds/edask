@@ -26,7 +26,6 @@ class ExecHandler(Task):
         self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
         return self.sthread
 
-    @property
     def status(self):
         return self._status
 

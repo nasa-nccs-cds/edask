@@ -1,37 +1,32 @@
 from stratus_endpoint.handler.base import Task, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
-from xarray import Variable
-from stratus.handlers.app import StratusCore
-import os
-HERE = os.path.dirname(os.path.abspath(__file__))
-SETTINGS_FILE = os.path.join( HERE, "zmq_client_settings.ini" )
+import xarray as xa
+from stratus.handlers.core import StratusCore
 
 if __name__ == "__main__":
 
-    stratus = StratusCore( settings=SETTINGS_FILE )
-
+    settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557" ) )
+    stratus = StratusCore( settings )
     client = stratus.getClient()
+    time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
+    uri =  mgr.getAddress("merra2", "tas")
+    numDomains = 2
+    domains = [ f"d{i}" for i in range(numDomains)]
 
-    request = dict(
-        domain=[{"name": "d0", "lat": {"start": 50, "end": 55, "system": "values"},
-                 "lon": {"start": 40, "end": 42, "system": "values"},
-                 "time": {"start": "1980-01-01", "end": "1981-12-31", "crs": "timestamps"}}],
-        input=[{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}],
-        operation=[ { "epa": "edas.subset", "input": "v0"} ]
+    requestSpec = dict(
+
+        domain=[ dict(name=f"d{i}", lat=dict(start=0, end=15, system="values"), lon=dict(start=i*20, end=(i*20)+15, system="values"), time=time_range) for i in range(numDomains) ],
+
+        input=[ dict( uri=uri, name=f"tas:v{i}", domain=f"d{i}" ) for i in range(numDomains) ],
+
+        operation=[ dict( epa="edas.ave", axis="xy", input=f"v{i}" ) for i in range(numDomains) ]
     )
 
-    task: Task = client.request( "exe", **request )
+    task: Task = client.request( requestSpec )
     result: Optional[TaskResult] = task.getResult( block=True )
-    if result is None:
-        print("NO RESULT!")
-    else:
-        print("Received result:" )
-        print("HEADER: " + str(result.header))
-        if result.data is None:
-            print( "NO DATA!")
-        else:
-            print("DATA VARIABLES AND AXES: ")
-            for v in result.data.variables.values():
-                variable: Variable = v
-                print( str( dict( variable.attrs, shape=str(variable.shape) )  ) )
+    dsets: List[xa.Dataset] = result.data
+    for index,dset in enumerate(dsets):
+        fileName =  f"/tmp/edas_endpoint_test_result-{index}.nc"
+        print( f"Got result[{index}]: Saving to file {fileName} " )
+        dset.to_netcdf( fileName )

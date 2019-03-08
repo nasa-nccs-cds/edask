@@ -94,7 +94,7 @@ class EDASEndpoint(Endpoint):
         self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
 
     def request(self, requestSpec: Dict, **kwargs ) -> Task:
-        submissionId = requestSpec.get( "sid", Job.randomStr(8) )
+        submissionId = requestSpec.get( "sid", requestSpec.get( "id", Job.randomStr(8) ) )
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
