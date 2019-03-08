@@ -1,7 +1,6 @@
 from stratus_endpoint.handler.base import Task, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
-from xarray import Variable
 import xarray as xa
 from stratus.handlers.core import StratusCore
 
@@ -10,7 +9,7 @@ if __name__ == "__main__":
     settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
     stratus = StratusCore( settings )
     client = stratus.getClient()
-    time_range = {"start": "1980-01-01", "end": "1981-12-31", "crs": "timestamps"}
+    time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
     uri =  mgr.getAddress("merra2", "tas")
     domains = [ f"d{i}" for i in range(4)]
 
