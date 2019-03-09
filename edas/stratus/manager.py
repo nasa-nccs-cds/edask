@@ -9,8 +9,8 @@ import xarray as xa
 
 class ExecHandler(Task):
 
-    def __init__( self, submissionId: str, _job: Job, **kwargs ):
-        super(ExecHandler, self).__init__( submissionId, **kwargs )
+    def __init__( self, cid: str, _job: Job, **kwargs ):
+        super(ExecHandler, self).__init__( _job.requestId, cid, **kwargs )
         self.logger = EDASLogger.getLogger()
         self.sthread = None
         self._processResults = True

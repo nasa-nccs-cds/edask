@@ -94,18 +94,20 @@ class EDASEndpoint(Endpoint):
         self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
 
     def request(self, requestSpec: Dict, **kwargs ) -> Task:
-        submissionId = requestSpec.get( "sid", requestSpec.get( "id", Job.randomStr(8) ) )
+        rid = requestSpec.get( "rid" )
+        cid = requestSpec.get("cid" )
+        self.logger.info( f"EDAS Endpoint--> processing rid {rid}")
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
-          job = Job.create( submissionId, proj, exp, 'exe', requestSpec, {}, 1.0 )
-          execHandler: ExecHandler = self.addHandler( submissionId, ExecHandler( submissionId, job ) )
+          job = Job.create( rid, proj, exp, 'exe', requestSpec, {}, 1.0 )
+          execHandler: ExecHandler = self.addHandler( rid, ExecHandler( cid, job ) )
           execHandler.execJob( job )
           return execHandler
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return Task( status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
+            return Task( rid, cid, status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )

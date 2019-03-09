@@ -1,4 +1,4 @@
-from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
+from edas.workflow.kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
 from edas.process.operation import WorkflowNode, OpNode, MasterNode
 from edas.process.task import TaskRequest
