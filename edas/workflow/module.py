@@ -127,7 +127,7 @@ class KernelManager:
     def getCapabilities(self, type: str ) -> str:
         from edas.collection.agg import Collection
         self.logger.info( " GetCapabilities --> type: " + type )
-        if( type.lower().startswith("ker") ):
+        if( type.lower().startswith("ker") or type.lower().startswith("op") ):
             specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
             return '<modules> {} </modules>'.format( " ".join( specs ) )
         elif( type.lower().startswith("col") ):
