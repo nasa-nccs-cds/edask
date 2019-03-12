@@ -37,18 +37,17 @@ class EDASEndpoint(Endpoint):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def capabilities(self, type: str, **kwargs  ) -> Dict:
-        if type == "epas":
+    def capabilities(self, ctype: str, **kwargs  ) -> Dict:
+        if ctype == "epas":
             return dict( epas = [ "edas\.[A-Za-z0-9._]+" ] )
-        elif type == "util":
+        elif ctype == "util":
             utilSpec = kwargs.get( "spec" )
             (module, op) = WpsCwtParser.split([":", "."], utilSpec[1])
             description = edasOpManager.describeProcess(module, op)
             return Message(utilSpec[0], "capabilities", description).dict()
         else:
-            ctype = kwargs.get("type","kernel")
             capabilities = edasOpManager.getCapabilities(ctype)
-            return Message( type, "capabilities", capabilities ).dict()
+            return Message( ctype, "capabilities", capabilities ).dict()
     def getVariableSpec(self, collId: str, varId: str  ) -> Dict:
         from edas.collection.agg import Collection
         col = Collection.new( collId )
