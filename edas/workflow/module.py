@@ -128,7 +128,7 @@ class KernelManager:
     def getCapabilitiesJson( self, type: str = "kernel" ) -> Dict:
         from edas.collection.agg import Collection
         self.logger.info( " GetCapabilities --> type: " + type )
-        if( type.lower().startswith("ker") ):
+        if( type.lower().startswith("ker") or type.lower().startswith("op")  ):
             specs = dict( modules = [opMod.getCapabilitiesJson() for opMod in self.operation_modules.values()] )
             return specs
         else:
