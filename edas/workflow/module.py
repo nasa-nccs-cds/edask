@@ -25,7 +25,7 @@ class OperationModule:
         return []
 
     @abstractmethod
-    def getCapabilities(self): pass
+    def getCapabilitiesXml(self): pass
 
     @abstractmethod
     def getSerializationStr(self):  pass
@@ -33,7 +33,7 @@ class OperationModule:
     def serialize(self): return "!".join([self._name, "python", self.getSerializationStr()])
 
     @property
-    def xml(self): return self.getCapabilities()
+    def xml(self): return self.getCapabilitiesXml()
 
 class KernelModule(OperationModule):
 
@@ -71,7 +71,8 @@ class KernelModule(OperationModule):
             self._instances[instanceName] = instance
         return instance
 
-    def getCapabilities(self): return '<module name="{}"> {} </module>'.format(self.getName(), " ".join([kernel().getCapabilities() for kernel in self._kernels.values()]))
+    def getCapabilitiesXml(self): return '<module name="{}"> {} </module>'.format(self.getName(), " ".join([kernel().getCapabilitiesXml() for kernel in self._kernels.values()]))
+    def getCapabilitiesJson(self): return dict(name=self.getName(), kernels=[kernel().getCapabilities() for kernel in self._kernels.values()])
     def getSerializationStr(self): return "~".join([ kernel().serialize() for kernel in self._kernels.values() ])
 
     def describeProcess( self, op ):
@@ -124,11 +125,20 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.createKernel( op )
 
-    def getCapabilities(self, type: str ) -> str:
+    def getCapabilitiesJson( self, type: str = "kernel" ) -> Dict:
         from edas.collection.agg import Collection
         self.logger.info( " GetCapabilities --> type: " + type )
         if( type.lower().startswith("ker") ):
-            specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
+            specs = dict( modules = [opMod.getCapabilitiesJson() for opMod in self.operation_modules.values()] )
+            return specs
+        else:
+            return {}
+
+    def getCapabilitiesXml(self, type: str) -> str:
+        from edas.collection.agg import Collection
+        self.logger.info( " GetCapabilities --> type: " + type )
+        if( type.lower().startswith("ker") ):
+            specs = [opMod.getCapabilitiesXml() for opMod in self.operation_modules.values()]
             return '<modules> {} </modules>'.format( " ".join( specs ) )
         elif( type.lower().startswith("col") ):
             specs = Collection.getCollectionsList()

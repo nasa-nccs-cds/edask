@@ -47,7 +47,10 @@ class KernelSpec:
     def summary(self) -> str: return ";".join( [ self.name, self.title ] )
 
     @property
-    def xml(self) -> str: return '<kernel name="{}" title="{}" />'.format( self.name, self.title )
+    def xml(self) -> str: return '<kernel name="{}" title="{}" description="{}" />'.format( self.name, self.title, self.description )
+
+    @property
+    def dict(self) -> Dict: return dict( name=self._name, title=self._title, description=self._description  )
 
     def __str__(self): return ";".join( [ self.name, self.title, self.description, str(self._options) ] )
 

@@ -39,9 +39,10 @@ class Kernel:
         return self.spansInputs(op) or (op.alignmentStrategy is not None)
 
     def getSpec(self) -> KernelSpec: return self._spec
-    def getCapabilities(self) -> str: return self._spec.xml
+    def getCapabilitiesXml(self) -> str: return self._spec.xml
     def serialize(self) -> str: return self._spec.summary
-    def describeProcess( self ) -> str: return str(self._spec)
+    def getCapabilities( self ) -> Dict: return self._spec.dict
+    def describeProcess( self ) -> Dict: return self._spec.dict
     def addRequiredOptions(self, options: List[str] ): self.requiredOptions.extend(options)
     def removeRequiredOptions(self, options: List[str] ):
         for opt in options: self.requiredOptions.remove(opt)

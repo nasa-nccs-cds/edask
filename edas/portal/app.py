@@ -33,8 +33,8 @@ class EDASapp(EDASPortal):
     def start( self ): self.run()
 
     def getCapabilities(self, type: str  ) -> Message:
-        capabilities = edasOpManager.getCapabilities(type)
-        return Message( type, "capabilities", capabilities )
+        capabilities: Dict = edasOpManager.getCapabilitiesJson(type)
+        return Message( type, "capabilities", json.dumps(capabilities) )
 
     def getVariableSpec(self, collId: str, varId: str  ) -> Message:
         from edas.collection.agg import Collection
@@ -45,7 +45,7 @@ class EDASapp(EDASPortal):
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
         description = edasOpManager.describeProcess( module, op )
-        return Message( utilSpec[0], "capabilities", description )
+        return Message( utilSpec[0], "capabilities", json.dumps( description ) )
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message:
         uType = utilSpec[0].lower()

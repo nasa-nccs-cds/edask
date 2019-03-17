@@ -41,12 +41,15 @@ class EDASEndpoint(Endpoint):
         if type == "epas":
             return dict( epas = [ "edas\.[A-Za-z0-9._]+" ] )
         elif type == "capabilities":
-            capabilities = edasOpManager.getCapabilities(type)
+            capabilities = edasOpManager.getCapabilitiesXml(type)
+            return Message( type, "capabilities", capabilities ).dict()
+        elif type == "processes":
+            capabilities = edasOpManager.getCapabilitiesJson(type)
             return Message( type, "capabilities", capabilities ).dict()
         elif type == "util":
             utilSpec = kwargs.get( "spec" )
             (module, op) = WpsCwtParser.split([":", "."], utilSpec[1])
-            description = edasOpManager.describeProcess(module, op)
+            description = json.dumps( edasOpManager.describeProcess(module, op) )
             return Message(utilSpec[0], "capabilities", description).dict()
 
     def getVariableSpec(self, collId: str, varId: str  ) -> Dict:
