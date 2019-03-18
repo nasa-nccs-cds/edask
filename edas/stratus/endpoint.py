@@ -24,9 +24,10 @@ class EDASEndpoint(Endpoint):
         self.handlers = {}
         self.processManager = None
         self.cluster = None
+        self._epas = [ "edas\.[A-Za-z0-9._]+", "xarray\.[A-Za-z0-9._]+" ]
         atexit.register( self.shutdown, "ShutdownHook Called" )
 
-    def epas( self ) -> List[str]: pass
+    def epas( self ) -> List[str]: return self._epas
 
     def init( self, cluster = None ):
         self.processManager = ProcessManager(EdasEnv.parms, cluster)
@@ -39,7 +40,7 @@ class EDASEndpoint(Endpoint):
 
     def capabilities(self, type: str, **kwargs  ) -> Dict:
         if type == "epas":
-            return dict( epas = [ "edas\.[A-Za-z0-9._]+" ] )
+            return dict( epas = self._epas )
         elif type == "capabilities":
             capabilities = edasOpManager.getCapabilitiesXml(type)
             return Message( type, "capabilities", capabilities ).dict()
