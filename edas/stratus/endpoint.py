@@ -1,6 +1,5 @@
 from stratus_endpoint.handler.base import Endpoint, Task, Status
 from typing import Sequence, List, Dict, Mapping, Optional, Any
-from edas.portal.app import EDASapp
 import traceback
 import atexit, ast, os, json
 from edas.portal.base import Message, Response
@@ -58,7 +57,6 @@ class EDASEndpoint(Endpoint):
         col = Collection.new( collId )
         varSpec = col.getVariableSpec( varId )
         return  Message( "var", "VariableSpec", varSpec ).dict()
-
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Dict:
         uType = utilSpec[0].lower()
