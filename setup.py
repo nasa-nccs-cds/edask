@@ -12,6 +12,7 @@ with open( "requirements.txt" ) as f:
 
 setup(name='edas',
       version='1.0',
+      zip_safe=False,
       description='EDAS: Earth Data Analytic Services using the dasK / xarray toolkit',
       author='Thomas Maxwell',
       author_email='thomas.maxwell@nasa.gov',
