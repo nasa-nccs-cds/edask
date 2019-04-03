@@ -184,7 +184,8 @@ class VarRec:
         metadata["dodsName"] = parms[2].strip()
         metadata["description"] = parms[3].strip()
         shape = list( map( lambda x: int(x), parms[4].strip().split(",") ) )
-        resolution = { key: float(value) for (key,value) in map( lambda x: x.split(":"), parms[5].strip().split(",") ) }
+        try: resolution = { key: float(value) for (key,value) in map( lambda x: x.split(":"), parms[5].strip().split(",") ) }
+        except: resolution = {}
         dims = parms[6].strip().split(" ")
         units = parms[7].strip()
         return VarRec( parms[0], shape, resolution, dims, units, metadata )
