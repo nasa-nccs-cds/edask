@@ -3,14 +3,14 @@ import zmq, traceback, time, itertools, queue
 from edas.process.task import Job
 from edas.process.manager import SubmissionThread
 from edas.workflow.data import EDASDataset
-from stratus_endpoint.handler.base import Status, Task, TaskResult
+from stratus_endpoint.handler.base import Status, TaskHandle, TaskResult
 from edas.util.logging import EDASLogger
 import xarray as xa
 
-class ExecHandler(Task):
+class ExecHandler(TaskHandle):
 
     def __init__( self, cid: str, _job: Job, **kwargs ):
-        super(ExecHandler, self).__init__( _job.requestId, cid, **kwargs )
+        super(ExecHandler, self).__init__( **{ "rid": _job.requestId, "cid": cid, **kwargs } )
         self.logger = EDASLogger.getLogger()
         self.sthread = None
         self._processResults = True

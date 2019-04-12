@@ -1,5 +1,5 @@
 from stratus.handlers.zeromq.app import StratusApp
-from stratus.handlers.core import StratusCore
+from stratus.app.core import StratusCore
 import os
 HERE: str = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE: str = os.path.join( HERE, "edas_zmq_settings.ini" )

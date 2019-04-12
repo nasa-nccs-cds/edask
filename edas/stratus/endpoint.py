@@ -1,4 +1,4 @@
-from stratus_endpoint.handler.base import Endpoint, Task, Status
+from stratus_endpoint.handler.base import Endpoint, TaskHandle, Status, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import traceback
 import atexit, ast, os, json
@@ -23,7 +23,7 @@ class EDASEndpoint(Endpoint):
         self.handlers = {}
         self.processManager = None
         self.cluster = None
-        self._epas = [ "edas\.[A-Za-z0-9._]+", "xarray\.[A-Za-z0-9._]+" ]
+        self._epas = [ "edas*", "xarray*" ]
         atexit.register( self.shutdown, "ShutdownHook Called" )
 
     def epas( self ) -> List[str]: return self._epas
@@ -38,7 +38,7 @@ class EDASEndpoint(Endpoint):
          return array[index] if( len(array) > index ) else default
 
     def capabilities(self, type: str, **kwargs  ) -> Dict:
-        if type == "epas":
+        if type == "epas" or type == "":
             return dict( epas = self._epas )
         elif type == "capabilities":
             capabilities = edasOpManager.getCapabilitiesXml(type)
@@ -51,6 +51,7 @@ class EDASEndpoint(Endpoint):
             (module, op) = WpsCwtParser.split([":", "."], utilSpec[1])
             description = json.dumps( edasOpManager.describeProcess(module, op) )
             return Message(utilSpec[0], "capabilities", description).dict()
+        else: raise Exception( f"Unknown capabilities type: {type}" )
 
     def getVariableSpec(self, collId: str, varId: str  ) -> Dict:
         from edas.collection.agg import Collection
@@ -95,21 +96,21 @@ class EDASEndpoint(Endpoint):
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ):
         self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
 
-    def request(self, requestSpec: Dict, **kwargs ) -> Task:
+    def request(self, requestSpec: Dict, inputs: List[TaskResult] = None, **kwargs ) -> TaskHandle:
         rid = requestSpec.get( "rid" )
         cid = requestSpec.get("cid" )
         self.logger.info( f"EDAS Endpoint--> processing rid {rid}")
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
-          job = Job.create( rid, proj, exp, 'exe', requestSpec, {}, 1.0 )
+          job = Job.create( rid, proj, exp, 'exe', requestSpec, inputs, {}, 1.0 )
           execHandler: ExecHandler = self.addHandler( rid, ExecHandler( cid, job ) )
           execHandler.execJob( job )
           return execHandler
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return Task( rid, cid, status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
+            return TaskHandle( rid=rid, cid=cid, status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )

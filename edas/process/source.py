@@ -1,4 +1,5 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
+from stratus_endpoint.handler.base import TaskResult
 from enum import Enum, auto
 from edas.process.node import Node
 from edas.portal.parsers import WpsCwtParser
@@ -131,16 +132,17 @@ class VariableSource(Node):
 class VariableManager:
 
     @classmethod
-    def new(cls, variableSpecs: List[Dict[str, Any]] ):
+    def new(cls, variableSpecs: List[Dict[str, Any]], inputs: List[TaskResult] = None ):
         vsources = [ VariableSource.new(variableSpec) for variableSpec in variableSpecs ]
         vmap = {}
         for vsource in vsources:
             for var in vsource.vids:
                 vmap[var.id] = vsource
-        return VariableManager( vmap )
+        return VariableManager( vmap, inputs )
 
-    def __init__(self, _variables: Dict[str, VariableSource]):
+    def __init__(self, _variables: Dict[str, VariableSource], inputs: List[TaskResult] = None ):
         self.variables: Dict[str, VariableSource] = _variables
+        self.inputs = inputs
 
     def getVariable( self, id: str ) -> VariableSource:
         return self.variables.get( id )
@@ -149,4 +151,4 @@ class VariableManager:
         return self.variables.values()
 
     def __str__(self):
-        return "Variables[ {} ]".format( ";".join( [ str(v) for v in self.variables.values() ] ) )
+        return "Variables[ {}, {} ]".format( ";".join( [ str(v) for v in self.variables.values() ] ), ";".join( [ str(iv) for iv in self.inputs ] ) )

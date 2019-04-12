@@ -1,10 +1,9 @@
-from stratus_endpoint.handler.base import Task, TaskResult
+from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 import xarray as xa
-from stratus.handlers.core import StratusCore
-from stratus.handlers.app import OpSet
-from stratus_endpoint.handler.base import Task
+from stratus.app.core import StratusCore
+from stratus.app.operations import ClientOpSet
 
 settings = dict( stratus=dict(type="zeromq", request_port="4556", response_port="4557" ),
                  edas=dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
@@ -16,5 +15,5 @@ request = {    "edas:domain": [ { "name": "d0", "time": {"start": "1980-01-01", 
                 "operation":   [ { "name": "edas:ave", "input": "v1", "axis": "yt", "result": "v1ave" },
                                 { "name": "edas:diff", "input": ["v1", "v1ave"] } ] }
 
-clientOpsets: Dict[str, OpSet] = app.geClientOpsets(request)
+clientOpsets: Dict[str, ClientOpSet] = app.geClientOpsets(request)
 distributed_opSets = app.distributeOps(clientOpsets)

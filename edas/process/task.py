@@ -1,4 +1,5 @@
 from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
+from stratus_endpoint.handler.base import TaskResult
 import logging, random, string
 import xarray as xa
 from edas.process.domain import DomainManager, Domain, AxisBounds, Axis
@@ -28,10 +29,11 @@ class UID:
 
 class Job:
 
-  def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
+  def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], inputs: List[TaskResult], runargs: Dict[str, str], priority: float):
         self.requestId = requestId
         self.process = process
         self.project = project
+        self.inputs = inputs
         self.experiment = experiment
         self.dataInputs = datainputs
         self.runargs = runargs
@@ -39,12 +41,12 @@ class Job:
         self.workerIndex = 0
 
   @staticmethod
-  def new( requestId: str, project: str, experiment: str, process: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
+  def new( requestId: str, project: str, experiment: str, process: str, datainputs: str, inputs: List[TaskResult],  runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), inputs, runargs, priority)
 
   @staticmethod
-  def create( requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str,List[Dict[str,Any]]], runargs: Dict[str,str], priority: float ):
-    return Job( requestId, project, experiment, process, datainputs, runargs, priority )
+  def create( requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str,List[Dict[str,Any]]], inputs: List[TaskResult], runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, datainputs, inputs, runargs, priority )
 
   @staticmethod
   def randomStr(length) -> str:
@@ -52,10 +54,10 @@ class Job:
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
 
   @classmethod
-  def init(cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], runargs=None, priority: float=0.0):
+  def init(cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], inputs: List[TaskResult], runargs=None, priority: float=0.0):
     if runargs is None:
         runargs = {}
-    return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
+    return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, inputs, runargs, priority )
 
   def copy( self, workerIndex: int ) -> "Job":
       newjob = copy.deepcopy( self )
@@ -85,7 +87,7 @@ class TaskRequest:
     logger.info( "TaskRequest--> process_name: {}, requestId: {}, datainputs: {}".format(job.process, job.requestId, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
-    variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ) )
+    variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ), job.inputs )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
     rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager)
     return rv

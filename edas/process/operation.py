@@ -108,7 +108,7 @@ class WorkflowNode(Node):
         from edas.process.task import Job
         super(WorkflowNode, self).__init__( name, metadata )
         self.domain: str = _domain
-        nameToks = name.split(".")
+        nameToks = name.split(":") if ":" in name else name.split(".")
         self.module: str = nameToks[0]
         assert len( nameToks ) > 1, "Expected '<module>.<operation>' format, received: '{}'".format(name)
         self.op: str = nameToks[1]
