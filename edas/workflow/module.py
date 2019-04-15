@@ -136,7 +136,8 @@ class KernelManager:
 
     def getCapabilitiesXml(self, type: str) -> str:
         from edas.collection.agg import Collection
-        self.logger.info( " GetCapabilities --> type: " + type )
+        if type == None: type = "kernels"
+        self.logger.info( " GetCapabilities --> type: " + str(type) )
         if( type.lower().startswith("ker") ):
             specs = [opMod.getCapabilitiesXml() for opMod in self.operation_modules.values()]
             return '<modules> {} </modules>'.format( " ".join( specs ) )
