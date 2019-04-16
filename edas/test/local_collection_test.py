@@ -21,6 +21,6 @@ def test_collection_time_ave(collection,variable,time_range):
 if __name__ == "__main__":
     collection = "merra2.m2t1nxlnd"
     variable = "LWLAND"
-    time_range = [ "1980-01-01", "1980-01-05" ]
+    time_range = [ "1980-01-01", "1990-01-05" ]
     test_collection_time_ave( collection, variable, time_range )
 
