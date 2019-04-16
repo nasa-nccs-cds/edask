@@ -292,6 +292,7 @@ class Aggregation:
             if file.date >= start:
                 if (len(paths) == 0) and (prev_file is not None):
                     paths.append( prev_file.getPath() )
+                    self.logger.info(f"@PPL: Adding path for date {file.date}: {file.getPath()}")
                 paths.append( file.getPath() )
                 self.logger.info(f"@PPL: Adding path for date {file.date}: {file.getPath()}")
             prev_file = file
