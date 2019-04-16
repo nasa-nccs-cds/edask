@@ -1,4 +1,4 @@
-import os
+import os, time
 from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
@@ -47,6 +47,28 @@ class Archive:
         path = os.path.join( Archive.baseDir, "logs" )
         os.makedirs( path, mode=0o777, exist_ok=True )
         return path
+
+class File:
+
+    def __init__(self, _collection, *args ):
+       self.collection = _collection
+       self.start_time = float(args[0].strip())
+       self.size = int(args[1].strip())
+       self.relpath = args[2].strip()
+       self.date = datetime.fromtimestamp( self.start_time*60, tz=timezone.utc)
+
+    def getPath(self):
+        return os.path.join( self.parm("base.path"), self.relpath )
+
+    def parm(self, key ):
+        return self.collection.parm( key )
+
+    @classmethod
+    def getNumber(cls, arg: str, isInt = False ) -> int:
+       try:
+           result = float(arg)
+           return int( result ) if isInt else result
+       except: return 1 if isInt else 0.0
 
 class Collection:
 
@@ -103,7 +125,7 @@ class Collection:
         agg =  self.getAggregation( self.getAggId( varName ) )
         return agg.getVariable(varName)
 
-    def fileList(self, aggId: str ) -> List[BinaryIO]:
+    def fileList(self, aggId: str ) -> List[File]:
         agg = self.getAggregation( aggId )
         return list(agg.fileList())
 
@@ -120,39 +142,9 @@ class Collection:
         agg = self.getAggregation( aggId )
         return agg.pathList()
 
-# class EVariable:
-#
-#    def __init__(self, *args ):
-#        self.name = args[0].strip()
-#        self.long_name = args[1].strip()
-#        self.dods_name = args[2].strip()
-#        self.description = args[3].strip()
-#        self.shape = [ int(sval.strip()) for sval in args[4].split(",") ]
-#        self.resolution = parse_dict( args[5] )
-#        self.dims = args[6].strip().split(' ')
-#        self.units = args[7].strip()
-
-class File:
-
-    def __init__(self, _collection, *args ):
-       self.collection = _collection
-       self.start_time = float(args[0].strip())
-       self.size = int(args[1].strip())
-       self.relpath = args[2].strip()
-       self.date = datetime.fromtimestamp( self.start_time*60, tz=timezone.utc)
-
-    def getPath(self):
-        return os.path.join( self.parm("base.path"), self.relpath )
-
-    def parm(self, key ):
-        return self.collection.parm( key )
-
-    @classmethod
-    def getNumber(cls, arg: str, isInt = False ) -> int:
-       try:
-           result = float(arg)
-           return int( result ) if isInt else result
-       except: return 1 if isInt else 0.0
+    def periodPathList(self, aggId: str, start:datetime, end:datetime ) -> List[str]:
+        agg = self.getAggregation( aggId )
+        return agg.periodPathList( start, end )
 
 class Axis:
 
@@ -182,7 +174,8 @@ class VarRec:
         metadata["dodsName"] = parms[2].strip()
         metadata["description"] = parms[3].strip()
         shape = list( map( lambda x: int(x), parms[4].strip().split(",") ) )
-        resolution = { key: float(value) for (key,value) in map( lambda x: x.split(":"), parms[5].strip().split(",") ) }
+        try: resolution = { key: float(value) for (key,value) in map( lambda x: x.split(":"), parms[5].strip().split(",") ) }
+        except: resolution = {}
         dims = parms[6].strip().split(" ")
         units = parms[7].strip()
         return VarRec( parms[0], shape, resolution, dims, units, metadata )
@@ -240,7 +233,7 @@ class Aggregation:
         self.name = _name
         self.spec = _agg_file
         self.parms = {}
-        self.files: Dict[str,BinaryIO] = OrderedDict()
+        self.files: Dict[str,File] = OrderedDict()
         self.axes: Dict[str,Axis] = {}
         self.dims = {}
         self.vars = {}
@@ -284,11 +277,20 @@ class Aggregation:
     def getAxis( self, atype ):
         return next((x for x in self.axes.values() if x.type == atype), None)
 
-    def fileList(self) -> ValuesView[BinaryIO]:
+    def fileList(self) -> ValuesView[File]:
         return self.files.values()
 
     def pathList(self)-> List[str]:
         return [ file.getPath() for file in self.files.values() ]
+
+    def periodPathList(self, start:datetime, end:datetime  )-> List[str]:
+        t0 = time.time()
+        paths: List[str] = []
+        for file in self.files.values():
+            if file.date > end: break
+            if file.date >= start: paths.append( file.getPath() )
+        self.logger.info(f"PeriodPathList: extracted {len(paths)} paths from {len(self.files)}: time = {time.time()-t0} sec")
+        return paths
 
     def getVariable( self, varName: str ) -> Variable:
         ds = self.getDataset()

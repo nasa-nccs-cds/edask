@@ -3,6 +3,7 @@ import logging, random, string, time, socket, threading, os
 from edas.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
+from edas.data.sources.timeseries import TimeConversions
 from edas.collection.agg import Archive
 import xarray as xr
 from edas.workflow.data import KernelSpec, EDASDataset, EDASArray, EDASDatasetCollection
@@ -246,9 +247,15 @@ class InputKernel(Kernel):
             if dataSource.type == SourceType.collection:
                 collection = Collection.new( dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
+                domain = request.operationManager.domains.getDomain( snode.domain )
+                if domain is not None:
+                    timeBounds = domain.findAxisBounds(Axis.T)
+                    startDate = None if domain is None else TimeConversions.parseDate(timeBounds.start)
+                    endDate   = None if domain is None else TimeConversions.parseDate(timeBounds.end)
+                else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
-                    pathList = collection.pathList(aggId)
-                    dset = xr.open_mfdataset( pathList, autoclose=True, data_vars=vars, parallel=True)
+                    pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
+                    dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True)
                     self.importToDatasetCollection( results, request, snode, dset )
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
