@@ -288,8 +288,10 @@ class Aggregation:
         paths: List[str] = []
         for file in self.files.values():
             if file.date > end: break
-            if file.date >= start: paths.append( file.getPath() )
-        self.logger.info(f"PeriodPathList: extracted {len(paths)} paths from {len(self.files)}: time = {time.time()-t0} sec")
+            if file.date >= start:
+                paths.append( file.getPath() )
+                self.logger.info(f"@PPL: Adding path for date {file.date}: {file.getPath()}")
+        self.logger.info(f"@PPL: extracted {len(paths)} paths from {len(self.files)}: time = {time.time()-t0} sec")
         return paths
 
     def getVariable( self, varName: str ) -> Variable:
