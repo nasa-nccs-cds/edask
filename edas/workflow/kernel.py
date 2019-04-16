@@ -270,7 +270,7 @@ class InputKernel(Kernel):
                 engine = EdaskEnv.get("dap.engine", "netcdf4")
                 self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 session = self.getSession( dataSource )
-                dap_engine = engine if session is None else "pydap"
+                dap_engine = 'netcdf4' # engine if session is None else "pydap"
                 dset = xr.open_dataset(dataSource.address, engine=dap_engine, autoclose=True, backend_kwargs=dict(session=session) )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
