@@ -271,7 +271,7 @@ class InputKernel(Kernel):
                 self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
                 session = self.getSession( dataSource )
                 dap_engine = 'netcdf4' # engine if session is None else "pydap"
-                dset = xr.open_dataset(dataSource.address, engine=dap_engine, autoclose=True, backend_kwargs=dict(session=session) )
+                dset = xr.open_dataset(dataSource.address, engine=dap_engine ) # , backend_kwargs=dict(session=session) )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
