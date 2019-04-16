@@ -286,11 +286,15 @@ class Aggregation:
     def periodPathList(self, start:datetime, end:datetime  )-> List[str]:
         t0 = time.time()
         paths: List[str] = []
+        prev_file = None
         for file in self.files.values():
             if file.date > end: break
             if file.date >= start:
+                if (len(paths) == 0) and (prev_file is not None):
+                    paths.append(prev_file)
                 paths.append( file.getPath() )
                 self.logger.info(f"@PPL: Adding path for date {file.date}: {file.getPath()}")
+            prev_file = file
         self.logger.info(f"@PPL: extracted {len(paths)} paths from {len(self.files)}: time = {time.time()-t0} sec")
         return paths
 
