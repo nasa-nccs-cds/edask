@@ -11,8 +11,7 @@ def test_ave_timeslice():
     mgr.print(results)
 
 def test_collection_time_ave(collection,variable,time_range):
-    domains = [{ "name":"d0",   "lat": {"start": 50, "end": 55, "system": "values"}, "lon": {"start": 40, "end": 42, "system": "values"},
-                                "time": {"start": "1980-01-01", "end": "1980-01-05", "crs": "timestamps"} } ]
+    domains = [{ "name":"d0",  "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"} } ]
     variables = [ { "uri": f"collection://{collection}:", "name":f"{variable}:v0", "domain":"d0" } ]
     operations = [ { "name":"xarray.ave", "input":"v0", "axes":"t" } ]
     results = mgr.testExec( domains, variables, operations )
