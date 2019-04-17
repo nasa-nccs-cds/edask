@@ -1,4 +1,5 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
+import time
 appConf = { "sources.allowed": "collection,https" }
 LOCAL_TESTS = False
 mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
@@ -12,6 +13,7 @@ def test_ave_timeslice():
     mgr.print(results)
 
 def test_collection_time_ave(collection,variable,time_range):
+    print( f"Executing Time average on ver {variable} in collection {collection}")
     domains = [{ "name":"d0",   "lat": {"start": 30, "end": 66, "system": "values"}, "lon": {"start": 45, "end": 135, "system": "values"},
                                 "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}  } ]
     variables = [ { "uri": f"collection://{collection}:", "name":f"{variable}:v0", "domain":"d0" } ]
@@ -20,6 +22,7 @@ def test_collection_time_ave(collection,variable,time_range):
     mgr.print(results)
 
 if __name__ == "__main__":
+    time.sleep(30)
     collection = "merra2.m2t1nxlnd"
     variable = "LWLAND"
     time_range = [ "1980-01-01", "1990-01-05" ]
