@@ -120,6 +120,7 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
     enable_proctitle_on_current()
     enable_proctitle_on_children()
     log_metrics = EdaskEnv.getBool( "log.metrics", False )
+    logger.info( f"Log Metrics: {log_metrics}" )
     plugins = [ EDASSchedulerPlugin() ] if log_metrics else []
 
     sec = Security(tls_ca_file=tls_ca_file,
