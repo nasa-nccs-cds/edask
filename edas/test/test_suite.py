@@ -2,7 +2,7 @@ from edas.process.test import LocalTestManager, DistributedTestManager
 import numpy.ma as ma
 import time
 LOCAL_TESTS = True
-appConf = { "sources.allowed": "collection,https" }
+appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 mgr = LocalTestManager( "PyTest", "test_suite", appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest", "test_suite", appConf )
 if not LOCAL_TESTS: time.sleep(30)
 
