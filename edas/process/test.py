@@ -104,6 +104,8 @@ class DistributedTestManager(TestManager):
         EdaskEnv.update(appConf)
         self.cluster = EDASCluster()
         self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
+        self.scheduler_info = self.processManager.client.scheduler_info()
+        self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
