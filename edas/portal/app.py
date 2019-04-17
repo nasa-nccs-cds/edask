@@ -28,7 +28,10 @@ class EDASapp(EDASPortal):
         self.cluster = EDASCluster()
         self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
         self.scheduler_info = self.processManager.client.scheduler_info()
+        workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
+        self.logger.info(f" N Workers: {len(workers)} " )
+        for addr, specs in workers.items(): self.logger.info(f"  -----> Worker {addr}: {specs}" )
 
     def start( self ): self.run()
 
