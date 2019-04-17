@@ -104,7 +104,7 @@ class DistributedTestManager(TestManager):
         EdaskEnv.update(appConf)
         self.cluster = EDASCluster()
         self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
-        time.sleep(60)
+        time.sleep(40)
         self.scheduler_info = self.processManager.client.scheduler_info()
         workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))

@@ -37,7 +37,6 @@ def test_asia_time_ave(collection,variable,time_range):
     mgr.print(results)
 
 if __name__ == "__main__":
-    if not LOCAL_TESTS: time.sleep(30)      # Allow cluster to startup
 #    collection = "merra2.m2t1nxlnd"
 #    variable = "LWLAND"
     collection = "cip_merra2_mth"
