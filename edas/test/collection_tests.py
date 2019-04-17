@@ -1,7 +1,7 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 appConf = { "sources.allowed": "collection,https" }
 LOCAL_TESTS = False
-mgr = LocalTestManager( "PyTest", __file__.__name__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__.__name__, appConf )
+mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
 
 def test_ave_timeslice():
     domains = [{ "name":"d0",   "lat":  { "start":-80, "end":80,  "system":"values" },
