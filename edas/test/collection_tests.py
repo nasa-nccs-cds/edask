@@ -40,7 +40,7 @@ if __name__ == "__main__":
 #    collection = "merra2.m2t1nxlnd"
 #    variable = "LWLAND"
     collection = "cip_merra2_mth"
-    variable = "tas"
+    variable = "ta"
     time_range_30y = [ "1980-01-01", "2010-01-01"]
     time_range_10y = [ "1980-01-01", "1990-01-01" ]
     time_range_5m =  [ "1980-01-01", "1980-01-05"]
