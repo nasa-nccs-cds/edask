@@ -1,6 +1,6 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import time
-appConf = { "sources.allowed": "collection,https" }
+appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 LOCAL_TESTS = False
 mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
 

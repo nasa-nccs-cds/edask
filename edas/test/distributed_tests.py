@@ -1,5 +1,5 @@
 from edas.process.test import DistributedTestManager
-appConf = { "sources.allowed": "collection,https" }
+appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 mgr = DistributedTestManager( "PyTest", "test_suite", appConf )
 
 def test_ave_timeslice():
