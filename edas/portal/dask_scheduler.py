@@ -121,7 +121,7 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
     enable_proctitle_on_children()
     log_metrics = EdaskEnv.getBool( "log.metrics", False )
     logger.info( f"Log Metrics: {log_metrics}" )
-    plugins = [ EDASSchedulerPlugin() ] if log_metrics else []
+    plugins = [ EDASSchedulerPlugin(logger) ] if log_metrics else []
 
     sec = Security(tls_ca_file=tls_ca_file,
                    tls_scheduler_cert=tls_cert,
@@ -184,7 +184,9 @@ def main(host, port, bokeh_port, show, _bokeh, bokeh_whitelist, bokeh_prefix,
                           scheduler_file=scheduler_file,
                           security=sec)
 
-    for plugin in plugins: scheduler.add_plugin( plugin )
+    for plugin in plugins:
+        logger.info(f"@SP: Adding scheduler plugin: {plugin}")
+        scheduler.add_plugin( plugin )
     scheduler.start(addr)
     comm = Comm( scheduler )
     comm.start()
