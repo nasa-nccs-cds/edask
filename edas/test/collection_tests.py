@@ -23,9 +23,10 @@ def test_collection_time_ave(collection,variable,time_range):
 
 if __name__ == "__main__":
     if not LOCAL_TESTS: time.sleep(30)      # Allow cluster to startup
-    collection = "merra2.m2t1nxlnd"
-    variable = "LWLAND"
-    time_range_10y = [ "1980-01-01", "1990-01-01" ]
-    time_range_5m =  [ "1980-01-01", "1980-01-05"]
-    test_collection_time_ave( collection, variable, time_range_5m )
+    # collection = "merra2.m2t1nxlnd"
+    # variable = "LWLAND"
+    # time_range_10y = [ "1980-01-01", "1990-01-01" ]
+    # time_range_5m =  [ "1980-01-01", "1980-01-05"]
+    # test_collection_time_ave( collection, variable, time_range_5m )
+    test_ave_timeslice()
 
