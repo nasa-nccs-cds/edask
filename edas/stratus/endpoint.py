@@ -38,9 +38,9 @@ class EDASEndpoint(Endpoint):
          return array[index] if( len(array) > index ) else default
 
     def capabilities(self, type: str, **kwargs  ) -> Dict:
-        if type == "epas" or type == "":
+        if type == "epas":
             return dict( epas = self._epas )
-        elif type == "capabilities":
+        elif type == "capabilities" or type == "" or type is None:
             capabilities = edasOpManager.getCapabilitiesXml(type)
             return Message( type, "capabilities", capabilities ).dict()
         elif type == "processes":
