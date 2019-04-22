@@ -244,7 +244,6 @@ class Aggregation:
         self.logger.info( "Parsing Agg file: " + self.spec )
         try:
             with open(self.spec, "r") as file:
-                self.logger.info(f" ---> Reading lines")
                 for line in file.readlines():
                     if not line: break
                     if line[1] == ";":

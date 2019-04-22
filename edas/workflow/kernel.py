@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time, socket, threading, os
+import logging, random, string, time, socket, threading, os, traceback
 from edas.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
@@ -257,6 +257,7 @@ class InputKernel(Kernel):
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     self.logger.info( f"Open mfdataset: vars={vars}, FILES={pathList}" )
+                    traceback.print_exc()
                     dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
