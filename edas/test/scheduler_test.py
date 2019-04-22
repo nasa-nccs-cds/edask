@@ -32,5 +32,5 @@ job = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operation
 print("Running workflow for requestId " +  job.requestId )
 result = edasOpManager.buildTask( job )
 print("Completed workflow in time " + str(time.time() - start_time))
-resultHandler = ExecHandler("local", job.process, workers=job.workers)
+resultHandler = ExecHandler("local", job, workers=job.workers)
 resultHandler.processResult(result)
