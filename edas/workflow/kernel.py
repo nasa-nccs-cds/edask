@@ -257,7 +257,7 @@ class InputKernel(Kernel):
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     self.logger.info( f"Open mfdataset: vars={vars}, FILES={pathList}" )
-                    traceback.print_exc()
+                    traceback.print_stack()
                     dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
