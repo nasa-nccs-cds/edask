@@ -38,8 +38,9 @@ def test_asia_time_ave(collection,variable,time_range):
 
 if __name__ == "__main__":
 #    collection = "merra2.m2t1nxlnd"
+    collection = "cip_eraint_mth"
 #    variable = "LWLAND"
-    collection = "cip_merra2_mth"
+#    collection = "cip_merra2_mth"
     variable = "ua"
     time_range_30y = [ "1981-01-01", "2011-01-01"]
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
