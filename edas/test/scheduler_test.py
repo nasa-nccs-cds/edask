@@ -10,7 +10,7 @@ from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 
 collection = "cip_eraint_mth"
-variable = "tas"
+variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
