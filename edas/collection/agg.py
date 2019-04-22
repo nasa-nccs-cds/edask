@@ -242,23 +242,26 @@ class Aggregation:
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
         self.logger.info( "Parsing Agg file: " + self.spec )
-        with open(self.spec, "r") as file:
-            self.logger.info(f" ---> Reading lines")
-            for line in file.readlines():
-                if not line: break
-                if line[1] == ";":
-                    try:
-                        type = line[0]
-                        value = line[2:].split(";")
-                        self.logger.info(f" ---> Processing Line[{type}]: {value}")
-                        if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
-                        elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                        elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
-                        elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
-                        elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
-                    except Exception as err:
-                        self.logger.error( "Error parsing Agg file, line: " + line )
-                        raise err
+        try:
+            with open(self.spec, "r") as file:
+                self.logger.info(f" ---> Reading lines")
+                for line in file.readlines():
+                    if not line: break
+                    if line[1] == ";":
+                        try:
+                            type = line[0]
+                            value = line[2:].split(";")
+                            if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
+                            elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                            elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
+                            elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                            elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                        except Exception as err:
+                            self.logger.error( "Error parsing line: " + line )
+                            raise err
+        except Exception as err:
+            self.logger.error(f"Parsing Agg file {self.spec}: " + repr(err) )
+            raise err
         self.logger.info( f"Completed Parsing Agg spec: {len(self.files)} files, {len(self.vars)} vars")
 
     def toXml(self, varName: str )-> str:
