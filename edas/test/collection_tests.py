@@ -41,9 +41,9 @@ if __name__ == "__main__":
 #    variable = "LWLAND"
     collection = "cip_merra2_mth"
     variable = "tas"
-    time_range_30y = [ "1980-01-01", "2010-01-01"]
-    time_range_10y = [ "1980-01-01", "1990-01-01" ]
-    time_range_5m =  [ "1980-01-01", "1980-01-05"]
-    test_collection_time_ave( collection, variable, time_range_5m )
+    time_range_30y = [ "1981-01-01", "2010-01-01"]
+    time_range_10y = [ "1981-01-01", "1990-01-01" ]
+    time_range_6m =  [ "1981-01-01", "1981-01-06"]
+    test_collection_time_ave( collection, variable, time_range_6m )
 
 
