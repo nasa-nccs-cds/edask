@@ -257,6 +257,7 @@ class Aggregation:
                     except Exception as err:
                         self.logger.error( "Error parsing Agg file, line: " + line )
                         raise err
+        self.logger.info( f"Completed Parsing Agg spec: {len(self.files)} files, {len(self.vars)} vars")
 
     def toXml(self, varName: str )-> str:
         specs = []
