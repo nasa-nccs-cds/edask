@@ -43,7 +43,8 @@ if __name__ == "__main__":
     variable = "ua"
     time_range_30y = [ "1981-01-01", "2011-01-01"]
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
+    time_range_1y  = [ "1981-01-01", "1982-01-01"]
     time_range_6m =  [ "1981-01-01", "1981-01-06"]
-    test_collection_time_ave( collection, variable, time_range_10y )
+    test_collection_time_ave( collection, variable, time_range_1y )
 
 
