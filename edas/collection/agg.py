@@ -243,12 +243,14 @@ class Aggregation:
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
         self.logger.info( "Parsing Agg file: " + self.spec )
         with open(self.spec, "r") as file:
+            self.logger.info(f" ---> Reading lines")
             for line in file.readlines():
                 if not line: break
                 if line[1] == ";":
                     try:
                         type = line[0]
                         value = line[2:].split(";")
+                        self.logger.info(f" ---> Processing Line[{type}]: {value}")
                         if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
                         elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
                         elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
