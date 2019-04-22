@@ -246,6 +246,7 @@ class InputKernel(Kernel):
             dataSource: DataSource = snode.varSource.dataSource
             if dataSource.type == SourceType.collection:
                 collection = Collection.new( dataSource.address )
+                self.logger.info("Input collection: " + dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 domain = request.operationManager.domains.getDomain( snode.domain )
                 if domain is not None:
@@ -255,8 +256,11 @@ class InputKernel(Kernel):
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
+                    self.logger.info( f"Open mfdataset: vars={vars}" )
                     dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True )
+                    self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
+                    self.logger.info(f"Collection import complete.")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
                 dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids, parallel=True)
