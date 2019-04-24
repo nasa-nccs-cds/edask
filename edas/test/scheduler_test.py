@@ -29,7 +29,8 @@ else:
     cluster = EDASCluster()
     print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
     client = Client( cluster.scheduler_address, timeout=60 )
-    time.sleep(30)
+
+time.sleep(30)
 
 scheduler_info = client.scheduler_info()
 workers: Dict = scheduler_info.pop("workers")
