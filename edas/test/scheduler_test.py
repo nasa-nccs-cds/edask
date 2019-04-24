@@ -12,6 +12,7 @@ from typing import List, Optional, Tuple, Dict, Any
 collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
+local = True
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
@@ -19,10 +20,17 @@ operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
 
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 EdaskEnv.update(appConf)
-cluster = EDASCluster()
-print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
-client = Client( cluster.scheduler_address, timeout=60 )
-time.sleep(30)
+
+if local:
+    cluster = LocalCluster()
+    print( f"Initializing Local Dask cluster with nWorkers= {len(cluster.workers)}" )
+    client = Client(cluster)
+else:
+    cluster = EDASCluster()
+    print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
+    client = Client( cluster.scheduler_address, timeout=60 )
+    time.sleep(30)
+
 scheduler_info = client.scheduler_info()
 workers: Dict = scheduler_info.pop("workers")
 print(" @@@@@@@ SCHEDULER INFO: " + str(scheduler_info ))
