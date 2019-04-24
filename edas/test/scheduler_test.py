@@ -19,6 +19,7 @@ variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "d
 operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
 
 if __name__ == '__main__':
+    print(f"Running test")
     appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
     EdaskEnv.update( appConf )
 
