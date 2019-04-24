@@ -13,6 +13,7 @@ collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
 local = False
+scheduler = "127.0.0.1:8786"
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
@@ -27,11 +28,13 @@ if __name__ == '__main__':
         print( f"Initializing Local Dask cluster" )
         client = Client()
     else:
-        cluster = EDASCluster()
-        print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
-        client = Client( cluster.scheduler_address, timeout=60 )
-
-    time.sleep(30)
+        if scheduler is None:
+            cluster = EDASCluster()
+            print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
+            client = Client( cluster.scheduler_address, timeout=60 )
+            time.sleep(20)
+        else:
+            client = Client(scheduler)
 
     scheduler_info = client.scheduler_info()
     workers: Dict = scheduler_info.pop("workers")
