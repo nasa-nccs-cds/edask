@@ -1,9 +1,16 @@
 from dask.distributed import Client
 from edas.util.logging import EDASLogger
+import time
+local = True
 
-server = "localhost:8786"
-client = Client( server )
+if local:
+    print( "Local dask server ")
+    client = Client()
+else:
+    server = "localhost:8786"
+    client = Client( server )
 
+time.sleep( 20 )
 
 def square(x):
     logger = EDASLogger.getLogger()

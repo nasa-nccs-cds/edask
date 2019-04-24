@@ -18,28 +18,28 @@ domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1],
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
 operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
 
-appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-EdaskEnv.update( appConf )
+if __name__ == '__main__':
+    appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
+    EdaskEnv.update( appConf )
 
-if local:
-    cluster = LocalCluster()
-    print( f"Initializing Local Dask cluster with nWorkers= {len(cluster.workers)}" )
-    client = Client(cluster)
-else:
-    cluster = EDASCluster()
-    print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
-    client = Client( cluster.scheduler_address, timeout=60 )
+    if local:
+        print( f"Initializing Local Dask cluster" )
+        client = Client()
+    else:
+        cluster = EDASCluster()
+        print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
+        client = Client( cluster.scheduler_address, timeout=60 )
 
-time.sleep(30)
+    time.sleep(30)
 
-#scheduler_info = client.scheduler_info()
-#workers: Dict = scheduler_info.pop("workers")
-#print(" @@@@@@@ SCHEDULER INFO: " + str(scheduler_info ))
-#print(f" N Workers: {len(workers)} " )
-start_time = time.time()
-job = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations )
-print("Running workflow for requestId " +  job.requestId )
-result = edasOpManager.buildTask( job )
-print("Completed workflow in time " + str(time.time() - start_time))
-resultHandler = ExecHandler("local", job, workers=job.workers)
-resultHandler.processResult(result)
+    scheduler_info = client.scheduler_info()
+    workers: Dict = scheduler_info.pop("workers")
+    print(" @@@@@@@ SCHEDULER INFO: " + str(scheduler_info ))
+    print(f" N Workers: {len(workers)} " )
+    start_time = time.time()
+    job = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations )
+    print("Running workflow for requestId " +  job.requestId )
+    result = edasOpManager.buildTask( job )
+    print("Completed workflow in time " + str(time.time() - start_time))
+    resultHandler = ExecHandler("local", job, workers=job.workers)
+    resultHandler.processResult(result)
