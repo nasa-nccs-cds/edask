@@ -19,7 +19,7 @@ variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "d
 operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
 
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-EdaskEnv.update(appConf)
+EdaskEnv.update( appConf )
 
 if local:
     cluster = LocalCluster()
