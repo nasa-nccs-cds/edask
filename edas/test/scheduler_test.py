@@ -13,7 +13,7 @@ collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
 local = False
-scheduler = "127.0.0.1:8786"
+scheduler = None #"127.0.0.1:8786"
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
