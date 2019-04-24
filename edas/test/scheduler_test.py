@@ -32,10 +32,10 @@ else:
 
 time.sleep(30)
 
-scheduler_info = client.scheduler_info()
-workers: Dict = scheduler_info.pop("workers")
-print(" @@@@@@@ SCHEDULER INFO: " + str(scheduler_info ))
-print(f" N Workers: {len(workers)} " )
+#scheduler_info = client.scheduler_info()
+#workers: Dict = scheduler_info.pop("workers")
+#print(" @@@@@@@ SCHEDULER INFO: " + str(scheduler_info ))
+#print(f" N Workers: {len(workers)} " )
 start_time = time.time()
 job = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations )
 print("Running workflow for requestId " +  job.requestId )
