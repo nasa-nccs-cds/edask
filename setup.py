@@ -9,5 +9,5 @@ setup(name='edas',
       author_email='thomas.maxwell@nasa.gov',
       url='https://github.com/nasa-nccs-cds/edas.git',
       scripts=['bin/startup_scheduler', 'bin/startup_cluster.sh', 'bin/startup_cluster_dask.sh'],
-      packages=find_packages(),
+      packages=find_packages(exclude="sandbox")
 )

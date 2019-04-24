@@ -1,20 +1,18 @@
-from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel
+from workflow.kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
-from edas.process.operation import WorkflowNode, OpNode, MasterNode
+from edas.process.operation import OpNode, MasterNode
 from edas.process.task import TaskRequest
-from edas.workflow.data import EDASArray, EDASDatasetCollection
-from typing import List, Optional, Tuple, Dict, Any
-from operator import mul
-from functools import reduce
-import copy, sys, logging, random, numpy as np
+from edas.workflow.data import EDASArray
+from typing import List, Tuple
+import copy, random, numpy as np
 from keras.models import Sequential, Model
 from collections import OrderedDict
 from edas.process.operation import WorkflowConnector
 from edas.collection.agg import Archive
 from keras.optimizers import SGD
 import keras.backend as K
-from keras.callbacks import TensorBoard, History, Callback
-from edas.workflow.learning import FitResult, PerformanceTracker, KerasModel
+from keras.callbacks import TensorBoard, History
+from workflow.modules.keras_defunct.learning import FitResult, PerformanceTracker, KerasModel
 
 
 class LayerKernel(OpKernel):
