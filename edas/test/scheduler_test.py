@@ -13,7 +13,7 @@ collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
 local = False
-scheduler = None #"127.0.0.1:8786"
+scheduler = "127.0.0.1:8786"
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
@@ -34,6 +34,7 @@ if __name__ == '__main__':
             client = Client( cluster.scheduler_address, timeout=60 )
             time.sleep(20)
         else:
+            print("Initializing client with existing scheduler at: " + scheduler )
             client = Client(scheduler)
 
     scheduler_info = client.scheduler_info()
