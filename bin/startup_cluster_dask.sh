@@ -2,9 +2,9 @@
 
 if [ $# -eq 0 ]
   then
-    dask-ssh --hostfile $HOME/.edas/conf/hosts-2 --remote-dask-worker distributed.cli.dask_worker --log-directory $HOME/.edas/logs $PKEY_OPTS
+    dask-ssh --hostfile $HOME/.edas/conf/hosts-2 --remote-dask-worker distributed.cli.dask_worker --scheduler 127.0.0.1 --scheduler-port 8786 --log-directory $HOME/.edas/logs $PKEY_OPTS
   else
-    dask-ssh --nprocs $1 --hostfile  $HOME/.edas/conf/hosts-2 --remote-dask-worker distributed.cli.dask_worker --log-directory $HOME/.edas/logs $PKEY_OPTS
+    dask-ssh --nprocs $1 --hostfile  $HOME/.edas/conf/hosts-2 --remote-dask-worker distributed.cli.dask_worker --scheduler 127.0.0.1 --scheduler-port 8786  --log-directory $HOME/.edas/logs $PKEY_OPTS
 fi
 
 
