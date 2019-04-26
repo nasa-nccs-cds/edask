@@ -11,7 +11,7 @@ dataset_year = '/dass/dassnsd/data01/cldra/data/pubrepo/MERRA2/M2I1NXINT.5.12.4/
 dataset_35year = '/dass/dassnsd/data01/cldra/data/pubrepo/MERRA2/M2I1NXINT.5.12.4/*/*/*.nc4'
 scheduler_node = "edaskwndev01"
 # scheduler_node = "cldradn101"
-dataset = dataset_year
+dataset = dataset_35year
 
 try:
     client = Client( scheduler_node + ':8786' )
@@ -23,7 +23,7 @@ try:
     print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
     print( "COMPUTE MEAN, Result:" )
-    print( ds_m.KE.mean().values )
+    print( result )
 
 except Exception:
     traceback.print_exc()
