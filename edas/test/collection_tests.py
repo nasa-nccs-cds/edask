@@ -1,6 +1,6 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import time
-appConf = { "sources.allowed": "collection,https", "scheduler.address": "edaskwndev01:8786"}
+appConf = { "sources.allowed": "collection,https" }
 LOCAL_TESTS = False
 
 def test_ave_timeslice(mgr):
@@ -36,7 +36,7 @@ def test_asia_time_ave(mgr, collection,variable,time_range):
     mgr.print(results)
 
 if __name__ == "__main__":
-    mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
+    mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"edaskwndev01:8786" } )
     collection = "merra2.m2t1nxlnd"
 #    collection = "cip_eraint_mth"
     variable = "LWLAND"
@@ -46,6 +46,6 @@ if __name__ == "__main__":
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
     time_range_1y  = [ "1991-01-01", "1992-01-01"]
     time_range_6m =  [ "1981-01-01", "1981-01-06"]
-    test_collection_time_ave( mgr, collection, variable, time_range_10y )
+    test_collection_time_ave( mgr, collection, variable, time_range_30y )
 
 
