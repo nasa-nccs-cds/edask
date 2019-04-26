@@ -37,15 +37,15 @@ def test_asia_time_ave(mgr, collection,variable,time_range):
 
 if __name__ == "__main__":
     mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
-#    collection = "merra2.m2t1nxlnd"
-    collection = "cip_eraint_mth"
-#    variable = "LWLAND"
+    collection = "merra2.m2t1nxlnd"
+#    collection = "cip_eraint_mth"
+    variable = "LWLAND"
 #    collection = "cip_merra2_mth"
-    variable = "ta"
+#    variable = "ta"
     time_range_30y = [ "1981-01-01", "2011-01-01"]
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
     time_range_1y  = [ "1991-01-01", "1992-01-01"]
     time_range_6m =  [ "1981-01-01", "1981-01-06"]
-    test_collection_time_ave( mgr, collection, variable, time_range_30y )
+    test_collection_time_ave( mgr, collection, variable, time_range_6m )
 
 
