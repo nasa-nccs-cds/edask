@@ -1,7 +1,7 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import time
 appConf = { "sources.allowed": "collection,https" }
-LOCAL_TESTS = False
+LOCAL_TESTS = True
 
 def test_ave_timeslice(mgr):
     domains = [{ "name":"d0",   "lat":  { "start":-80, "end":80,  "system":"values" },
