@@ -1,6 +1,6 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import time
-appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
+appConf = { "sources.allowed": "collection,https", "scheduler.address": "edaskwndev01:8786"}
 LOCAL_TESTS = False
 
 def test_ave_timeslice(mgr):

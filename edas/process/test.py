@@ -102,8 +102,7 @@ class DistributedTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdaskEnv.update(appConf)
-        self.cluster = EDASCluster()
-        self.processManager = ProcessManager( EdaskEnv.parms, self.cluster )
+        self.processManager = ProcessManager( EdaskEnv.parms )
         time.sleep(40)
         self.scheduler_info = self.processManager.client.scheduler_info()
         workers: Dict = self.scheduler_info.pop("workers")
