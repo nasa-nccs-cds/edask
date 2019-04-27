@@ -47,7 +47,7 @@ if __name__ == "__main__":
     mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"edaskwndev01:8786" } )
 #    collection = "merra2.m2t1nxlnd"
 #    collection="merra2_inst1_2d_int_Nx"
-    collection="cip_merra2_6hr-atmos-tas"
+    collection="cip_merra2_6hr"
 #    collection = "cip_eraint_mth"
 #    variable = "LWLAND"
 #    variable = "KE"
