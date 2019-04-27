@@ -30,7 +30,7 @@ def test_collection_mean(mgr,collection,variable,time_range):
     print( f"Executing Time average on var {variable} in collection {collection}, time range = {time_range}")
     domains = [{ "name":"d0",  "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}  } ]
     variables = [ { "uri": f"collection://{collection}:", "name":f"{variable}:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.mean", "input":"v0", "axes":"xyt" } ]
+    operations = [ { "name":"xarray.mean", "input":"v0", "axes":"tyx" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
