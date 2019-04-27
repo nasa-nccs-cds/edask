@@ -46,12 +46,14 @@ def test_asia_time_ave(mgr, collection,variable,time_range):
 if __name__ == "__main__":
     mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"edaskwndev01:8786" } )
 #    collection = "merra2.m2t1nxlnd"
-    collection="merra2_inst1_2d_int_Nx"
+#    collection="merra2_inst1_2d_int_Nx"
+    collection="cip_merra2_6hr-atmos-tas"
 #    collection = "cip_eraint_mth"
 #    variable = "LWLAND"
-    variable = "KE"
+#    variable = "KE"
 #    collection = "cip_merra2_mth"
 #    variable = "ta"
+    variable = "tas"
     time_range_30y = [ "1981-01-01", "2011-01-01"]
     time_range_35y = [ "1981-01-01", "2014-12-31"]
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
