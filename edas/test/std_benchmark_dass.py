@@ -18,7 +18,8 @@ try:
 
     print( "READ " + dataset )
     start = time.time()
-    ds_m=xa.open_mfdataset( dataset, engine='netcdf4', data_vars=['KE'], parallel=True )
+#    ds_m=xa.open_mfdataset( dataset, engine='netcdf4', data_vars=['KE'], parallel=True )
+    ds_m=xa.open_mfdataset( dataset, engine='netcdf4', data_vars=['KE'] )
     result = ds_m.KE.mean().values
     print( " Completed computation in " + str(time.time() - start) + " seconds" )
 
