@@ -15,7 +15,7 @@ start = time.time()
 dataset = dataset_35year
 
 try:
-    client = Client( 'cldradn101:8786' )
+    client = Client( 'edaskwndev01:8786' )
 
     print "READ " + dataset
     

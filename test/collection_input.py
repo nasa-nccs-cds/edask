@@ -12,7 +12,7 @@ collection = "cip_merra2_mth"
 varName = 'KE'
 
 try:
-    client = Client('cldradn101:8786')
+    client = Client('edaskwndev01:8786')
 
     print "READ " + collection
 
