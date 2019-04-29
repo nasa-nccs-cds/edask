@@ -235,7 +235,7 @@ class ProcessManager(GenericProcessManager):
       self.metricsThread =  Thread( target=self.trackMetrics )
       self.metricsThread.start()
 
-  def trackMetrics(self, sleepTime=0.2 ):
+  def trackMetrics(self, sleepTime=1.0 ):
       while self.active:
           metrics = self.getMetrics()
           self.logger.info( f" METRICS: ** {metrics} ** ")
