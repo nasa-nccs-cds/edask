@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, abc, dask, threading, requests
+import zmq, traceback, time, logging, xml, socket, abc, dask, threading, requests, json
 from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
@@ -222,6 +222,7 @@ class ProcessManager(GenericProcessManager):
       self.logger =  EDASLogger.getLogger()
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
+      self.active = True
       if self.scheduler_address is not None:
           self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
           self.client = Client( self.scheduler_address, timeout=60 )
@@ -231,23 +232,73 @@ class ProcessManager(GenericProcessManager):
           self.scheduler_address = self.client.scheduler.address
           self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers, scheduler address = {self.scheduler_address}")
           self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
+      self.metricsThread =  Thread( target=self.trackMetrics )
+      self.metricsThread.start()
+
+  def trackMetrics(self, sleepTime=0.2 ):
+      while self.active:
+          metrics = self.getMetrics()
+          self.logger.info( f" METRICS: ** {metrics} ** ")
+          time.sleep( sleepTime )
+
+  def getMetrics(self) -> Dict:
+      stoks = self.scheduler_address.split(":")
+      dashboard_address = ":".join(["http",stoks[1],"8787"])
+      profile_address = f"{dashboard_address}/json/counts.json"
+      response: requests.Response = requests.get(profile_address)
+      return response.json()
 
   def getProfileData(self):
       stoks = self.scheduler_address.split(":")
       dashboard_address = ":".join(["http",stoks[1],"8787"])
       profile_address = f"{dashboard_address}/json/counts.json"
-      metrics_address = f"{dashboard_address}/metrics"
-      health_address = f"{dashboard_address}/health"
+      tasks_address = f"{dashboard_address}/tasks"
+      workers_address = f"{dashboard_address}/workers"
       response1: requests.Response = requests.get(profile_address)
       print(f"\n  ---->  Profile Data from {profile_address}: \n **  {response1.json()} ** \n" )
-      response2: requests.Response = requests.get(metrics_address)
-      print(f"\n  ---->  Metrics Data from {metrics_address}: \n **  {response2.text()} ** \n" )
-      response3: requests.Response = requests.get(health_address)
-      print(f"\n  ---->  Health Data from {health_address}: \n **  {response3.text()} ** \n" )
+
+      # response2: requests.Response = requests.get(tasks_address)
+      # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )
+      # response3: requests.Response = requests.get(workers_address)
+      # print(f"\n  ---->  Workers Data from {workers_address}: \n **  {response3.text} ** \n" )
 
 #      data = json.loads(counts)
 
+    # (r"info/main/workers.html", Workers),
+    # (r"info/worker/(.*).html", Worker),
+    # (r"info/task/(.*).html", Task),
+    # (r"info/main/logs.html", Logs),
+    # (r"info/call-stacks/(.*).html", WorkerCallStacks),
+    # (r"info/call-stack/(.*).html", TaskCallStack),
+    # (r"info/logs/(.*).html", WorkerLogs),
+    # (r"json/counts.json", CountsJSON),
+    # (r"json/identity.json", IdentityJSON),
+    # (r"json/index.html", IndexJSON),
+    # (r"individual-plots.json", IndividualPlots),
+    # (r"metrics", PrometheusHandler),
+    # (r"health", HealthHandler),
+
+  # "/system": systemmonitor_doc,
+  # "/stealing": stealing_doc,
+  # "/workers": workers_doc,
+  # "/events": events_doc,
+  # "/counters": counters_doc,
+  # "/tasks": tasks_doc,
+  # "/status": status_doc,
+  # "/profile": profile_doc,
+  # "/profile-server": profile_server_doc,
+  # "/graph": graph_doc,
+  # "/individual-task-stream": individual_task_stream_doc,
+  # "/individual-progress": individual_progress_doc,
+  # "/individual-graph": individual_graph_doc,
+  # "/individual-profile": individual_profile_doc,
+  # "/individual-profile-server": individual_profile_server_doc,
+  # "/individual-nbytes": individual_nbytes_doc,
+  # "/individual-nprocessing": individual_nprocessing_doc,
+  # "/individual-workers": individual_workers_doc,
+
   def term(self):
+      self.active = False
       self.client.close()
 
   def runProcess( self, job: Job ) -> EDASDataset:
