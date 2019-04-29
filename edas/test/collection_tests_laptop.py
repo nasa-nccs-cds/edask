@@ -47,3 +47,5 @@ if __name__ == "__main__":
 #     test_collection_time_ave( collection, variable, time_range_30y )
 
     test_ave_timeslice()
+
+    while True: time.sleep(0.0)
