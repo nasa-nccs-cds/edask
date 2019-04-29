@@ -230,7 +230,7 @@ class ProcessManager(GenericProcessManager):
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.client = Client( LocalCluster( n_workers=nWorkers ) )
           self.scheduler_address = self.client.scheduler.address
-          self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers, scheduler address = {self.scheduler_address}")
+          self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers,  scheduler address = {self.scheduler_address}")
           self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
       self.metricsThread =  Thread( target=self.trackMetrics )
       self.metricsThread.start()
