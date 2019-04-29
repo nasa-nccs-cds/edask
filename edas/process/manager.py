@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, abc, dask, threading
+import zmq, traceback, time, logging, xml, socket, abc, dask, threading, requests
 from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
@@ -227,9 +227,25 @@ class ProcessManager(GenericProcessManager):
           self.client = Client( self.scheduler_address, timeout=60 )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
-          self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )
           self.client = Client( LocalCluster( n_workers=nWorkers ) )
+          self.scheduler_address = self.client.scheduler.address
+          self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers, scheduler address = {self.scheduler_address}")
           self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
+
+  def getProfileData(self):
+      stoks = self.scheduler_address.split(":")
+      dashboard_address = ":".join(["http",stoks[1],"8787"])
+      profile_address = f"{dashboard_address}/json/counts.json"
+      metrics_address = f"{dashboard_address}/metrics"
+      health_address = f"{dashboard_address}/health"
+      response1: requests.Response = requests.get(profile_address)
+      print(f"\n  ---->  Profile Data from {profile_address}: \n **  {response1.json()} ** \n" )
+      response2: requests.Response = requests.get(metrics_address)
+      print(f"\n  ---->  Metrics Data from {metrics_address}: \n **  {response2.text()} ** \n" )
+      response3: requests.Response = requests.get(health_address)
+      print(f"\n  ---->  Health Data from {health_address}: \n **  {response3.text()} ** \n" )
+
+#      data = json.loads(counts)
 
   def term(self):
       self.client.close()
@@ -237,7 +253,7 @@ class ProcessManager(GenericProcessManager):
   def runProcess( self, job: Job ) -> EDASDataset:
     start_time = time.time()
     try:
-        self.logger.info( "Running workflow for requestId " + job.requestId)
+        self.logger.info( f"Running workflow for requestId: {job.requestId}, scheduler: {self.scheduler_address}" )
         result = edasOpManager.buildTask( job )
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
         return result

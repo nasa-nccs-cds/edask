@@ -1,8 +1,7 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import time
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-LOCAL_TESTS = True
-mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
+LOCAL_TESTS = False
 
 def test_ave_timeslice():
     domains = [{ "name":"d0",   "lat":  { "start":-80, "end":80,  "system":"values" },
@@ -45,6 +44,8 @@ if __name__ == "__main__":
 #     time_range_10y = [ "1980-01-01", "1990-01-01" ]
 #     time_range_5m =  [ "1980-01-01", "1980-01-05"]
 #     test_collection_time_ave( collection, variable, time_range_30y )
+
+    mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
 
     test_ave_timeslice()
 
