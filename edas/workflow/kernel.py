@@ -251,8 +251,8 @@ class InputKernel(Kernel):
                 domain = request.operationManager.domains.getDomain( snode.domain )
                 if domain is not None:
                     timeBounds = domain.findAxisBounds(Axis.T)
-                    startDate = None if domain is None else TimeConversions.parseDate(timeBounds.start)
-                    endDate   = None if domain is None else TimeConversions.parseDate(timeBounds.end)
+                    startDate = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.start)
+                    endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)

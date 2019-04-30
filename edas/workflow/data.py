@@ -391,11 +391,22 @@ class EDASDataset:
 
     @classmethod
     def rename(cls, dataset: xa.Dataset, idMap=None) -> xa.Dataset:
-        if idMap is None:
-            idMap = {}
+        if idMap is None: idMap = {}
+        skipMap = {}
+
         for id,val in idMap.items():
             if val not in dataset and val not in dataset.dims:
                 dataset.rename( {id:val}, True )
+                print( f"\n RENAME: {id} -> {val}")
+            else:
+                print(f"\n SKIP RENAME: {id} -> {val}")
+                skipMap[id] = val
+
+        for id,val in skipMap.items():
+            if val not in dataset and val not in dataset.dims:
+                dataset.rename( {id:val}, True )
+                print(f"\n RENAME: {id} -> {val}")
+
         return dataset
 
     def subselect(self, idmatch: str ) -> "EDASDataset":

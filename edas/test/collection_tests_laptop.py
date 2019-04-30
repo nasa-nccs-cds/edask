@@ -35,6 +35,13 @@ def test_asia_time_ave(collection,variable,time_range):
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
+def merra_daily_collection_test():
+    domains = [{ "name":"d0"  } ]
+    variables = [ { "uri": f"collection://merra_daily:", "name":f"t:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"t" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
 if __name__ == "__main__":
 #    collection = "merra2.m2t1nxlnd"
 #    variable = "LWLAND"
@@ -46,7 +53,5 @@ if __name__ == "__main__":
 #     test_collection_time_ave( collection, variable, time_range_30y )
 
     mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, appConf )
-
-    test_ave_timeslice()
-
+    merra_daily_collection_test()
     while True: time.sleep(0.0)

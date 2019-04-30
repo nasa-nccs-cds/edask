@@ -50,18 +50,19 @@ class Archive:
 
 class File:
 
-    def __init__(self, _collection, *args ):
-       self.collection = _collection
+    def __init__(self, _agg: "Aggregation", *args ):
+       self.logger = EDASLogger.getLogger()
+       self.agg = _agg
        self.start_time = float(args[0].strip())
        self.size = int(args[1].strip())
        self.relpath = args[2].strip()
        self.date = datetime.fromtimestamp( self.start_time*60, tz=timezone.utc)
 
     def getPath(self):
-        return os.path.join( self.parm("base.path"), self.relpath )
+        return self.parm("base.path") + "/" + self.relpath
 
     def parm(self, key ):
-        return self.collection.parm( key )
+        return self.agg.parm( key )
 
     @classmethod
     def getNumber(cls, arg: str, isInt = False ) -> int:
@@ -72,7 +73,7 @@ class File:
 
 class Collection:
 
-    cacheDir = EdaskEnv.COLLECTIONS_DIR
+    cacheDir = os.path.expanduser( EdaskEnv.COLLECTIONS_DIR )
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
@@ -93,7 +94,7 @@ class Collection:
 
     def __init__(self, _name, _spec_file ):
         self.name = _name
-        self.spec = _spec_file
+        self.spec = os.path.expanduser( _spec_file )
         self.aggs = {}
         self.parms = {}
         self._parseSpecFile()
