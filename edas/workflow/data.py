@@ -396,16 +396,12 @@ class EDASDataset:
 
         for id,val in idMap.items():
             if val not in dataset and val not in dataset.dims:
-                dataset.rename( {id:val}, True )
-                print( f"\n RENAME: {id} -> {val}")
-            else:
-                print(f"\n SKIP RENAME: {id} -> {val}")
-                skipMap[id] = val
+                   dataset.rename( {id:val}, True )
+            else:  skipMap[id] = val
 
         for id,val in skipMap.items():
             if val not in dataset and val not in dataset.dims:
                 dataset.rename( {id:val}, True )
-                print(f"\n RENAME: {id} -> {val}")
 
         return dataset
 
