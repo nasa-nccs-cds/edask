@@ -59,8 +59,8 @@ class EDASapp(EDASPortal):
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         if uType.startswith( "metrics" ):
             mtype = utilSpec[1].lower()
-            metrics = "" # self.cluster.getMetrics( mtype)
-            return Message("metrics",mtype, json.dumps( metrics ) )
+            metrics = self.processManager.getMetrics(mtype)
+            return Message("metrics", mtype, json.dumps( metrics ) )
         return Message("","","")
 
     def getRunArgs( self, taskSpec: Sequence[str] )-> Dict[str,str]:

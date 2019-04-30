@@ -241,7 +241,7 @@ class ProcessManager(GenericProcessManager):
           self.logger.info( f" METRICS: ** {metrics} ** ")
           time.sleep( sleepTime )
 
-  def getMetrics(self) -> Dict:
+  def getMetrics(self, mtype: str ) -> Dict:
       stoks = self.scheduler_address.split(":")
       dashboard_address = ":".join(["http",stoks[1],"8787"])
       profile_address = f"{dashboard_address}/json/counts.json"
