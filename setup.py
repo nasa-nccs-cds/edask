@@ -15,7 +15,7 @@ if not os.path.isfile(INSTALLED_CONFIG_FILE):
       print( f"Installing edas config file 'app.conf'' into directory '{CONFIG_DIR}'")
 if not os.path.isfile(INSTALLED_HOST_FILE):
       copyfile( HOSTS, INSTALLED_HOST_FILE )
-      print(f"Installing edas hosts file 'hosts'' into directory '{CONFIG_DIR}'")
+      print( f"Installing edas hosts file 'hosts' into directory '{CONFIG_DIR}'" )
 
 setup(name='edas',
       version='1.0',
