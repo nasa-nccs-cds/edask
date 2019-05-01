@@ -61,6 +61,10 @@ class EDASapp(EDASPortal):
             mtype = utilSpec[1].lower()
             metrics = self.processManager.getProfileData(mtype)
             return Message("metrics", mtype, json.dumps( metrics ) )
+        if uType.startswith("health"):
+            mtype = utilSpec[1].lower()
+            health = self.processManager.getHealth(mtype)
+            return Message( "health", mtype, health )
         return Message("","","")
 
     def getRunArgs( self, taskSpec: Sequence[str] )-> Dict[str,str]:

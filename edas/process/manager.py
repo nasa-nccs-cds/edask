@@ -255,11 +255,17 @@ class ProcessManager(GenericProcessManager):
                   self.logger.info( f" *** {key}: {value}" )
               time.sleep( sleepTime )
 
-  def getCounts(self) -> Dict:
+  def getDashboardAddress(self):
       stoks = self.scheduler_address.split(":")
-      dashboard_address = ":".join(["http",stoks[1],"8787"])
-      profile_address = f"{dashboard_address}/json/counts.json"
+      return ":".join(["http",stoks[1],"8787"])
+
+  def getCounts(self) -> Dict:
+      profile_address = f"{self.getDashboardAddress()}/json/counts.json"
       return requests.get(profile_address).json()
+
+  def getHealth(self, mtype: str = "" ) -> str:
+      profile_address = f"{self.getDashboardAddress()}/health"
+      return requests.get(profile_address).text
 
   def getMetrics(self, mtype: str = "" ) -> Optional[Dict]:
       counts = self.getCounts()
