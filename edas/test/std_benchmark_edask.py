@@ -13,7 +13,7 @@ edas_cip_tas_mon="/dass/dassnsd/data01/cldra/data/pubrepo/CREATE-IP/data/reanaly
 dataset = edas_cip_tas_mon
 
 try:
-    client = Client( 'edaswndev01:8786' )
+    client = Client( 'edaskwndev01:8786' )
     print( "READ " + dataset )
     
     ds_m=xa.open_mfdataset( dataset, data_vars=['tas'] )
