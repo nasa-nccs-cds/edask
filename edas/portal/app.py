@@ -59,7 +59,7 @@ class EDASapp(EDASPortal):
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         if uType.startswith( "metrics" ):
             mtype = utilSpec[1].lower()
-            metrics = self.processManager.getMetrics(mtype)
+            metrics = self.processManager.getProfileData(mtype)
             return Message("metrics", mtype, json.dumps( metrics ) )
         return Message("","","")
 

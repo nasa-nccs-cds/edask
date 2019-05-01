@@ -232,30 +232,51 @@ class ProcessManager(GenericProcessManager):
           self.scheduler_address = self.client.scheduler.address
           self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers,  scheduler address = {self.scheduler_address}")
           self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
-#      self.metricsThread =  Thread( target=self.trackMetrics )
-#      self.metricsThread.start()
+      self.ncores = self.client.ncores()
+      self.logger.info(f" ncores: {self.ncores}")
+      self.scheduler_info = self.client.scheduler_info()
+      self.workers: Dict = self.scheduler_info.pop("workers")
+      self.logger.info(f" workers: {self.workers}")
+      self.metricsThread =  Thread( target=self.trackMetrics )
+      self.metricsThread.start()
 
   def trackMetrics(self, sleepTime=1.0 ):
+      isIdle = False
       while self.active:
           metrics = self.getMetrics()
-          self.logger.info( f" METRICS: ** {metrics} ** ")
-          time.sleep( sleepTime )
+          if metrics is None:
+              if not isIdle:
+                self.logger.info(f" ** CLUSTER IS IDLE ** ")
+                isIdle = True
+          else:
+              isIdle = False
+              self.logger.info( f" METRICS: " )
+              for key,value in metrics.items():
+                  self.logger.info( f" *** {key}: {value}" )
+              time.sleep( sleepTime )
 
-  def getMetrics(self, mtype: str ) -> Dict:
+  def getCounts(self) -> Dict:
       stoks = self.scheduler_address.split(":")
       dashboard_address = ":".join(["http",stoks[1],"8787"])
       profile_address = f"{dashboard_address}/json/counts.json"
-      response: requests.Response = requests.get(profile_address)
-      return response.json()
+      return requests.get(profile_address).json()
 
-  def getProfileData(self):
-      stoks = self.scheduler_address.split(":")
-      dashboard_address = ":".join(["http",stoks[1],"8787"])
-      profile_address = f"{dashboard_address}/json/counts.json"
-      tasks_address = f"{dashboard_address}/tasks"
-      workers_address = f"{dashboard_address}/workers"
-      response1: requests.Response = requests.get(profile_address)
-      print(f"\n  ---->  Profile Data from {profile_address}: \n **  {response1.json()} ** \n" )
+  def getMetrics(self, mtype: str = "" ) -> Optional[Dict]:
+      counts = self.getCounts()
+      if counts['processing'] == 0: return None
+      mtypes = mtype.split(",")
+      metrics = { "counts": counts }
+      if "processing" in mtypes:  metrics["processing"] = self.client.processing()
+      if "profile" in mtypes:     metrics["profile"]    = self.client.profile()
+      return metrics
+
+  def getProfileData( self, mtype: str = "" ) -> Dict:
+      counts = self.getCounts()
+      metrics = { "counts": counts }
+      metrics['ncores'] = self.ncores
+      metrics['workers'] = self.workers
+      return metrics
+
 
       # response2: requests.Response = requests.get(tasks_address)
       # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )

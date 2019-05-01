@@ -114,7 +114,6 @@ class DistributedTestManager(TestManager):
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
         execHandler = ExecHandler("local", job, workers=job.workers)
         execHandler.execJob( job )
-        self.processManager.getProfileData()
         return execHandler.getResult()
 
 
