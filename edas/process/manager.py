@@ -243,8 +243,9 @@ class ProcessManager(GenericProcessManager):
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False
       while self.active:
-          metrics = self.getMetrics()
-          if metrics is None:
+          metrics = self.getProfileData()
+          counts = metrics["counts"]
+          if counts['processing'] == 0:
               if not isIdle:
                 self.logger.info(f" ** CLUSTER IS IDLE ** ")
                 isIdle = True
@@ -253,7 +254,16 @@ class ProcessManager(GenericProcessManager):
               self.logger.info( f" METRICS: " )
               for key,value in metrics.items():
                   self.logger.info( f" *** {key}: {value}" )
+              self.logger.info(f" HEALTH: {self.getHealth()}")
               time.sleep( sleepTime )
+
+  def getWorkerMetrics(self):
+      metrics = { ''}
+      wkeys = [ 'ncores', 'memory_limit', 'last_seen', 'metrics' ]
+      workers: Dict = self.client.scheduler_info()["workers"]
+      for iW, worker in enumerate( workers.values() ):
+          metrics[f"W{iW}"] = { wkey: worker[wkey] for wkey in wkeys }
+      return metrics
 
   def getDashboardAddress(self):
       stoks = self.scheduler_address.split(":")
@@ -277,12 +287,7 @@ class ProcessManager(GenericProcessManager):
       return metrics
 
   def getProfileData( self, mtype: str = "" ) -> Dict:
-      counts = self.getCounts()
-      metrics = { "counts": counts }
-      metrics['ncores'] = self.ncores
-      metrics['workers'] = self.workers
-      return metrics
-
+      return { "counts":  self.getCounts(), "ncores": self.ncores, "workers": self.getWorkerMetrics() }
 
       # response2: requests.Response = requests.get(tasks_address)
       # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )
