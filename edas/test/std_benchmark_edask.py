@@ -16,7 +16,7 @@ try:
     client = Client( 'edaswndev01:8786' )
     print( "READ " + dataset )
     
-    ds_m=xa.open_mfdataset( dataset, autoclose=True, data_vars=['tas'], parallel=True )
+    ds_m=xa.open_mfdataset( dataset, data_vars=['tas'] )
 
     print( "COMPUTE MEAN, Result:" )
 
