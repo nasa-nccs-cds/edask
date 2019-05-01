@@ -20,10 +20,10 @@ Install EDAS:
 
 #### Configuration
 
-The edas configuration files are found in the edas/resources direcory.
-To set up a cluster, copy the edas/resources/hosts.template file to edas/resources/hosts and edit to enter the names of the workers in your cluster.
-To setup EDAS server configuration, copy the edas/resources/app.conf file to ~/.edas/conf/app.conf and edit.
-Log files will be written to ~/.edas/logs.
+The edas configuration files, 'app.conf' and 'hosts' are copied to the edas configuration directory during the first installation of edas.  The edas configuration 
+directory is defined by the environment variable EDAS_CONFIG_DIR, and defaults to ~/.edas/conf if that variable is not defined. To set up a cluster, edit the 
+'hosts' file to enter the names of the workers in your cluster. To setup EDAS server configuration, edit the app.conf file.  The config parameters are described 
+below.  Log files will be written to ~/.edas/logs.
 
 #### Startup
 
