@@ -268,7 +268,7 @@ class ProcessManager(GenericProcessManager):
 
   def getDashboardAddress(self):
       stoks = self.scheduler_address.split(":")
-      return ":".join(["http",stoks[1],"8787"])
+      return ":".join(["http",stoks[-2],"8787"])
 
   def getCounts(self) -> Dict:
       profile_address = f"{self.getDashboardAddress()}/json/counts.json"
@@ -288,7 +288,11 @@ class ProcessManager(GenericProcessManager):
       return metrics
 
   def getProfileData( self, mtype: str = "" ) -> Dict:
-      return { "counts": self.getCounts(), "workers": self.getWorkerMetrics() }
+      try:
+        return { "counts": self.getCounts(), "workers": self.getWorkerMetrics() }
+      except Exception as err:
+          self.logger.error( "Error in getProfileData")
+          self.logger.error(traceback.format_exc())
 
       # response2: requests.Response = requests.get(tasks_address)
       # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )
