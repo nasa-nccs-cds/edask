@@ -258,7 +258,7 @@ class ProcessManager(GenericProcessManager):
               time.sleep( sleepTime )
 
   def getWorkerMetrics(self):
-      metrics = { ''}
+      metrics = {}
       wkeys = [ 'ncores', 'memory_limit', 'last_seen', 'metrics' ]
       workers: Dict = self.client.scheduler_info()["workers"]
       for iW, worker in enumerate( workers.values() ):
@@ -287,7 +287,7 @@ class ProcessManager(GenericProcessManager):
       return metrics
 
   def getProfileData( self, mtype: str = "" ) -> Dict:
-      return { "counts":  self.getCounts(), "ncores": self.ncores, "workers": self.getWorkerMetrics() }
+      return { "counts": self.getCounts(), "workers": self.getWorkerMetrics() }
 
       # response2: requests.Response = requests.get(tasks_address)
       # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )
