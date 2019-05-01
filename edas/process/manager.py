@@ -260,7 +260,8 @@ class ProcessManager(GenericProcessManager):
   def getWorkerMetrics(self):
       metrics = {}
       wkeys = [ 'ncores', 'memory_limit', 'last_seen', 'metrics' ]
-      workers: Dict = self.client.scheduler_info()["workers"]
+      scheduler_info = self.client.scheduler_info()
+      workers: Dict = scheduler_info.get( "workers", {} )
       for iW, worker in enumerate( workers.values() ):
           metrics[f"W{iW}"] = { wkey: worker[wkey] for wkey in wkeys }
       return metrics

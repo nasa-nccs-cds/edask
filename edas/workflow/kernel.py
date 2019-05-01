@@ -257,25 +257,24 @@ class InputKernel(Kernel):
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
-                    dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True )
+                    dset = xr.open_mfdataset( pathList, data_vars=vars ) # , parallel=True )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
                     self.logger.info(f"Collection import complete.")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
-                dset = xr.open_mfdataset(dataSource.address, autoclose=True, data_vars=snode.varSource.ids, parallel=True)
+                dset = xr.open_mfdataset(dataSource.address, data_vars=snode.varSource.ids ) # , parallel=True )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.archive:
                 self.logger.info( "Reading data from archive: " + dataSource.address )
                 dataPath =  request.archivePath( dataSource.address )
-                dset = xr.open_dataset(dataPath, autoclose=True)
+                dset = xr.open_mfdataset( [dataPath] )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
                 engine = EdaskEnv.get("dap.engine", "netcdf4")
                 self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
-                session = self.getSession( dataSource )
                 dap_engine = 'netcdf4' # engine if session is None else "pydap"
-                dset = xr.open_dataset(dataSource.address, engine=dap_engine ) # , backend_kwargs=dict(session=session) )
+                dset = xr.open_mfdataset([dataSource.address], engine=dap_engine, data_vars=snode.varSource.ids )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
