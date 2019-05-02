@@ -268,7 +268,7 @@ class ProcessManager(GenericProcessManager):
 
   def getDashboardAddress(self):
       stoks = self.scheduler_address.split(":")
-      return ":".join(["http",stoks[-2],"8787"])
+      return f"http://{stoks[-2]}:8787"
 
   def getCounts(self) -> Dict:
       profile_address = f"{self.getDashboardAddress()}/json/counts.json"
