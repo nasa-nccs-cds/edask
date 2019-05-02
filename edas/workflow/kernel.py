@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time, socket, threading, os, traceback
+import logging, random, string, time, socket, threading, os, traceback, glob
 from edas.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
@@ -257,13 +257,16 @@ class InputKernel(Kernel):
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
-                    dset = xr.open_mfdataset( pathList, data_vars=vars ) # , parallel=True )
+                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
                     self.logger.info(f"Collection import complete.")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
-                dset = xr.open_mfdataset(dataSource.address, data_vars=snode.varSource.ids ) # , parallel=True )
+                files = glob.glob( dataSource.address )
+                parallel = len(files) > 1
+                assert len(files) > 0, f"No files matching path {dataSource.address}"
+                dset = xr.open_mfdataset(dataSource.address, engine='netcdf4', data_vars=snode.varSource.ids, parallel=parallel )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.archive:
                 self.logger.info( "Reading data from archive: " + dataSource.address )
@@ -271,10 +274,8 @@ class InputKernel(Kernel):
                 dset = xr.open_mfdataset( [dataPath] )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
-                engine = EdaskEnv.get("dap.engine", "netcdf4")
-                self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + engine )
-                dap_engine = 'netcdf4' # engine if session is None else "pydap"
-                dset = xr.open_mfdataset([dataSource.address], engine=dap_engine, data_vars=snode.varSource.ids )
+                self.logger.info( " --------------->>> Reading data from address: " + dataSource.address )
+                dset = xr.open_mfdataset([dataSource.address], engine="netcdf4", data_vars=snode.varSource.ids )
                 self.importToDatasetCollection( results, request, snode, dset )
             self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
