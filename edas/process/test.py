@@ -32,6 +32,8 @@ def d2s(dict: Dict[str, str]) -> str:
 class TestDataManager:
     addresses = {
         "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
+        "merra2-day": CreateIPServer + "/reanalysis/MERRA2/day/atmos/{}.ncml",
+        "merra2-6hr": CreateIPServer + "/reanalysis/MERRA2/6hr/atmos/{}.ncml",
         "merra": CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
         "ecmwf": CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
         "cfsr": CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",

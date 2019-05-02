@@ -1,5 +1,6 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
 import numpy.ma as ma
+import xarray as xa
 import time
 LOCAL_TESTS = True
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
