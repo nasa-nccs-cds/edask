@@ -19,7 +19,7 @@ def test_mean(mgr,dataset,variable,time_range):
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
-def test_full_mean(mgr,dataset,variable):
+def test_full_mean( mgr, dataset, variable ):
     print( f"Executing Time average on var {variable} in dataset {dataset}")
     domains = [{ "name":"d0" } ]
     variables = [ { "uri": mgr.getAddress( dataset, variable ), "name":f"{variable}:v0", "domain":"d0" } ]
