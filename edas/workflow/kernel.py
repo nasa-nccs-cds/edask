@@ -274,11 +274,11 @@ class InputKernel(Kernel):
                 dset = xr.open_mfdataset( [dataPath] )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
-                self.logger.info( " --------------->>> Reading data from address: " + dataSource.address )
-                chunks = 8
-                dset = xr.open_mfdataset([dataSource.address], engine="netcdf4", data_vars=snode.varSource.ids, chunks={"time":chunks}  )
+                nchunks = 8
+                self.logger.info( f" --------------->>> Reading data from address: {dataSource.address}, nchunks = {nchunks}" )
+                dset = xr.open_mfdataset([dataSource.address], engine="netcdf4", data_vars=snode.varSource.ids, chunks={"time":nchunks}  )
                 self.importToDatasetCollection( results, request, snode, dset )
-            self.logger.info( "Access input data source {}, time = {} sec, chunks = {}".format( dataSource.address, str( time.time() - t0 ) ), chunks  )
+            self.logger.info( f"Access input data source {dataSource.address}, time = {time.time() - t0} sec" )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
         return results
 
