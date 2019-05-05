@@ -83,7 +83,7 @@ class TaskRequest:
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
     variableManager = VariableManager.new( job.dataInputs.get("variable") )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager)
+    rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager, job.runargs )
     return rv
 
   @classmethod
@@ -94,16 +94,17 @@ class TaskRequest:
     domainManager = DomainManager.new( dataInputs.get("domain") )
     variableManager = VariableManager.new( dataInputs.get("variable") )
     operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest( uid, project, experiment, identifier, operationManager )
+    rv = TaskRequest( uid, project, experiment, identifier, operationManager, {} )
     return rv
 
-  def __init__( self, id: UID, project: str, experiment: str, name: str, _operationManager: OperationManager ):
+  def __init__( self, id: UID, project: str, experiment: str, name: str, _operationManager: OperationManager, runargs: Dict ):
       self.uid = id
       self.name = name
       self.project = project
       self.experiment = experiment
       self.operationManager = _operationManager
       self._resultCache: Dict[ str,  EDASDatasetCollection ] = {}
+      self.runargs = runargs
 
   def getCachedResult( self, key: str )->  EDASDatasetCollection:
       return self._resultCache.get( key )

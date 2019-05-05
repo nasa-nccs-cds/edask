@@ -274,7 +274,7 @@ class InputKernel(Kernel):
                 dset = xr.open_mfdataset( [dataPath] )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
-                nchunks = 16
+                nchunks = request.runargs.get( "ncores", 8 )
                 self.logger.info( f" --------------->>> Reading data from address: {dataSource.address}, nchunks = {nchunks}" )
                 dset = xr.open_mfdataset([dataSource.address], engine="netcdf4", data_vars=snode.varSource.ids, chunks={"time":nchunks}  )
                 self.importToDatasetCollection( results, request, snode, dset )

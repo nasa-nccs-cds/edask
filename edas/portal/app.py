@@ -96,6 +96,7 @@ class EDASapp(EDASPortal):
         proj = runargs.get("proj", "proj-" + Job.randomStr(4) )
         exp = runargs.get("exp",  "exp-" + Job.randomStr(4) )
         process_name = self.elem(taskSpec,2)
+        runargs["ncores"] = self.processManager.ncores.items()[0][1]
         dataInputsSpec = self.elem(taskSpec,3)
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
