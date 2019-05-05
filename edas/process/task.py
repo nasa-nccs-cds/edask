@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
-import logging, random, string
+import logging, random, string, traceback
 import xarray as xa
 from edas.process.domain import DomainManager, Domain, AxisBounds, Axis
 import copy, pandas as pd
@@ -29,6 +29,7 @@ class UID:
 class Job:
 
   def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
+        self.logger = EDASLogger.getLogger()
         self.requestId = requestId
         self.process = process
         self.project = project
@@ -37,6 +38,11 @@ class Job:
         self.runargs = runargs
         self.priority = priority
         self.workerIndex = 0
+        self.logger.info( f"Create job, runargs = {runargs}")
+        try:
+            raise Exception("Job Creation")
+        except Exception:
+            self.logger.info( traceback.format_exc() )
 
   @staticmethod
   def new( requestId: str, project: str, experiment: str, process: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
