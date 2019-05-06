@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, abc, dask, threading
+import zmq, traceback, time, logging, xml, socket, abc, dask, threading, requests, json
 from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
@@ -226,29 +226,132 @@ class GenericProcessManager:
 
 class ProcessManager(GenericProcessManager):
 
-  def __init__( self, serverConfiguration: Dict[str,str], cluster: EDASCluster = None ):
+  def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
-      self.cluster = cluster
+      self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
-      if self.cluster is not None:
-          self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.cluster.scheduler_address )
-          self.client = Client( self.cluster.scheduler_address, timeout=60 )
+      self.active = True
+      if self.scheduler_address is not None:
+          self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
+          self.client = Client( self.scheduler_address, timeout=60 )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
-          self.logger.info( "Initializing Local Dask cluster with {} workers".format(nWorkers) )
           self.client = Client( LocalCluster( n_workers=nWorkers ) )
+          self.scheduler_address = self.client.scheduler.address
+          self.logger.info( f"Initializing Local Dask cluster with {nWorkers} workers,  scheduler address = {self.scheduler_address}")
           self.client.submit( lambda x: edasOpManager.buildIndices( x ), nWorkers )
+      self.ncores = self.client.ncores()
+      self.logger.info(f" ncores: {self.ncores}")
+      self.scheduler_info = self.client.scheduler_info()
+      self.workers: Dict = self.scheduler_info.pop("workers")
+      self.logger.info(f" workers: {self.workers}")
+#      self.metricsThread =  Thread( target=self.trackMetrics )
+#      self.metricsThread.start()
+
+  def trackMetrics(self, sleepTime=1.0 ):
+      isIdle = False
+      while self.active:
+          metrics = self.getProfileData()
+          counts = metrics["counts"]
+          if counts['processing'] == 0:
+              if not isIdle:
+                self.logger.info(f" ** CLUSTER IS IDLE ** ")
+                isIdle = True
+          else:
+              isIdle = False
+              self.logger.info( f" METRICS: " )
+              for key,value in metrics.items():
+                  self.logger.info( f" *** {key}: {value}" )
+              self.logger.info(f" HEALTH: {self.getHealth()}")
+              time.sleep( sleepTime )
+
+  def getWorkerMetrics(self):
+      metrics = {}
+      wkeys = [ 'ncores', 'memory_limit', 'last_seen', 'metrics' ]
+      scheduler_info = self.client.scheduler_info()
+      workers: Dict = scheduler_info.get( "workers", {} )
+      for iW, worker in enumerate( workers.values() ):
+          metrics[f"W{iW}"] = { wkey: worker[wkey] for wkey in wkeys }
+      return metrics
+
+  def getDashboardAddress(self):
+      stoks = self.scheduler_address.split(":")
+      return f"http://{stoks[-2]}:8787"
+
+  def getCounts(self) -> Dict:
+      profile_address = f"{self.getDashboardAddress()}/json/counts.json"
+      return requests.get(profile_address).json()
+
+  def getHealth(self, mtype: str = "" ) -> str:
+      profile_address = f"{self.getDashboardAddress()}/health"
+      return requests.get(profile_address).text
+
+  def getMetrics(self, mtype: str = "" ) -> Optional[Dict]:
+      counts = self.getCounts()
+      if counts['processing'] == 0: return None
+      mtypes = mtype.split(",")
+      metrics = { "counts": counts }
+      if "processing" in mtypes:  metrics["processing"] = self.client.processing()
+      if "profile" in mtypes:     metrics["profile"]    = self.client.profile()
+      return metrics
+
+  def getProfileData( self, mtype: str = "" ) -> Dict:
+      try:
+        return { "counts": self.getCounts(), "workers": self.getWorkerMetrics() }
+      except Exception as err:
+          self.logger.error( "Error in getProfileData")
+          self.logger.error(traceback.format_exc())
+
+      # response2: requests.Response = requests.get(tasks_address)
+      # print(f"\n  ---->  Tasks Data from {tasks_address}: \n **  {response2.text} ** \n" )
+      # response3: requests.Response = requests.get(workers_address)
+      # print(f"\n  ---->  Workers Data from {workers_address}: \n **  {response3.text} ** \n" )
+
+#      data = json.loads(counts)
+
+    # (r"info/main/workers.html", Workers),
+    # (r"info/worker/(.*).html", Worker),
+    # (r"info/task/(.*).html", Task),
+    # (r"info/main/logs.html", Logs),
+    # (r"info/call-stacks/(.*).html", WorkerCallStacks),
+    # (r"info/call-stack/(.*).html", TaskCallStack),
+    # (r"info/logs/(.*).html", WorkerLogs),
+    # (r"json/counts.json", CountsJSON),
+    # (r"json/identity.json", IdentityJSON),
+    # (r"json/index.html", IndexJSON),
+    # (r"individual-plots.json", IndividualPlots),
+    # (r"metrics", PrometheusHandler),
+    # (r"health", HealthHandler),
+
+  # "/system": systemmonitor_doc,
+  # "/stealing": stealing_doc,
+  # "/workers": workers_doc,
+  # "/events": events_doc,
+  # "/counters": counters_doc,
+  # "/tasks": tasks_doc,
+  # "/status": status_doc,
+  # "/profile": profile_doc,
+  # "/profile-server": profile_server_doc,
+  # "/graph": graph_doc,
+  # "/individual-task-stream": individual_task_stream_doc,
+  # "/individual-progress": individual_progress_doc,
+  # "/individual-graph": individual_graph_doc,
+  # "/individual-profile": individual_profile_doc,
+  # "/individual-profile-server": individual_profile_server_doc,
+  # "/individual-nbytes": individual_nbytes_doc,
+  # "/individual-nprocessing": individual_nprocessing_doc,
+  # "/individual-workers": individual_workers_doc,
 
   def term(self):
+      self.active = False
       self.client.close()
 
   def runProcess( self, job: Job ) -> EDASDataset:
     start_time = time.time()
     try:
-        self.logger.info( "** Running workflow for requestId " + job.requestId)
+        self.logger.info( f"Running workflow for requestId: {job.requestId}, scheduler: {self.scheduler_address}" )
         result = edasOpManager.buildTask( job )
-        self.cluster.logMetrics()
         self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
         return result
     except Exception as err:

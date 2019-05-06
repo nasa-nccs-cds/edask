@@ -2,7 +2,7 @@ from edas.data.processing import Analytics, Parser
 from typing import List, Dict, Sequence, Set, Iterable
 import numpy as np
 import sys, copy, logging
-from .kernel import Kernel, KernelSpec, EDASDataset, OpKernel
+from workflow.kernel import Kernel, KernelSpec, EDASDataset, OpKernel
 import xarray as xa
 from edas.process.operation import WorkflowNode, OpNode, MasterNode
 from edas.workflow.data import EDASArray

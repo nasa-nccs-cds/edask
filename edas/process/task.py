@@ -1,6 +1,6 @@
 from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
 from stratus_endpoint.handler.base import TaskResult
-import logging, random, string
+import logging, random, string, traceback
 import xarray as xa
 from edas.process.domain import DomainManager, Domain, AxisBounds, Axis
 import copy, pandas as pd
@@ -30,6 +30,7 @@ class UID:
 class Job:
 
   def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], inputs: List[TaskResult], runargs: Dict[str, str], priority: float):
+        self.logger = EDASLogger.getLogger()
         self.requestId = requestId
         self.process = process
         self.project = project
@@ -39,6 +40,8 @@ class Job:
         self.runargs = runargs
         self.priority = priority
         self.workerIndex = 0
+        self.logger.info( f"Create job, runargs = {runargs}")
+        self.logger.info( traceback.format_stack() )
 
   @staticmethod
   def new( requestId: str, project: str, experiment: str, process: str, datainputs: str, inputs: List[TaskResult],  runargs: Dict[str,str], priority: float ):
@@ -89,7 +92,7 @@ class TaskRequest:
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
     variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ), job.inputs )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager)
+    rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager, job.runargs )
     return rv
 
   @classmethod
@@ -100,16 +103,17 @@ class TaskRequest:
     domainManager = DomainManager.new( dataInputs.get("domain") )
     variableManager = VariableManager.new( dataInputs.get("variable") )
     operationManager = OperationManager.new( dataInputs.get("operation"), domainManager, variableManager )
-    rv = TaskRequest( uid, project, experiment, identifier, operationManager )
+    rv = TaskRequest( uid, project, experiment, identifier, operationManager, {} )
     return rv
 
-  def __init__( self, id: UID, project: str, experiment: str, name: str, _operationManager: OperationManager ):
+  def __init__( self, id: UID, project: str, experiment: str, name: str, _operationManager: OperationManager, runargs: Dict ):
       self.uid = id
       self.name = name
       self.project = project
       self.experiment = experiment
       self.operationManager = _operationManager
       self._resultCache: Dict[ str,  EDASDatasetCollection ] = {}
+      self.runargs = runargs
 
   def getCachedResult( self, key: str )->  EDASDatasetCollection:
       return self._resultCache.get( key )

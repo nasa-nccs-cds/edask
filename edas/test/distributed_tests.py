@@ -1,6 +1,6 @@
 from edas.process.test import DistributedTestManager
-appConf = { "sources.allowed": "collection,https" }
-mgr = DistributedTestManager( "PyTest", "test_suite", appConf )
+import time
+appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 
 def test_ave_timeslice():
     domains = [{ "name":"d0",   "lat":  { "start":-80, "end":80,  "system":"values" },
@@ -11,4 +11,6 @@ def test_ave_timeslice():
     mgr.print(results)
 
 if __name__ == "__main__":
+    mgr = DistributedTestManager("PyTest", "test_suite", appConf)
+    time.sleep(10)
     test_ave_timeslice()

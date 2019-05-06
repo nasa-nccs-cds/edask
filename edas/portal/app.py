@@ -17,7 +17,8 @@ class EDASapp(EDASPortal):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
+
+    def __init__( self, scheduler_address: str = None, client_address: str = None, request_port: int = None, response_port: int = None ):
         super( EDASapp, self ).__init__(get_or_else(client_address, EdasEnv.get("wps.server.address", "*")),
                                         get_or_else(request_port, EdasEnv.get("request.port", 4556)),
                                         get_or_else(response_port, EdasEnv.get("response.port", 4557)))
@@ -25,10 +26,12 @@ class EDASapp(EDASPortal):
         self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
         self.logger.info( "STARTUP CLUSTER")
-        self.cluster = EDASCluster()
-        self.processManager = ProcessManager(EdasEnv.parms, self.cluster)
+        self.processManager = ProcessManager( EdasEnv.parms )
         self.scheduler_info = self.processManager.client.scheduler_info()
-        self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
+        workers: Dict = self.scheduler_info.pop("workers")
+        self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))
+        self.logger.info(f" N Workers: {len(workers)} " )
+        for addr, specs in workers.items(): self.logger.info(f"  -----> Worker {addr}: {specs}" )
 
     def start( self ): self.run()
 
@@ -57,8 +60,12 @@ class EDASapp(EDASPortal):
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         if uType.startswith( "metrics" ):
             mtype = utilSpec[1].lower()
-            metrics = self.cluster.getMetrics( mtype)
-            return Message("metrics",mtype, json.dumps( metrics ) )
+            metrics = self.processManager.getProfileData(mtype)
+            return Message("metrics", mtype, json.dumps( metrics ) )
+        if uType.startswith("health"):
+            mtype = utilSpec[1].lower()
+            health = self.processManager.getHealth(mtype)
+            return Message( "health", mtype, health )
         return Message("","","")
 
     def getRunArgs( self, taskSpec: Sequence[str] )-> Dict[str,str]:
@@ -90,6 +97,7 @@ class EDASapp(EDASPortal):
         proj = runargs.get("proj", "proj-" + Job.randomStr(4) )
         exp = runargs.get("exp",  "exp-" + Job.randomStr(4) )
         process_name = self.elem(taskSpec,2)
+        runargs["ncores"] = self.processManager.ncores.items()[0][1]
         dataInputsSpec = self.elem(taskSpec,3)
         self.setExeStatus( clientId, jobId, "executing " + process_name + "-> " + dataInputsSpec )
         self.logger.info( " @@E: Executing " + process_name + "-> " + dataInputsSpec + ", jobId = " + jobId + ", runargs = " + str(runargs) )
@@ -128,7 +136,6 @@ class EDASapp(EDASPortal):
 
 
     def shutdown(self):
-        self.cluster.shutdown()
         if self.processManager is not None:
             self.processManager.term()
 

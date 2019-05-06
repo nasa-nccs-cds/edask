@@ -64,8 +64,10 @@ class Axis(Enum):
     @classmethod
     def updateMap( cls, axis_map: Dict, name: str, axis: "Axis", nameToAxis: bool, axis2str: bool ):
         aval = axis.name.lower() if axis2str else axis
-        if nameToAxis:  axis_map[name] = aval
-        else:           axis_map[aval] = name
+        if nameToAxis:
+            axis_map[name] = aval
+        else:
+            axis_map[aval] = name
 
     @classmethod
     def getDatasetCoordMap( cls, dset: xa.Dataset, nameToAxis = True, axis2str = True ) -> Dict:
@@ -73,7 +75,8 @@ class Axis(Enum):
         for ( name, coord ) in dset.coords.items():
             axis = cls.getAxisAttr( coord )
             if axis == cls.UNKNOWN: axis = cls.parse(name)
-            if axis != cls.UNKNOWN: cls.updateMap( axis_map, name, axis, nameToAxis, axis2str )
+            if axis != cls.UNKNOWN:
+                cls.updateMap( axis_map, name, axis, nameToAxis, axis2str )
         return axis_map
 
 class AxisBounds:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -10,21 +10,30 @@ with open( "requirements.txt" ) as f:
       if dep.strip() != '' and not dep.startswith('-e'):
           install_requires.add( dep )
 
+from shutil import copyfile
+HERE = os.path.dirname(__file__)
+CONFIG_FILE = os.path.join( HERE, "resources", 'app.conf.template' )
+HOSTS = os.path.join( HERE, "resources", 'hosts' )
+CONFIG_DIR = os.environ.get('EDAS_CONFIG_DIR', os.path.expanduser("~/.edas/conf" ) )
+try: os.makedirs( CONFIG_DIR )
+except: pass
+INSTALLED_CONFIG_FILE=os.path.join( CONFIG_DIR, 'app.conf' )
+INSTALLED_HOST_FILE=os.path.join( CONFIG_DIR, 'hosts' )
+if not os.path.isfile(INSTALLED_CONFIG_FILE):
+      copyfile( CONFIG_FILE, INSTALLED_CONFIG_FILE )
+      print( f"Installing edas config file 'app.conf'' into directory '{CONFIG_DIR}'")
+if not os.path.isfile(INSTALLED_HOST_FILE):
+      copyfile( HOSTS, INSTALLED_HOST_FILE )
+      print( f"Installing edas hosts file 'hosts' into directory '{CONFIG_DIR}'" )
+
+
 setup(name='edas',
       version='1.0',
       zip_safe=False,
       description='EDAS: Earth Data Analytic Services using the dasK / xarray toolkit',
       author='Thomas Maxwell',
       author_email='thomas.maxwell@nasa.gov',
-      url='https://github.com/nasa-nccs-cds/edask.git',
-      long_description=long_description,
-      long_description_content_type="text/markdown",
-      scripts=['bin/startup_scheduler', 'bin/startup_cluster.sh', 'bin/startup_cluster_dask.sh'],
-      packages=find_packages(),
-#      install_requires=list(install_requires),
-      classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
+      url='https://github.com/nasa-nccs-cds/edas.git',
+      scripts=['bin/startup_scheduler', 'bin/startup_cluster_local.sh', 'bin/startup_cluster_distributed.sh'],
+      packages=find_packages(exclude="sandbox")
 )

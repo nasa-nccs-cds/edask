@@ -20,6 +20,7 @@ class ParameterManager:
 
     def update(self, parms: Dict[str,str] = None, **kwargs ):
         self._parms.update( parms if parms else {}, **kwargs )
+        self.logger.info( f"@PM-> Update parms: {self._parms}")
 
     @property
     def parms(self)-> Dict[str,str]: return self._parms

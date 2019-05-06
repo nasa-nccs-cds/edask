@@ -79,6 +79,7 @@ class EDASKClusterThread(Thread):
             pass
 
     def add_worker(self, address):
+        print( f" {self.scheduler_addr} {self.scheduler_port} {address} {self.ssh_username} {self.ssh_port} {self.ssh_private_key} {self.nohost} {self.worker_port} ")
         self.workers.append( start_worker(self.logdir, self.scheduler_addr,
                                          self.scheduler_port, address,
                                          self.nthreads, self.nprocs,

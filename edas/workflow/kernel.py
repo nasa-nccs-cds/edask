@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time, socket, threading, os
+import logging, random, string, time, socket, threading, os, traceback, glob
 from edas.process.task import TaskRequest
 from typing import List, Dict, Set, Any, Optional
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
@@ -98,7 +98,7 @@ class OpKernel(Kernel):
 
     def buildWorkflow(self, request: TaskRequest, wnode: WorkflowNode, inputs: EDASDatasetCollection ) -> EDASDatasetCollection:
         op: OpNode = wnode
-        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) )
+        self.logger.info("  ~~~~~~~~~~~~~~~~~~~~~~~~~~ Build Workflow, inputs: " + str( [ str(w) for w in op.inputs ] ) + ", op metadata = " + str(op.metadata) + ", axes = " + str(op.axes) + ", runargs = " + str(request.runargs) )
         results = EDASDatasetCollection("OpKernel.build-" + wnode.name )
 #        if (len(inputs) < self._minInputs) or (len(inputs) > self._maxInputs): raise Exception( "Wrong number of inputs for kernel {}: {}".format( self._spec.name, len(inputs)))
         self.testOptions( wnode )
@@ -247,34 +247,39 @@ class InputKernel(Kernel):
             dataSource: DataSource = snode.varSource.dataSource
             if dataSource.type == SourceType.collection:
                 collection = Collection.new( dataSource.address )
+                self.logger.info("Input collection: " + dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
                 domain = request.operationManager.domains.getDomain( snode.domain )
                 if domain is not None:
                     timeBounds = domain.findAxisBounds(Axis.T)
-                    startDate = None if domain is None else TimeConversions.parseDate(timeBounds.start)
-                    endDate   = None if domain is None else TimeConversions.parseDate(timeBounds.end)
+                    startDate = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.start)
+                    endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
-                    dset = xr.open_mfdataset( pathList, data_vars=vars, parallel=True)
+                    self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
+                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True )
+                    self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
+                    self.logger.info(f"Collection import complete.")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
-                dset = xr.open_mfdataset(dataSource.address, data_vars=snode.varSource.ids, parallel=True)
+                files = glob.glob( dataSource.address )
+                parallel = len(files) > 1
+                assert len(files) > 0, f"No files matching path {dataSource.address}"
+                dset = xr.open_mfdataset(dataSource.address, engine='netcdf4', data_vars=snode.varSource.ids, parallel=parallel )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.archive:
                 self.logger.info( "Reading data from archive: " + dataSource.address )
                 dataPath =  request.archivePath( dataSource.address )
-                dset = xr.open_dataset(dataPath)
+                dset = xr.open_mfdataset( [dataPath] )
                 self.importToDatasetCollection(results, request, snode, dset)
             elif dataSource.type == SourceType.dap:
-                engine = EdasEnv.get("dap.engine", "netcdf4")
- #               session = self.getSession( dataSource )
-                dap_engine = engine # "netcdf4" # engine if session is None else "pydap"
-                self.logger.info( " --------------->>> Reading data from address: " + dataSource.address + " using engine " + dap_engine ) # + " with session " + str(session) )
-                dset = xr.open_dataset(dataSource.address, engine=dap_engine ) # , backend_kwargs=dict(session=session)
+                nchunks = request.runargs.get( "ncores", 8 )
+                self.logger.info( f" --------------->>> Reading data from address: {dataSource.address}, nchunks = {nchunks}" )
+                dset = xr.open_mfdataset([dataSource.address], engine="netcdf4", data_vars=snode.varSource.ids, chunks={"time":nchunks}  )
                 self.importToDatasetCollection( results, request, snode, dset )
-            self.logger.info( "Access input data source {}, time = {} sec".format( dataSource.address, str( time.time() - t0 ) ) )
+            self.logger.info( f"Access input data source {dataSource.address}, time = {time.time() - t0} sec" )
             self.logger.info( "@L: LOCATION=> host: {}, thread: {}, proc: {}".format( socket.gethostname(), threading.get_ident(), os.getpid() ) )
         return results
 

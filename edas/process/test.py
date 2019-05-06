@@ -1,4 +1,4 @@
-import logging, time
+import logging, time, multiprocessing
 import numpy.ma as ma
 from edas.process.task import Job
 from edas.workflow.modules.edas import *
@@ -32,6 +32,8 @@ def d2s(dict: Dict[str, str]) -> str:
 class TestDataManager:
     addresses = {
         "merra2": CreateIPServer + "/reanalysis/MERRA2/mon/atmos/{}.ncml",
+        "merra2-day": CreateIPServer + "/reanalysis/MERRA2/day/atmos/{}.ncml",
+        "merra2-6hr": CreateIPServer + "/reanalysis/MERRA2/6hr/atmos/{}.ncml",
         "merra": CreateIPServer + "/reanalysis/MERRA/mon/atmos/{}.ncml",
         "ecmwf": CreateIPServer + "/reanalysis/ECMWF/mon/atmos/{}.ncml",
         "cfsr": CreateIPServer + "/reanalysis/CFSR/mon/atmos/{}.ncml",
@@ -88,7 +90,8 @@ class LocalTestManager(TestManager):
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
         t0 = time.time()
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
+        runArgs = dict( ncores = multiprocessing.cpu_count() )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
         resultHandler = ExecHandler( "testJob", job )
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
@@ -102,11 +105,23 @@ class DistributedTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
-        self.cluster = EDASCluster()
-        self.processManager = ProcessManager(EdasEnv.parms, self.cluster)
+        self.processManager = ProcessManager( EdasEnv.parms )
+        time.sleep(40)
+        self.scheduler_info = self.processManager.client.scheduler_info()
+        self.workers: Dict = self.scheduler_info.pop("workers")
+        self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))
+        self.logger.info(f" N Workers: {len(self.workers)} " )
+        for addr, specs in self.workers.items():
+            self.logger.info(f"  -----> Worker {addr}: {specs}" )
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  List[EDASDataset]:
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations )
+    @property
+    def ncores(self):
+        sample_worker = list(self.workers.values())[0]
+        return sample_worker["ncores"]
+
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+        runArgs = dict( ncores=self.ncores )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
         execHandler = ExecHandler("local", job, workers=job.workers)
         execHandler.execJob( job )
         return execHandler.getEDASResult()

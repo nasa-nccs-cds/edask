@@ -51,18 +51,19 @@ class Archive:
 
 class File:
 
-    def __init__(self, _collection, *args ):
-       self.collection = _collection
+    def __init__(self, _agg: "Aggregation", *args ):
+       self.logger = EDASLogger.getLogger()
+       self.agg = _agg
        self.start_time = float(args[0].strip())
        self.size = int(args[1].strip())
        self.relpath = args[2].strip()
        self.date = datetime.fromtimestamp( self.start_time*60, tz=timezone.utc)
 
     def getPath(self):
-        return os.path.join( self.parm("base.path"), self.relpath )
+        return self.parm("base.path") + "/" + self.relpath
 
     def parm(self, key ):
-        return self.collection.parm( key )
+        return self.agg.parm( key )
 
     @classmethod
     def getNumber(cls, arg: str, isInt = False ) -> int:
@@ -74,7 +75,7 @@ class File:
 class Collection:
 
 
-    cacheDir = EdasEnv.COLLECTIONS_DIR
+    cacheDir = os.path.expanduser( EdasEnv.COLLECTIONS_DIR )
     baseDir = os.path.join( cacheDir, "collections", "agg" )
 
     @classmethod
@@ -95,7 +96,7 @@ class Collection:
 
     def __init__(self, _name, _spec_file ):
         self.name = _name
-        self.spec = _spec_file
+        self.spec = os.path.expanduser( _spec_file )
         self.aggs = {}
         self.parms = {}
         self._parseSpecFile()
@@ -243,21 +244,26 @@ class Aggregation:
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
         self.logger.info( "Parsing Agg file: " + self.spec )
-        with open(self.spec, "r") as file:
-            for line in file.readlines():
-                if not line: break
-                if line[1] == ";":
-                    try:
-                        type = line[0]
-                        value = line[2:].split(";")
-                        if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
-                        elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
-                        elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
-                        elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
-                        elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
-                    except Exception as err:
-                        self.logger.error( "Error parsing Agg file, line: " + line )
-                        raise err
+        try:
+            with open(self.spec, "r") as file:
+                for line in file.readlines():
+                    if not line: break
+                    if line[1] == ";":
+                        try:
+                            type = line[0]
+                            value = line[2:].split(";")
+                            if type == 'P': self.parms[ value[0].replace('"',' ').strip() ] = ";".join( value[1:] ).replace('"',' ').strip()
+                            elif type == 'A': self.axes[ value[2].strip() ] = Axis( *value )
+                            elif type == 'C': self.dims[ value[0].strip() ] = File.getNumber( value[1].strip(), True )
+                            elif type == 'V': self.vars[ value[0].strip() ] = VarRec.new( value )
+                            elif type == 'F': self.files[ value[0].strip() ] = File( self, *value )
+                        except Exception as err:
+                            self.logger.error( "Error parsing line: " + line )
+                            raise err
+        except Exception as err:
+            self.logger.error(f"Parsing Agg file {self.spec}: " + repr(err) )
+            raise err
+        self.logger.info( f"Completed Parsing Agg spec: {len(self.files)} files, {len(self.vars)} vars")
 
     def toXml(self, varName: str )-> str:
         specs = []
@@ -286,12 +292,19 @@ class Aggregation:
 
     def periodPathList(self, start:datetime, end:datetime  )-> List[str]:
         t0 = time.time()
-        paths: List[str] = []
-        for file in self.files.values():
-            if file.date > end: break
-            if file.date >= start:
-                paths.append( file.getPath() )
-                self.logger.info( f"@PPL: Add path for date {file.date}" )
+        filesView = self.files.values()
+        if len( filesView ) == 1:
+            paths: List[str] = [ file.getPath() for file in filesView ]
+        else:
+            paths: List[str] = []
+            prev_file = None
+            for file in filesView:
+                if file.date > end: break
+                if file.date >= start:
+                    if (len(paths) == 0) and (prev_file is not None):
+                        paths.append( prev_file.getPath() )
+                    paths.append( file.getPath() )
+                prev_file = file
         self.logger.info(f"@PPL: extracted {len(paths)} paths from {len(self.files)}: time = {time.time()-t0} sec")
         return paths
 
