@@ -240,7 +240,6 @@ class EDASArray:
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
-            print("\n\nZZZZZZ")
             new_data: xa.DataArray = self.xr.interp_like( other.xr, "linear", assume_sorted )
         except:
             this_merged = self.xrArray.chunk( {"t": 1} )

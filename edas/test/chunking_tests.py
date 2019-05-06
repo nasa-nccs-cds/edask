@@ -2,7 +2,7 @@ from edas.process.test import LocalTestManager, DistributedTestManager
 import numpy.ma as ma
 import xarray as xa
 import time
-LOCAL_TESTS = True
+LOCAL_TESTS = False
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 
 def eave1():
@@ -16,6 +16,6 @@ def eave1():
 
 
 if __name__ == "__main__":
-    mgr = LocalTestManager("PyTest", "test_suite", appConf) if LOCAL_TESTS else DistributedTestManager("PyTest", "test_suite", appConf)
+    mgr = LocalTestManager( "PyTest", "test_suite", appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest", "test_suite", { **appConf, "scheduler.address":"edaskwndev01:8786" } )
     if not LOCAL_TESTS: time.sleep(5)
     eave1()
