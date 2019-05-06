@@ -116,7 +116,7 @@ class DistributedTestManager(TestManager):
 
     @property
     def ncores(self):
-        sample_worker = self.workers[0]
+        sample_worker = list(self.workers.values())[0]
         return sample_worker["ncores"]
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
