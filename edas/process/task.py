@@ -39,10 +39,7 @@ class Job:
         self.priority = priority
         self.workerIndex = 0
         self.logger.info( f"Create job, runargs = {runargs}")
-        try:
-            raise Exception("Job Creation")
-        except Exception:
-            self.logger.info( traceback.format_exc() )
+        self.logger.info( traceback.format_stack() )
 
   @staticmethod
   def new( requestId: str, project: str, experiment: str, process: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
