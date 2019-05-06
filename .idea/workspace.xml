@@ -1,46 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e1bf1e20-8d0a-4f55-85ce-f5db7c93928a" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/bin/startup_cluster_distributed.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/bin/startup_cluster_local.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/chunking_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/client_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/collection_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/collection_tests_laptop.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/dap_tests.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/dask_mfread_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/dask_mfread_test_laptop.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/dask_xarray_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/scheduler_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/edas/test/std_benchmark_dass.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/startup_cluster.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/startup_cluster_dask.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/collection/agg.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/collection/agg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/portal/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/portal/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/portal/cluster.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/portal/cluster.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/portal/dask_scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/portal/dask_scheduler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/portal/scheduler.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/portal/scheduler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/process/domain.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/process/domain.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/process/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/process/manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/process/task.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/process/task.py" afterDir="false" />
+    <list default="true" id="e1bf1e20-8d0a-4f55-85ce-f5db7c93928a" name="Default Changelist" comment="Merge branch 'master' into stratus&#10;&#10;Conflicts:&#10;&#9;README.md&#10;&#9;edas/collection/agg.py&#10;&#9;edas/portal/app.py&#10;&#9;edas/portal/dask_scheduler.py&#10;&#9;edas/portal/scheduler.py&#10;&#9;edas/process/manager.py&#10;&#9;edas/process/task.py&#10;&#9;edas/process/test.py&#10;&#9;edas/test/std_benchmark_edask.py&#10;&#9;edas/workflow/kernel.py&#10;&#9;edas/workflow/modules/devel/keras.py&#10;&#9;edas/workflow/modules/keras.py&#10;&#9;edas/workflow/modules/keras_defunct/keras.txt&#10;&#9;sandbox/std_benchmark_dass.py&#10;&#9;setup.py">
       <change beforePath="$PROJECT_DIR$/edas/process/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/process/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/test/daskDistributedTest.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/test/daskDistributedTest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/test/distributed_tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/test/distributed_tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/test/std_benchmark_edask.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/test/std_benchmark_edask.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/test/test_suite.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/test/test_suite.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/kernel.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/kernel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/learning.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/modules/keras_defunct/learning.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/module.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/module.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/modules/devel/keras.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/modules/devel/keras.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/edas/workflow/modules/keras_defunct/keras.txt" beforeDir="false" afterPath="$PROJECT_DIR$/edas/workflow/modules/keras_defunct/keras.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/resources/hosts.template" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sandbox/std_benchmark_dass.py" beforeDir="false" afterPath="$PROJECT_DIR$/sandbox/std_benchmark_dass.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sandbox/std_benchmark_edask.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -50,11 +12,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/edas/workflow/kernel.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="291">
-              <caret line="243" column="77" lean-forward="true" selection-start-line="243" selection-start-column="77" selection-end-line="243" selection-end-column="77" />
+              <caret line="243" column="77" selection-start-line="243" selection-start-column="77" selection-end-line="243" selection-end-column="77" />
               <folding>
                 <element signature="e#0#39#0" expanded="true" />
               </folding>
@@ -63,19 +25,40 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/edas/process/manager.py">
+        <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="29" column="53" lean-forward="true" selection-start-line="29" selection-start-column="53" selection-end-line="29" selection-end-column="53" />
+            <state relative-caret-position="393">
+              <caret line="177" column="13" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="13" />
+              <folding>
+                <element signature="e#0#70#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/edas/process/test.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="224">
+              <caret line="59" column="106" selection-start-line="59" selection-start-column="106" selection-end-line="59" selection-end-column="106" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/edas/process/test.py">
+        <entry file="file://$PROJECT_DIR$/edas/process/manager.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="365">
-              <caret line="107" column="61" lean-forward="true" selection-start-line="107" selection-start-column="61" selection-end-line="107" selection-end-column="61" />
+            <state relative-caret-position="257">
+              <caret line="41" column="8" selection-start-line="41" selection-start-column="8" selection-end-line="41" selection-end-column="8" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/edas/workflow/module.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="252">
+              <caret line="177" column="70" selection-start-line="177" selection-start-column="53" selection-end-line="177" selection-end-column="70" />
             </state>
           </provider>
         </entry>
@@ -96,19 +79,7 @@
         <entry file="file://$PROJECT_DIR$/edas/portal/app.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="266">
-              <caret line="28" column="61" lean-forward="true" selection-start-line="28" selection-start-column="61" selection-end-line="28" selection-end-column="61" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/setup.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
-              <caret line="2" column="43" selection-start-line="2" selection-start-column="43" selection-end-line="2" selection-end-column="43" />
-              <folding>
-                <element signature="e#22#31#0" expanded="true" />
-              </folding>
+              <caret line="28" column="61" selection-start-line="28" selection-start-column="61" selection-end-line="28" selection-end-column="61" />
             </state>
           </provider>
         </entry>
@@ -117,7 +88,7 @@
         <entry file="file://$PROJECT_DIR$/edas/portal/scheduler.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="2278">
-              <caret line="174" lean-forward="true" selection-start-line="174" selection-end-line="174" />
+              <caret line="174" selection-start-line="174" selection-end-line="174" />
             </state>
           </provider>
         </entry>
@@ -125,8 +96,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/edas/process/task.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1524">
-              <caret line="32" column="44" selection-start-line="32" selection-start-column="44" selection-end-line="32" selection-end-column="44" />
+            <state relative-caret-position="245">
+              <caret line="59" column="165" selection-start-line="59" selection-start-column="159" selection-end-line="59" selection-end-column="165" />
               <folding>
                 <element signature="e#0#76#0" expanded="true" />
               </folding>
@@ -138,19 +109,7 @@
         <entry file="file://$PROJECT_DIR$/edas/portal/dask_scheduler.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="-895">
-              <caret line="121" column="57" lean-forward="true" selection-start-line="121" selection-start-column="57" selection-end-line="121" selection-end-column="57" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="FIRST">
-              <first_editor relative-caret-position="93">
-                <caret line="18" column="4" selection-start-line="18" selection-start-column="4" selection-end-line="18" selection-end-column="4" />
-              </first_editor>
-              <second_editor />
+              <caret line="121" column="57" selection-start-line="121" selection-start-column="57" selection-end-line="121" selection-end-column="57" />
             </state>
           </provider>
         </entry>
@@ -269,10 +228,10 @@
         <option value="$PROJECT_DIR$/edas/portal/scheduler.py" />
         <option value="$PROJECT_DIR$/edas/process/task.py" />
         <option value="$PROJECT_DIR$/edas/portal/dask_scheduler.py" />
-        <option value="$PROJECT_DIR$/edas/process/test.py" />
         <option value="$PROJECT_DIR$/edas/collection/agg.py" />
         <option value="$PROJECT_DIR$/edas/portal/app.py" />
         <option value="$PROJECT_DIR$/edas/workflow/kernel.py" />
+        <option value="$PROJECT_DIR$/edas/process/test.py" />
       </list>
     </option>
   </component>
@@ -306,46 +265,6 @@
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="collection" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="collection" type="462c0819:PsiDirectoryNode" />
-              <item name="agg.py" type="8704e2dd:PyFileNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="portal" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="portal" type="462c0819:PsiDirectoryNode" />
-              <item name="app.py" type="8704e2dd:PyFileNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="portal" type="462c0819:PsiDirectoryNode" />
-              <item name="dask_scheduler.py" type="8704e2dd:PyFileNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="portal" type="462c0819:PsiDirectoryNode" />
-              <item name="scheduler.py" type="8704e2dd:PyFileNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="process" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -360,7 +279,23 @@
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="process" type="462c0819:PsiDirectoryNode" />
+              <item name="manager.py" type="8704e2dd:PyFileNode" />
+              <item name="ExecHandlerBase" type="dd8bbb05:PyElementNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="process" type="462c0819:PsiDirectoryNode" />
               <item name="task.py" type="8704e2dd:PyFileNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="process" type="462c0819:PsiDirectoryNode" />
+              <item name="task.py" type="8704e2dd:PyFileNode" />
+              <item name="Job" type="dd8bbb05:PyElementNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
@@ -373,28 +308,38 @@
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="stratus" type="462c0819:PsiDirectoryNode" />
+              <item name="process" type="462c0819:PsiDirectoryNode" />
+              <item name="test.py" type="8704e2dd:PyFileNode" />
+              <item name="DistributedTestManager" type="dd8bbb05:PyElementNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="stratus" type="462c0819:PsiDirectoryNode" />
+              <item name="process" type="462c0819:PsiDirectoryNode" />
+              <item name="test.py" type="8704e2dd:PyFileNode" />
+              <item name="LocalTestManager" type="dd8bbb05:PyElementNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="process" type="462c0819:PsiDirectoryNode" />
+              <item name="test.py" type="8704e2dd:PyFileNode" />
+              <item name="TestManager" type="dd8bbb05:PyElementNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="test" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="stratus" type="462c0819:PsiDirectoryNode" />
               <item name="test" type="462c0819:PsiDirectoryNode" />
-              <item name="rest" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="test_suite.py" type="8704e2dd:PyFileNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
@@ -407,22 +352,15 @@
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="workflow" type="462c0819:PsiDirectoryNode" />
-              <item name="kernel.py" type="8704e2dd:PyFileNode" />
+              <item name="module.py" type="8704e2dd:PyFileNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas.egg-info" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="resources" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="sandbox" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="workflow" type="462c0819:PsiDirectoryNode" />
+              <item name="module.py" type="8704e2dd:PyFileNode" />
+              <item name="KernelManager" type="dd8bbb05:PyElementNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
@@ -980,11 +918,11 @@
     <frame x="-1920" y="63" width="1918" height="1173" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.20137058" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.20769636" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info active="true" anchor="bottom" id="Find" order="1" visible="true" weight="0.26086956" />
+      <window_info anchor="bottom" id="Find" order="1" visible="true" weight="0.26086956" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.21369103" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.3348751" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
@@ -1236,13 +1174,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/workflow/module.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="525">
-          <caret line="243" column="29" selection-start-line="243" selection-start-column="16" selection-end-line="243" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/edas/test/dap_tests.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="435">
@@ -1308,15 +1239,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <folding>
-            <element signature="e#0#70#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/edas/portal/cluster.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1110">
@@ -1379,13 +1301,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/process/manager.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="29" column="53" lean-forward="true" selection-start-line="29" selection-start-column="53" selection-end-line="29" selection-end-column="53" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
@@ -1399,31 +1314,14 @@
     <entry file="file://$PROJECT_DIR$/edas/portal/scheduler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2278">
-          <caret line="174" lean-forward="true" selection-start-line="174" selection-end-line="174" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/edas/process/task.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1524">
-          <caret line="32" column="44" selection-start-line="32" selection-start-column="44" selection-end-line="32" selection-end-column="44" />
-          <folding>
-            <element signature="e#0#76#0" expanded="true" />
-          </folding>
+          <caret line="174" selection-start-line="174" selection-end-line="174" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/edas/portal/dask_scheduler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-895">
-          <caret line="121" column="57" lean-forward="true" selection-start-line="121" selection-start-column="57" selection-end-line="121" selection-end-column="57" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/edas/process/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="365">
-          <caret line="107" column="61" lean-forward="true" selection-start-line="107" selection-start-column="61" selection-end-line="107" selection-end-column="61" />
+          <caret line="121" column="57" selection-start-line="121" selection-start-column="57" selection-end-line="121" selection-end-column="57" />
         </state>
       </provider>
     </entry>
@@ -1440,17 +1338,58 @@
     <entry file="file://$PROJECT_DIR$/edas/portal/app.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="266">
-          <caret line="28" column="61" lean-forward="true" selection-start-line="28" selection-start-column="61" selection-end-line="28" selection-end-column="61" />
+          <caret line="28" column="61" selection-start-line="28" selection-start-column="61" selection-end-line="28" selection-end-column="61" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/edas/workflow/kernel.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="291">
-          <caret line="243" column="77" lean-forward="true" selection-start-line="243" selection-start-column="77" selection-end-line="243" selection-end-column="77" />
+          <caret line="243" column="77" selection-start-line="243" selection-start-column="77" selection-end-line="243" selection-end-column="77" />
           <folding>
             <element signature="e#0#39#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/process/task.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="59" column="165" selection-start-line="59" selection-start-column="159" selection-end-line="59" selection-end-column="165" />
+          <folding>
+            <element signature="e#0#76#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/workflow/module.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="252">
+          <caret line="177" column="70" selection-start-line="177" selection-start-column="53" selection-end-line="177" selection-end-column="70" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/process/manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="41" column="8" selection-start-line="41" selection-start-column="8" selection-end-line="41" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="393">
+          <caret line="177" column="13" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="13" />
+          <folding>
+            <element signature="e#0#70#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/process/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="224">
+          <caret line="59" column="106" selection-start-line="59" selection-start-column="106" selection-end-line="59" selection-end-column="106" />
         </state>
       </provider>
     </entry>

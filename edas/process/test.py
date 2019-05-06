@@ -59,13 +59,9 @@ class TestManager:
     def getVar(self, collection: str, varName: str, id: str, domain: str):
         return {"uri": self.getAddress(collection, varName), "name": varName + ":" + id, "domain": domain}
 
-    def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> EDASDataset:
-        testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
-        job = Job.new("requestId", "jobId", testRequest)
-        return edasOpManager.buildTask(job)
-
-    def print(self, results: EDASDataset):
-        for variable in results.inputs:
+    def print(self, results: List[EDASDataset]):
+        for result in results:
+          for variable in result.inputs:
             result = variable.xr.load()
             self.logger.info("\n\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
             self.logger.info(result)
@@ -88,17 +84,18 @@ class LocalTestManager(TestManager):
         super(LocalTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> List[EDASDataset]:
         t0 = time.time()
         runArgs = dict( ncores = multiprocessing.cpu_count() )
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, [], runArgs )
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
         resultHandler = ExecHandler( "testJob", job )
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
-        result = edasOpManager.buildRequest(request)
-        if processResult: resultHandler.processResult(result)
+        results: List[EDASDataset] = edasOpManager.buildRequest(request)
+        if processResult:
+            for result in results: resultHandler.processResult(result)
         self.logger.info( " Completed computation in " + str( time.time() - t0 ) + " seconds")
-        return result
+        return results
 
 class DistributedTestManager(TestManager):
 
@@ -119,9 +116,9 @@ class DistributedTestManager(TestManager):
         sample_worker = list(self.workers.values())[0]
         return sample_worker["ncores"]
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  List[EDASDataset]:
         runArgs = dict( ncores=self.ncores )
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, [], runArgs )
         execHandler = ExecHandler("local", job, workers=job.workers)
         execHandler.execJob( job )
         return execHandler.getEDASResult()
