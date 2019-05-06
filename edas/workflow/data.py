@@ -204,7 +204,7 @@ class EDASArray:
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
 
     def aligned( self, other: "EDASArray" ):
-        print( f"ALIGNED: domId= {self.domId} {other.domId}, shape =  {self.xr.shape} {other.xr.shape}, dims = {self.xr.dims} {other.xr.dims}")
+#        print( f"ALIGNED: domId= {self.domId} {other.domId}, shape =  {self.xr.shape} {other.xr.shape}, dims = {self.xr.dims} {other.xr.dims}")
         return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
 
     def groupby( self, grouping: str ):
