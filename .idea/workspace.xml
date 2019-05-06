@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e1bf1e20-8d0a-4f55-85ce-f5db7c93928a" name="Default Changelist" comment="Merge branch 'master' into stratus&#10;&#10;Conflicts:&#10;&#9;README.md&#10;&#9;edas/collection/agg.py&#10;&#9;edas/portal/app.py&#10;&#9;edas/portal/dask_scheduler.py&#10;&#9;edas/portal/scheduler.py&#10;&#9;edas/process/manager.py&#10;&#9;edas/process/task.py&#10;&#9;edas/process/test.py&#10;&#9;edas/test/std_benchmark_edask.py&#10;&#9;edas/workflow/kernel.py&#10;&#9;edas/workflow/modules/devel/keras.py&#10;&#9;edas/workflow/modules/keras.py&#10;&#9;edas/workflow/modules/keras_defunct/keras.txt&#10;&#9;sandbox/std_benchmark_dass.py&#10;&#9;setup.py">
-      <change beforePath="$PROJECT_DIR$/edas/process/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/process/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/edas/test/test_suite.py" beforeDir="false" afterPath="$PROJECT_DIR$/edas/test/test_suite.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -24,11 +24,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="393">
-              <caret line="177" column="13" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="13" />
+            <state relative-caret-position="570">
+              <caret line="38" column="32" selection-start-line="38" selection-start-column="32" selection-end-line="38" selection-end-column="32" />
               <folding>
                 <element signature="e#0#70#0" expanded="true" />
               </folding>
@@ -36,10 +36,10 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/edas/process/test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="224">
+            <state relative-caret-position="140">
               <caret line="59" column="106" selection-start-line="59" selection-start-column="106" selection-end-line="59" selection-end-column="106" />
             </state>
           </provider>
@@ -66,7 +66,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/edas/collection/agg.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="425">
+            <state relative-caret-position="374">
               <caret line="306" column="32" selection-start-line="306" selection-start-column="32" selection-end-line="306" selection-end-column="32" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
@@ -217,7 +217,6 @@
         <option value="$PROJECT_DIR$/edas/test/collection_tests_laptop.py" />
         <option value="$PROJECT_DIR$/edas/process/domain.py" />
         <option value="$PROJECT_DIR$/edas/test/collection_tests.py" />
-        <option value="$PROJECT_DIR$/edas/test/test_suite.py" />
         <option value="$PROJECT_DIR$/edas/test/dap_tests.py" />
         <option value="$PROJECT_DIR$/edas/test/chunking_tests.py" />
         <option value="$PROJECT_DIR$/edas/workflow/data.py" />
@@ -232,6 +231,7 @@
         <option value="$PROJECT_DIR$/edas/portal/app.py" />
         <option value="$PROJECT_DIR$/edas/workflow/kernel.py" />
         <option value="$PROJECT_DIR$/edas/process/test.py" />
+        <option value="$PROJECT_DIR$/edas/test/test_suite.py" />
       </list>
     </option>
   </component>
@@ -265,6 +265,27 @@
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
               <item name="EDASK" type="462c0819:PsiDirectoryNode" />
               <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="collection" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="collection" type="462c0819:PsiDirectoryNode" />
+              <item name="agg.py" type="8704e2dd:PyFileNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
+              <item name="collection" type="462c0819:PsiDirectoryNode" />
+              <item name="agg.py" type="8704e2dd:PyFileNode" />
+              <item name="Aggregation" type="dd8bbb05:PyElementNode" />
+            </path>
+            <path>
+              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
+              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
+              <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="process" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -273,14 +294,6 @@
               <item name="edas" type="462c0819:PsiDirectoryNode" />
               <item name="process" type="462c0819:PsiDirectoryNode" />
               <item name="manager.py" type="8704e2dd:PyFileNode" />
-            </path>
-            <path>
-              <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
-              <item name="EDASK" type="462c0819:PsiDirectoryNode" />
-              <item name="edas" type="462c0819:PsiDirectoryNode" />
-              <item name="process" type="462c0819:PsiDirectoryNode" />
-              <item name="manager.py" type="8704e2dd:PyFileNode" />
-              <item name="ExecHandlerBase" type="dd8bbb05:PyElementNode" />
             </path>
             <path>
               <item name="EDASK" type="b2602c69:ProjectViewProjectNode" />
@@ -1325,16 +1338,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/collection/agg.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="425">
-          <caret line="306" column="32" selection-start-line="306" selection-start-column="32" selection-end-line="306" selection-end-column="32" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/edas/portal/app.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="266">
@@ -1376,20 +1379,30 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
+    <entry file="file://$PROJECT_DIR$/edas/process/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="393">
-          <caret line="177" column="13" selection-start-line="177" selection-start-column="8" selection-end-line="177" selection-end-column="13" />
+        <state relative-caret-position="140">
+          <caret line="59" column="106" selection-start-line="59" selection-start-column="106" selection-end-line="59" selection-end-column="106" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edas/collection/agg.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="306" column="32" selection-start-line="306" selection-start-column="32" selection-end-line="306" selection-end-column="32" />
           <folding>
-            <element signature="e#0#70#0" expanded="true" />
+            <element signature="e#0#15#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edas/process/test.py">
+    <entry file="file://$PROJECT_DIR$/edas/test/test_suite.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="224">
-          <caret line="59" column="106" selection-start-line="59" selection-start-column="106" selection-end-line="59" selection-end-column="106" />
+        <state relative-caret-position="570">
+          <caret line="38" column="32" selection-start-line="38" selection-start-column="32" selection-end-line="38" selection-end-column="32" />
+          <folding>
+            <element signature="e#0#70#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

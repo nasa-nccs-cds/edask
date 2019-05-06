@@ -36,7 +36,7 @@ def test_subset():
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
     operations = [ { "name": "edas.subset", "input": "v0" } ]
     results = mgr.testExec(domains, variables, operations)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_filter():
     domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
@@ -45,8 +45,8 @@ def test_filter():
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
     operations = [ { "name":"edas.filter", "input":"v0", "axis":"t", "sel":"aug"} ]
     results = mgr.testExec( domains, variables, operations )
-    print( results.xarrays[0].shape )
-    assert  results.xarrays[0].shape[0] == 10
+    print( results[0].xarrays[0].shape )
+    assert  results[0].xarrays[0].shape[0] == 10
 
 def test_ave1():
     # Verification data: nco_scripts/ave1.sh
@@ -59,7 +59,7 @@ def test_ave1():
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
     operations = [ { "name":"edas.ave", "input":"v0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_ave_op_d0():
     # Verification data: nco_scripts/ave1.sh
@@ -72,7 +72,7 @@ def test_ave_op_d0():
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0" } ]
     operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_ave1_double_d0():
     # Verification data: nco_scripts/ave1.sh
@@ -85,7 +85,7 @@ def test_ave1_double_d0():
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
     operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
     
 def test_max1() :
     # Verification data: nco_scripts/max1.sh
@@ -97,7 +97,7 @@ def test_max1() :
     operations = [ { "name":"edas.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_max_timeslice() :
     domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
@@ -129,7 +129,7 @@ def test_min1() :
     operations = [ { "name":"edas.min", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_diff1() :
     domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
@@ -172,7 +172,8 @@ def test_seasonal_cycle() :
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
     operations = [ { 'name': "edas.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "edas.ave", 'axes': "t", 'groupby': "t.season", "input":"v1" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result: xa.DataArray = variable.xr.load()
         assert result.shape == (4,)
     mgr.print(results)
@@ -184,7 +185,8 @@ def test_seasonal_means() :
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
     operations = [ { 'name': "edas.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "edas.ave", 'axes': "t", 'resample': "t.season", "input":"v1" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result: xa.DataArray = variable.xr.load()
         assert result.shape == (133,)
     mgr.print(results)
@@ -197,7 +199,8 @@ def test_yearly_time_ave():
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
     operations = [ { 'name': "edas.ave", 'axes': "t", "groupby": "t.year", "input":"v0" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result = variable.xr.load()
         assert result.shape == (21,21,17)
     mgr.print(results)
