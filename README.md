@@ -10,7 +10,12 @@ Create Conda env:
 ```
     > conda create -n edas -c conda-forge python=3.6 bokeh bottleneck dask dateparser defusedxml distributed eofs libnetcdf matplotlib netCDF4 nco paramiko pydap pyparsing pytest pyzmq scipy xarray zeromq cartopy 
     > source activate edas
-```    
+```   
+Regridding support (optionsal) requires some additional depemdencies:
+```
+    > conda install -c conda-forge esmpy
+    > pip install xesmf
+``` 
 Install EDAS:
 ```
     (edas)> git clone https://github.com/nasa-nccs-cds/edask.git edas

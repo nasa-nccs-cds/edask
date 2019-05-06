@@ -184,8 +184,11 @@ class EDASArray:
 #        if isinstance(self._data,DataArrayGroupBy): return self._data._obj
 #        else:  return xa.DataArray(self._data.data, self._data.coords, self._data.dims, id, self._data.attrs, self._data.encoding )
 
-    def xrDataset(self, attrs: Dict[str, Any] = None) -> xa.Dataset:
-        return xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
+    def xrDataset(self, attrs: Dict[str, Any] = None, **kwargs ) -> xa.Dataset:
+        dset = xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
+        if kwargs.get("standard_names", False ):
+            dset.rename( dict(x="lat",y="lon",z="lev",t="time"), True)
+        return dset
 
     def propagateHistory( self, precursor: "EDASArray" ):
         if precursor.product is not None: self._product = precursor.product
@@ -201,6 +204,7 @@ class EDASArray:
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
 
     def aligned( self, other: "EDASArray" ):
+        print( f"ALIGNED: domId= {self.domId} {other.domId}, shape =  {self.xr.shape} {other.xr.shape}, dims = {self.xr.dims} {other.xr.dims}")
         return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
 
     def groupby( self, grouping: str ):
@@ -217,10 +221,32 @@ class EDASArray:
         rv.addTransform(  Transformation( "resample", **kwargs ) )
         return rv
 
-    def align( self, other: "EDASArray", assume_sorted=True ):
+    def align1( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
         if self.aligned( other ): return self
-        new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
-        return self.updateXa(new_data,"align")
+        try:
+            import xesmf as xe
+            ds0 = self.xrDataset( standard_names=True )
+            ds1 = other.xrDataset( standard_names=True )
+            self.logger.info( f"Create dataset: coords = {ds0.coords}, variables = {ds0.variables}" )
+            regridder = xe.Regridder( ds0, ds1, 'bilinear')
+#            new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
+            new_data = regridder( self.xrArray )
+            regridder.clean_weight_file()
+            return self.updateXa(new_data,"align")
+        except NotImplementedError as err:
+            raise err
+
+
+    def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
+        if self.aligned(other): return self
+        try:
+            print("\n\nZZZZZZ")
+            new_data: xa.DataArray = self.xr.interp_like( other.xr, "linear", assume_sorted )
+        except:
+            this_merged = self.xrArray.chunk( {"t": 1} )
+            other_merged = other.xrArray.chunk( {"t": 1} )
+            new_data: xa.DataArray = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
+        return self.updateXa( new_data, "align" )
 
     def updateXa(self, new_data: xa.DataArray, name:str, rename_dict=None, product=None) -> "EDASArray":
         if rename_dict is None:
