@@ -241,7 +241,9 @@ class EDASArray:
         if self.aligned(other): return self
         try:
             new_data: xa.DataArray = self.xr.interp_like( other.xr, "linear", assume_sorted )
+            self.logger.info(" INTERP CHUNKS ")
         except:
+            self.logger.info( " MERGE CHUNKS ")
             this_merged = self.xrArray.chunk( {"t": 1} )
             other_merged = other.xrArray.chunk( {"t": 1} )
             new_data: xa.DataArray = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
