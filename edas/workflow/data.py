@@ -236,7 +236,6 @@ class EDASArray:
         except NotImplementedError as err:
             raise err
 
-
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
