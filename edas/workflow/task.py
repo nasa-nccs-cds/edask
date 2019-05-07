@@ -1,4 +1,4 @@
-from portal.messageParser import mParse
+from edas.portal.messageParser import mParse
 from typing import List, Dict, Sequence, Any
 from edas.process.source import DataSource
 import xarray as xa

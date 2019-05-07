@@ -29,7 +29,7 @@ class EDASEndpoint(Endpoint):
     def epas( self ) -> List[str]: return self._epas
 
     def init( self, cluster = None ):
-        self.processManager = ProcessManager(EdasEnv.parms, cluster)
+        self.processManager = ProcessManager( EdasEnv.parms )
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 
@@ -41,6 +41,7 @@ class EDASEndpoint(Endpoint):
         if type == "epas":
             return dict( epas = self._epas )
         elif type == "capabilities" or type == "" or type is None:
+            if type == None: type = "kernels"
             capabilities = edasOpManager.getCapabilitiesXml(type)
             return Message( type, "capabilities", capabilities ).dict()
         elif type == "processes":
