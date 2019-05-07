@@ -251,8 +251,9 @@ class ProcessManager(GenericProcessManager):
                 isIdle = True
           else:
               isIdle = False
-              self.logger.info( f" METRICS: " )
-              for key,value in metrics.items():
+              self.logger.info( f" METRICS: {metrics['counts']} " )
+              workers = metrics["workers"]
+              for key,value in workers.items():
                   self.logger.info( f" *** {key}: {value}" )
               self.logger.info(f" HEALTH: {self.getHealth()}")
               time.sleep( sleepTime )
