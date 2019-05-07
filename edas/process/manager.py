@@ -237,8 +237,8 @@ class ProcessManager(GenericProcessManager):
       self.scheduler_info = self.client.scheduler_info()
       self.workers: Dict = self.scheduler_info.pop("workers")
       self.logger.info(f" workers: {self.workers}")
-#      self.metricsThread =  Thread( target=self.trackMetrics )
-#      self.metricsThread.start()
+      self.metricsThread =  Thread( target=self.trackMetrics )
+      self.metricsThread.start()
 
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False
