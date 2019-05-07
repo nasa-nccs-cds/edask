@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
         input=[ dict( uri=uri, name=f"tas:v{i}", domain=f"d{i}" ) for i in range(numDomains) ],
 
-        operation=[ dict( name="edas.ave", axis="xy", input=f"v{i}" ) for i in range(numDomains) ]
+        operation=[ dict( name="edas:ave", axis="xy", input=f"v{i}" ) for i in range(numDomains) ]
     )
 
     task: TaskHandle = client.request( requestSpec )
