@@ -779,8 +779,14 @@ class EDASDatasetCollection:
         assert isinstance(dset,EDASDataset), "EDASDatasetCollection.setitem: Expecting EDASDataset, got " + dset.__class__.__name__
         current = self._datasets.get(key, None)
         init_arrayIds = self.arrayIds
-        self._datasets[key] = dset if current is None else EDASDataset.merge([current, dset])
-        print( " $$$$ DsetCol(" + self._name + ").setitem[ " + key + "] <- " + dset.id + ": " + init_arrayIds + " -> " + self.arrayIds)
+        if current is None:
+            self._datasets[key] = dset
+        else:
+            dsets = EDASDataset.merge([current, dset])
+            assert len(dsets) == 1, "Unsupported multiple datasets being input under single key to EDASDatasetCollection"
+            self._datasets[key] = dsets[0]
+
+#        print( " $$$$ DsetCol(" + self._name + ").setitem[ " + key + "] <- " + dset.id + ": " + init_arrayIds + " -> " + self.arrayIds)
 
     @property
     def arrayIds(self): return "[ " + ", ".join([dsid+":"+key for dsid,dset in self._datasets.items() for key in dset.arrayMap.keys()]) + " ]"
