@@ -261,7 +261,7 @@ class ProcessManager(GenericProcessManager):
       for key in ['tasks', 'waiting', 'waiting_data', 'unrunnable']: metrics_data['user_jobs_queued'][key] = counts[key]
       for wId, wData in workers.items():
           worker_metrics = wData["metrics"]
-          total_memory = counts["memory_limit"]
+          total_memory   = wData["memory_limit"]
           memory_usage = worker_metrics["memory_usage"]
           metrics_data['memory_usage'][wId] = memory_usage
           metrics_data['memory_available'][wId] = total_memory - memory_usage
