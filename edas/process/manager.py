@@ -267,6 +267,7 @@ class ProcessManager(GenericProcessManager):
           metrics_data['memory_available'][wId] = total_memory - memory_usage
           metrics_data['cpu_count'][wId] = worker_metrics["ncores"]
           metrics_data['cpu_ave'][wId] = worker_metrics["cpu"]
+      return metrics_data
 
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False

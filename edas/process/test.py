@@ -8,6 +8,7 @@ from edas.process.manager import ProcessManager, ExecHandler
 from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
+from threading import Thread
 
 CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
 
@@ -102,14 +103,42 @@ class DistributedTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
+        log_metrics = appConf.get("log_metrics",True)
         self.processManager = ProcessManager( EdasEnv.parms )
         time.sleep(20)
+        self.processing = False
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))
         self.logger.info(f" N Workers: {len(self.workers)} " )
         for addr, specs in self.workers.items():
             self.logger.info(f"  -----> Worker {addr}: {specs}" )
+        if log_metrics:
+            self.metricsThread =  Thread( target=self.trackCwtMetrics )
+            self.metricsThread.start()
+
+    def trackCwtMetrics(self, sleepTime=1.0):
+        isIdle = False
+        self.logger.info(f" ** TRACKING CWT METRICS ** ")
+        while True:
+            metrics = self.getCWTMetrics()
+            counts = metrics['user_jobs_running']
+            if counts['processing'] == 0:
+                if not isIdle:
+                    self.logger.info(f" ** CLUSTER IS IDLE ** ")
+                    isIdle = True
+            else:
+                isIdle = False
+                self.logger.info("   ------------------------- CWT METRICS  -------------------  ------------------------ ")
+                for key, value in metrics.items():
+                    self.logger.info(f" *** {key}: {value}")
+                self.logger.info("   ----------------------- -----------------------------------  ----------------------- ")
+                time.sleep(sleepTime)
+
+    def getCWTMetrics(self) -> Dict:
+        metrics_data = self.processManager.getCWTMetrics()
+        metrics_data['wps_requests'] = 1 if self.processing else 0
+        return metrics_data
 
     @property
     def ncores(self):
@@ -120,8 +149,11 @@ class DistributedTestManager(TestManager):
         runArgs = dict( ncores=self.ncores )
         job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, [], runArgs )
         execHandler = ExecHandler("local", job, workers=job.workers)
+        self.processing = True
         execHandler.execJob( job )
-        return execHandler.getEDASResult()
+        result = execHandler.getEDASResult()
+        self.processing = False
+        return result
 
 
 

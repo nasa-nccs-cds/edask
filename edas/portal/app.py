@@ -56,6 +56,11 @@ class EDASapp(EDASPortal):
                 self.logger.info("   ----------------------- -----------------------------------  ----------------------- ")
                 time.sleep(sleepTime)
 
+    def getCWTMetrics(self) -> Dict:
+        metrics_data = self.processManager.getCWTMetrics()
+        metrics_data['wps_requests'] = len( self.handlers )
+        return metrics_data
+
     def start( self ): self.run()
 
     def getCapabilities(self, type: str  ) -> Message:
@@ -72,11 +77,6 @@ class EDASapp(EDASPortal):
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
         description = edasOpManager.describeProcess( module, op )
         return Message( utilSpec[0], "capabilities", json.dumps( description ) )
-
-    def getCWTMetrics(self) -> Dict:
-        metrics_data = self.processManager.getCWTMetrics()
-        metrics_data['wps_requests'] = len( self.handlers )
-        return metrics_data
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message:
         uType = utilSpec[0].lower()
