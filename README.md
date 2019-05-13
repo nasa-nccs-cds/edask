@@ -8,8 +8,7 @@ EDAS is a high performance big data analytics and machine learning framework. Th
 
 Create Conda env:
 ```
-    > conda create -n edas -c conda-forge python=3.6 bokeh bottleneck dask dateparser defusedxml distributed eofs keras 
-     nco paramiko pillow pydap pyparsing pytest python-graphviz pyzmq scikit-learn scipy xarray zeromq cartopy 
+    > conda create -n edask -c conda-forge python=3.6 bokeh bottleneck dask dateparser defusedxml distributed eofs keras paramiko pillow pydap pyparsing pytest python-graphviz pyzmq scikit-learn scipy xarray zeromq
     > source activate edas
 ```      
 Regridding support (optionsal) requires some additional depemdencies:
