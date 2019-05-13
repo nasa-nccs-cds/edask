@@ -192,7 +192,7 @@ class EDASPortal:
         self.responder.sendResponse( ErrorReport(clientId,responseId,msg) )
 
     def addHandler(self, clientId, jobId, handler ):
-        self.handlers[ clientId + "-" + jobId ] = handler
+        'wps_requests'[ clientId + "-" + jobId ] = handler
         return handler
 
     def removeHandler(self, clientId, jobId ):

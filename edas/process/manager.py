@@ -229,6 +229,7 @@ class ProcessManager(GenericProcessManager):
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
+      self.num_wps_requests = 0
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
       self.active = True
@@ -246,8 +247,26 @@ class ProcessManager(GenericProcessManager):
       self.scheduler_info = self.client.scheduler_info()
       self.workers: Dict = self.scheduler_info.pop("workers")
       self.logger.info(f" workers: {self.workers}")
-      self.metricsThread =  Thread( target=self.trackMetrics )
-      self.metricsThread.start()
+      log_metrics = serverConfiguration.get("log.scheduler.metrics", False )
+      if log_metrics:
+        self.metricsThread =  Thread( target=self.trackMetrics )
+        self.metricsThread.start()
+
+  def getCWTMetrics(self) -> Dict:
+      metrics_data = { key:{} for key in ['user_jobs_queued','user_jobs_running','wps_requests','cpu_ave','cpu_count','memory_usage','memory_available']}
+      metrics = self.getProfileData()
+      counts = metrics["counts"]
+      workers = metrics["workers"]
+      for key in ['tasks','processing','released','memory','saturated','waiting','waiting_data','unrunnable']: metrics_data['user_jobs_running'][key] = counts[key]
+      for key in ['tasks', 'waiting', 'waiting_data', 'unrunnable']: metrics_data['user_jobs_queued'][key] = counts[key]
+      for wId, wData in workers.items():
+          worker_metrics = wData["metrics"]
+          total_memory = worker_metrics["memory_limit"]
+          memory_usage = worker_metrics["memory_usage"]
+          metrics_data['memory_usage'][wId] = memory_usage
+          metrics_data['memory_available'][wId] = total_memory - memory_usage
+          metrics_data['cpu_count'][wId] = worker_metrics["ncores"]
+          metrics_data['cpu_ave'][wId] = worker_metrics["cpu"]
 
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False
