@@ -103,7 +103,7 @@ class DistributedTestManager(TestManager):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
         self.processManager = ProcessManager( EdasEnv.parms )
-        time.sleep(40)
+        time.sleep(20)
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))

@@ -251,6 +251,7 @@ class ProcessManager(GenericProcessManager):
 
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False
+      self.logger.info(f" ** TRACKING METRICS ** ")
       while self.active:
           metrics = self.getProfileData()
           counts = metrics["counts"]

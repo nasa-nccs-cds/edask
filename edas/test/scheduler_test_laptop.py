@@ -9,15 +9,14 @@ from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 
-collection = "cip_eraint_mth"
-variable = "ta"
-time_range = [ "1981-01-01", "2011-01-01"]
-local = True
-scheduler = "edaskwndev01:8786"
+collection = "merra_daily"
+variable = "t"
 
-domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
+domains = [{"name": "d0"}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
 operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
+local = True
+scheduler = "127.0.0.1:8786"
 
 if __name__ == '__main__':
     print(f"Running test")
