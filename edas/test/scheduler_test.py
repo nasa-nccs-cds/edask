@@ -18,7 +18,7 @@ scheduler = "foyer101:8786"
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
-operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
+operations = [{"name": "edas.ave", "input": "v0", "axes": "t"}]
 
 if __name__ == '__main__':
     print(f"Running test")
