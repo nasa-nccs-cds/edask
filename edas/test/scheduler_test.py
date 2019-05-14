@@ -1,10 +1,8 @@
 import logging, time
-import numpy.ma as ma
 from edas.process.task import Job
-from edas.workflow.modules.xarray import *
 from edas.workflow.module import edasOpManager
 from edas.process.manager import ExecHandler
-from dask.distributed import Client, Future, LocalCluster
+from dask.distributed import Client
 from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
