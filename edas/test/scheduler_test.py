@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple, Dict, Any
 collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
-local = True
+local = False
 # scheduler = "edaskwndev01:8786"
 scheduler = "foyer101:8786"
 
