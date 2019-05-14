@@ -13,7 +13,6 @@ from edas.process.operation import WorkflowNode, OperationConnector
 from edas.data.processing import Parser
 from collections import OrderedDict
 import xarray.plot as xrplot
-import matplotlib.pyplot as plt
 import numpy as np
 
 class Extremity(Enum):
@@ -603,6 +602,7 @@ class EDASDataset:
         self.addArrays( arrays, dataset.attrs )
 
     def splot(self, tindex: int = 0 ):
+        import matplotlib.pyplot as plt
         for array in self.inputs:
             input_data = array.xr.isel( { "t": slice( tindex, tindex + 1 ) } ).squeeze()
             mesh = xrplot.pcolormesh( input_data )
@@ -622,6 +622,7 @@ class EDASDataset:
         return self
 
     def plot(self, idmatch: str = None ):
+        import matplotlib.pyplot as plt
         nplots = len( self.ids )
         fig, axes = plt.subplots( ncols=nplots )
         self.logger.info( "Plotting {} plot(s)".format(nplots) )
@@ -634,6 +635,7 @@ class EDASDataset:
         plt.show()
 
     def plotMap(self, index = 0, view = "geo" ):
+        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
         if view.lower().startswith("geo"):
             ax = plt.axes( projection=ccrs.PlateCarree() )
@@ -673,6 +675,7 @@ class EDASDataset:
         return plot_arrays
 
     def plotMaps( self, nrows=2, view = "geo", mtype = PlotType.EOF ):
+        import matplotlib.pyplot as plt
         import cartopy.crs as ccrs
         plot_arrays = self.filterArraysByType( self.segment_modes(), mtype )
         nPlots = len(plot_arrays)
