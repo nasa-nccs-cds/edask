@@ -262,7 +262,7 @@ class ProcessManager(GenericProcessManager):
       for wId, wData in workers.items():
           worker_metrics = wData["metrics"]
           total_memory   = wData["memory_limit"]
-#          print(f" worker_metrics: {worker_metrics}")
+          print(f"\n worker_metrics: {worker_metrics}\n")
           memory_usage = worker_metrics["memory"]
           metrics_data['memory_usage'][wId] = memory_usage
           metrics_data['memory_available'][wId] = total_memory - memory_usage
