@@ -221,7 +221,7 @@ class EDASArray:
         return rv
 
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
-        return self.align_esmf( other, assume_sorted )
+        return self.align_xa( other, assume_sorted )
 
     def align_esmf( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
         if self.aligned( other ): return self
