@@ -220,7 +220,10 @@ class EDASArray:
         rv.addTransform(  Transformation( "resample", **kwargs ) )
         return rv
 
-    def align1( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
+    def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
+        return self.align_esmf( other, assume_sorted )
+
+    def align_esmf( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
         if self.aligned( other ): return self
         try:
             import xesmf as xe
@@ -235,7 +238,7 @@ class EDASArray:
         except NotImplementedError as err:
             raise err
 
-    def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
+    def align_xa(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
             new_data: xa.DataArray = self.xr.interp_like( other.xr, "linear", assume_sorted )
