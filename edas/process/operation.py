@@ -285,6 +285,7 @@ class OpNode(WorkflowNode):
 
 
     def isResult(self):
+        if len( self.connectors ) == 0: return True
         for conn in self.connectors:
             if conn.isResult: return True
         return False
