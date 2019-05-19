@@ -1,4 +1,6 @@
 from edas.process.test import LocalTestManager, DistributedTestManager
+from edas.workflow.kernel import EDASDataset
+from typing import List, Optional, Tuple, Dict, Any
 import time
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
 LOCAL_TESTS = False
@@ -46,8 +48,8 @@ def metrics_test(mgr):
     domains = []
     variables = []
     operations = [ { "name":"edas.metrics"} ]
-    results = mgr.testExec( domains, variables, operations )
-    mgr.print(results)
+    results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
+    print( "Metrics = " + str(results[0].attrs) )
 
 
 if __name__ == "__main__":

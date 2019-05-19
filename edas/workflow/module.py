@@ -180,6 +180,7 @@ class KernelManager:
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
         if self.isUtilNode( resultOps[0] ):
+            self.logger.info( "Build Utility Request" )
             return [ self.processUtilNode( resultOps[0] ) ]
         else:
             self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
@@ -189,8 +190,12 @@ class KernelManager:
             return result.getResultDatasets()
 
     def processUtilNode(self, node: WorkflowNode ) -> EDASDataset:
+        from edas.process.manager import ProcessManager
         if node.name.lower() == "edas.metrics":
-            metrics = {}
+            processManager = ProcessManager.getManager()
+            metrics = processManager.getCWTMetrics()
+            metrics["@ResultClass"] = "METADATA"
+            metrics["@ResultType"] = "METRICS"
             return EDASDataset( OrderedDict(), metrics )
 
     def cleanup(self, request: TaskRequest):

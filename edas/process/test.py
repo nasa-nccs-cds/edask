@@ -104,7 +104,7 @@ class DistributedTestManager(TestManager):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
         log_metrics = appConf.get("log_metrics",True)
-        self.processManager = ProcessManager( EdasEnv.parms )
+        self.processManager = ProcessManager.initManager( EdasEnv.parms )
         time.sleep(10)
         self.processing = False
         self.scheduler_info = self.processManager.client.scheduler_info()
@@ -151,7 +151,7 @@ class DistributedTestManager(TestManager):
         execHandler = ExecHandler("local", job, workers=job.workers)
         self.processing = True
         execHandler.execJob( job )
-        result = execHandler.getEDASResult()
+        result = execHandler.getEDASResult(block=True)
         self.processing = False
         return result
 

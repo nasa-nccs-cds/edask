@@ -29,7 +29,7 @@ class EDASEndpoint(Endpoint):
     def epas( self ) -> List[str]: return self._epas
 
     def init( self, cluster = None ):
-        self.processManager = ProcessManager( EdasEnv.parms )
+        self.processManager = ProcessManager.initManager( EdasEnv.parms )
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
 

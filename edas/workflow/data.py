@@ -389,6 +389,12 @@ class EDASDataset:
         self.attrs = _attrs
         self.logger = EDASLogger.getLogger()
 
+    def getResultClass(self) -> str:
+        return self.attrs.get("@ResultClass","DATA")
+
+    def getResultType(self) -> str:
+        return self.attrs.get("@ResultType","DATA")
+
     def purge(self):
         purgedArrayMap = OrderedDict()
         for id,array in self.arrayMap.items(): purgedArrayMap[id] = array.purge()

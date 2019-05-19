@@ -41,7 +41,6 @@ class Job:
         self.priority = priority
         self.workerIndex = 0
         self.logger.info( f"Create job, runargs = {runargs}")
-        self.logger.info( traceback.format_stack() )
 
   @staticmethod
   def new( requestId: str, project: str, experiment: str, process: str, datainputs: str, inputs: List[TaskResult],  runargs: Dict[str,str], priority: float ):
