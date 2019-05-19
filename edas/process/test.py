@@ -105,7 +105,7 @@ class DistributedTestManager(TestManager):
         EdasEnv.update(appConf)
         log_metrics = appConf.get("log_metrics",True)
         self.processManager = ProcessManager( EdasEnv.parms )
-        time.sleep(20)
+        time.sleep(10)
         self.processing = False
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.workers: Dict = self.scheduler_info.pop("workers")

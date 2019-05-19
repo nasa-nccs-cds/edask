@@ -8,8 +8,7 @@ from edas.process.task import TaskRequest, Job
 from edas.util.logging import EDASLogger
 from typing import List, Dict, Callable, Set, Optional
 import xarray as xa
-
-
+from collections import OrderedDict
 
 class OperationModule:
     __metaclass__ = ABCMeta
@@ -84,6 +83,7 @@ class KernelManager:
     def __init__( self ):
         self.logger =  EDASLogger.getLogger()
         self.operation_modules: Dict[str,KernelModule] = {}
+        self.utilNodes = { "edas.metrics" }
         self.build()
 
     def build(self):
@@ -179,11 +179,19 @@ class KernelManager:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
-        self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        result = EDASDatasetCollection("BuildRequest")
-        for op in resultOps: result += self.buildSubWorkflow( request, op )
-        self.cleanup( request )
-        return result.getResultDatasets()
+        if self.isUtilNode( resultOps[0] ):
+            return [ self.processUtilNode( resultOps[0] ) ]
+        else:
+            self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
+            result = EDASDatasetCollection("BuildRequest")
+            for op in resultOps: result += self.buildSubWorkflow( request, op )
+            self.cleanup( request )
+            return result.getResultDatasets()
+
+    def processUtilNode(self, node: WorkflowNode ) -> EDASDataset:
+        if node.name.lower() == "edas.metrics":
+            metrics = {}
+            return EDASDataset( OrderedDict(), metrics )
 
     def cleanup(self, request: TaskRequest):
         ops: List[WorkflowNode] = request.getOperations()
@@ -243,12 +251,16 @@ class KernelManager:
             for inpputNode in rootNode.inputNodes:
                 self.createMasterNodes( inpputNode, masterNodeList, currentMasterNode )
 
+    def isUtilNode(self, node: WorkflowNode) -> bool :
+        return node.name.lower() in self.utilNodes
+
     def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
         masterNodes: Set[MasterNode] = set()
-        for node in resultOps: self.createMasterNodes( node, masterNodes )
+        for node in resultOps:
+            if self.isUtilNode(node): return [ node ]
+            self.createMasterNodes( node, masterNodes )
         for masterNode in masterNodes: masterNode.spliceIntoWorkflow()
         return resultOps
-
 
 edasOpManager = KernelManager()
 
