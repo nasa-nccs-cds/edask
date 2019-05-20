@@ -31,6 +31,9 @@ class ExecHandler(TaskHandle):
 
     def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
         edasResults: List[EDASDataset] = self.results.get( block, timeout )
+        for edasResult in edasResults:
+            if edasResult.getResultClass() == "METADATA":
+                return TaskResult( edasResult.attrs, [] )
         xaResults: Iterable[xa.Dataset] = itertools.chain.from_iterable( [ edasResult.xr for edasResult in edasResults ] )
         return TaskResult( self._parms, list(xaResults) )
 
