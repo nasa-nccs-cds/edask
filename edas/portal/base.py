@@ -206,17 +206,17 @@ class EDASPortal:
         self.responder.setExeStatus(clientId,rid,status)
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
-        self.logger.debug( "@@Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
+        self.logger.info( "@@Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
         header = "!".join(header_fields)
-        self.logger.debug("Sending header: " + header)
+        self.logger.info("Sending header: " + header)
         self.responder.sendDataPacket( DataPacket( clientId, rid, header, data ) )
 
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
-        self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
+        self.logger.info( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
         with open(filePath, mode='rb') as file:
             file_header_fields = [ "array", jobId, name, os.path.basename(filePath) ]
             if not sendData: file_header_fields.append(filePath)
@@ -225,9 +225,9 @@ class EDASPortal:
             header = "!".join(header_fields)
             try:
                 data =  bytes(file.read()) if sendData else None
-                self.logger.debug("@@Portal ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath )
+                self.logger.info("@@Portal ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath )
                 self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
-                self.logger.debug("@@Portal Done sending file data packet: " + header)
+                self.logger.info("@@Portal Done sending file data packet: " + header)
             except Exception as ex:
                 self.logger.info( "@@Portal Error sending file : " + filePath + ": " + str(ex) )
                 traceback.print_exc()
