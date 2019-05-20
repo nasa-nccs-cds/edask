@@ -127,6 +127,7 @@ class Responder:
             bdata: bytes = dataPacket.getRawData()
             self.socket.send( bdata )
             self.logger.info("@@R: Sent data packet for " + dataPacket.id() + ", data Size: " + str(len(bdata)) )
+            for tline in traceback.format_stack(): self.logger.info( "@@TB: " + tline )
         else:
             self.logger.info( "@@R: Sent data header only for " + dataPacket.id() + "---> NO DATA!" )
 
