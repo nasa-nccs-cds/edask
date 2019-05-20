@@ -277,7 +277,7 @@ class OpNode(WorkflowNode):
         return OpNode(name, domain, operationSpec)
 
     def __init__(self, name: str, domain: str, metadata: Dict[str,Any] ):
-        super( OpNode, self ).__init__( name, domain, self.filterMetadata(metadata) )
+        super( OpNode, self ).__init__( name, domain, metadata )
         self.logger.info (" Create OpNode: " + str(self.metadata))
 
     def filterMetadata(self, metadata: Dict[str,Any] ) -> Dict[str,Any]:
