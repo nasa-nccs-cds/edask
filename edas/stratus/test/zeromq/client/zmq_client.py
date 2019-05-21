@@ -11,7 +11,7 @@ if __name__ == "__main__":
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
-    uri =  mgr.getAddress("merra2", "tas") if USE_OPENDAP else "collection://merra2"
+    uri =  mgr.getAddress("merra2", "tas") if USE_OPENDAP else "collection://cip_merra2_mth"
     numDomains = 2
     domains = [ f"d{i}" for i in range(numDomains)]
 
