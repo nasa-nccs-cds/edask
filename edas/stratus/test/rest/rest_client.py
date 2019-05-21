@@ -6,7 +6,7 @@ from stratus.app.core import StratusCore
 
 if __name__ == "__main__":
 
-    settings = dict(stratus=dict(type="rest", host="127.0.0.1", port="5000", api="wps"))
+    settings = dict( stratus=dict(type="rest", host="127.0.0.1", port="5000" ) )
     stratus = StratusCore(settings)
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}

@@ -3,6 +3,7 @@ from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 import xarray as xa
 from stratus.app.core import StratusCore
+USE_OPENDAP = False
 
 if __name__ == "__main__":
 
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
-    uri =  mgr.getAddress("merra2", "tas")
+    uri =  mgr.getAddress("merra2", "tas") if USE_OPENDAP else "collection://merra2"
     numDomains = 2
     domains = [ f"d{i}" for i in range(numDomains)]
 
