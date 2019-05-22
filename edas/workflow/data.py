@@ -221,31 +221,44 @@ class EDASArray:
         rv.addTransform(  Transformation( "resample", **kwargs ) )
         return rv
 
-    def align1( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
-        if self.aligned( other ): return self
-        try:
-            import xesmf as xe
-            ds0 = self.xrDataset( standard_names=True )
-            ds1 = other.xrDataset( standard_names=True )
-            self.logger.info( f"Create dataset: coords = {ds0.coords}, variables = {ds0.variables}" )
-            regridder = xe.Regridder( ds0, ds1, 'bilinear')
-#            new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
-            new_data = regridder( self.xrArray )
-            regridder.clean_weight_file()
-            return self.updateXa(new_data,"align")
-        except NotImplementedError as err:
-            raise err
+    # def align1(self, other: "EDASArray") -> "EDASArray":
+    #     if self.aligned(other): return self
+    #     try:
+    #         import xesmf as xe
+    #         ds0 = self.xrDataset(standard_names=True)
+    #         ds1 = other.xrDataset(standard_names=True)
+    #
+    #         self.logger.info(f"Create dataset: coords = {ds0.coords}, variables = {ds0.variables}")
+    #         regridder = xe.Regridder(ds0, ds1, 'bilinear')
+    #         #            new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
+    #         new_data = regridder(self.xrArray)
+    #         regridder.clean_weight_file()
+    #         return self.updateXa(new_data, "align")
+    #     except NotImplementedError as err:
+    #         raise err
+
+    def regrid( self, other: "EDASArray" ) -> xa.DataArray:
+        if self.aligned(other): return self
+        import cdms2
+        v0: cdms2.tvariable.TransientVariable = self.xrArray.to_cdms2()
+        v1: cdms2.tvariable.TransientVariable = other.xrArray.to_cdms2()
+        v2 = v0.regrid( v1.getGrid() )
+        return xa.DataArray.from_cdms2(v2)
 
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
-            new_data: xa.DataArray = self.xr.interp_like( other.xr, "linear", assume_sorted )
-            self.logger.info(" INTERP OVER CHUNKS ")
-        except:
-            self.logger.info( " INTERP WITH MERGE CHUNKS ")
-            this_merged = self.xrArray.chunk( {"t": 1} )
-            other_merged = other.xrArray.chunk( {"t": 1} )
-            new_data: xa.DataArray = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
+            self.logger.info(" CDMS REGRID ")
+            new_data = self.regrid( other )
+        except ImportError:
+            try:
+                self.logger.info(" INTERP OVER CHUNKS ")
+                new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
+            except:
+                self.logger.info( " INTERP WITH MERGE CHUNKS ")
+                this_merged = self.xrArray.chunk( {"t": 1} )
+                other_merged = other.xrArray.chunk( {"t": 1} )
+                new_data = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
         return self.updateXa( new_data, "align" )
 
     def updateXa(self, new_data: xa.DataArray, name:str, rename_dict=None, product=None) -> "EDASArray":

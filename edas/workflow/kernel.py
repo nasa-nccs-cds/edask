@@ -160,6 +160,8 @@ class OpKernel(Kernel):
         return result
 
     def mergeEnsembles(self, op: OpNode, dset: EDASDataset ) -> EDASDataset:
+        self.logger( " ---> Merge Ensembles: ")
+        for xarray in dset.xarrays: self.logger( f" Variable {xarray.name}: dims: {xarray.dims}, coords: {xarray.coords.keys()} " )
         sarray: xr.DataArray = xr.concat( dset.xarrays, dim=op.ensDim)
         result = EDASArray( dset.id, list(dset.domains)[0], sarray )
         return  EDASDataset.init( OrderedDict([(dset.id,result)]), dset.attrs )
