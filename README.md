@@ -47,7 +47,7 @@ The edas/bin directory contains scripts for starting up the EDASK server:
 * request.port:        The port on the EDASK head node for the request socket (default: 4556)
 * trusted.dap.servers: Comma-separated whitelist of trusted OpenDAP servers, e.g. "https://aims3.llnl.gov/thredds/dodsC"
 * response.port:       The port on the EDASK head node for the response socket (default: 4557)
-* sources.allowed:     Comma-separated list of allowed input sources, possible values: collection, http, file
+* sources.allowed:     Comma-separated list of allowed input sources, possible values: collection, http, https, file
 * cache.size.max:      Max size in bytes of internal variable cache (default: 500M)
 * edas.transients.dir: Directory for EDASK temporary saved files ( default: /tmp ) 
 * edas.coll.dir:       Directory containing EDASK collection definition files ( default: ~/.edas )
