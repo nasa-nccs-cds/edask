@@ -85,8 +85,8 @@ class EDASArray:
 
     @staticmethod
     def cleanupCoords(xarray: xa.DataArray, rename_dict=None) -> xa.DataArray:
-        from xarray.core.resample import DataArrayResample
-        if not isinstance(xarray, DataArrayResample):
+#        from xarray.core.resample import DataArrayResample
+        if isinstance(xarray, xa.DataArray):
             if rename_dict is None:
                 rename_dict = {}
             for coord in xarray.coords:
