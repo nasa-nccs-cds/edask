@@ -85,13 +85,15 @@ class EDASArray:
 
     @staticmethod
     def cleanupCoords(xarray: xa.DataArray, rename_dict=None) -> xa.DataArray:
-        if rename_dict is None:
-            rename_dict = {}
-        for coord in xarray.coords:
-            if coord not in xarray.dims: xarray = xarray.drop(coord)
-        for item in rename_dict.items():
-            try: xarray = xarray.rename( {item[0]:item[1]} )
-            except: pass
+        from xarray.core.resample import DataArrayResample
+        if not isinstance(xarray, DataArrayResample):
+            if rename_dict is None:
+                rename_dict = {}
+            for coord in xarray.coords:
+                if coord not in xarray.dims: xarray = xarray.drop(coord)
+            for item in rename_dict.items():
+                try: xarray = xarray.rename( {item[0]:item[1]} )
+                except: pass
         return xarray
 
     @property
