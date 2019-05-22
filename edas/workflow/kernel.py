@@ -139,7 +139,7 @@ class OpKernel(Kernel):
 #         if interp_na:   inputs: Dict[str,EDASArray] = { id: input.updateXa( input.xr.interpolate_na( dim="t", method='linear' ),"interp_na" ) for (id, input) in inputDset.arrayMap.items() }
 #         else:           inputs: Dict[str,EDASArray] = { id: input for (id, input) in inputDset.arrayMap.items() }
         if op.isSimple and not self.requiresAlignment:
-           return inputDataset
+           result = inputDataset
         else:
             resultArrays: OrderedDict[str,EDASArray] = OrderedDict()
             arrayList = list(inputDataset.arrayMap.values())
@@ -155,13 +155,13 @@ class OpKernel(Kernel):
             resultDataset = EDASDataset( resultArrays, inputDataset.attrs )
             alignmentTarget = resultDataset.getAlignmentVariable( op.getParm("align","lowest") )
             preprop_result = resultDataset.align( alignmentTarget )
-        result: EDASDataset = preprop_result.groupby( op.grouping ).resample( op.resampling )
+            result: EDASDataset = preprop_result.groupby( op.grouping ).resample( op.resampling )
         print( " $$$$ processInputCrossSection: " + op.name + " -> " + str( result.ids ) )
-        return result
+        return result.purge()
 
     def mergeEnsembles(self, op: OpNode, dset: EDASDataset ) -> EDASDataset:
-        self.logger( " ---> Merge Ensembles: ")
-        for xarray in dset.xarrays: self.logger( f" Variable {xarray.name}: dims: {xarray.dims}, coords: {xarray.coords.keys()} " )
+        self.logger.info( " ---> Merge Ensembles: ")
+        for xarray in dset.xarrays: self.logger.info( f" Variable {xarray.name}: dims: {xarray.dims}, coords: {xarray.coords.keys()} " )
         sarray: xr.DataArray = xr.concat( dset.xarrays, dim=op.ensDim)
         result = EDASArray( dset.id, list(dset.domains)[0], sarray )
         return  EDASDataset.init( OrderedDict([(dset.id,result)]), dset.attrs )
