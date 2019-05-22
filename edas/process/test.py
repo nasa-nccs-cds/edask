@@ -10,7 +10,7 @@ from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 from threading import Thread
 
-CreateIPServer = "https://dataserver.nccs.nasa.gov/%20/thredds/dodsC/bypass/CREATE-IP"
+CreateIPServer = "https://dataserver.nccs.nasa.gov//thredds/dodsC/bypass/CREATE-IP"
 
 def q(item: str):
     i0 = item.strip()
