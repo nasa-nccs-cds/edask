@@ -222,8 +222,6 @@ class EDASArray:
         rv.addTransform(  Transformation( "resample", **kwargs ) )
         return rv
 
-
-
     def regrid( self, other: "EDASArray" ) -> xa.DataArray:
         if self.aligned(other): return self
         import cdms2
@@ -231,10 +229,10 @@ class EDASArray:
         v1: cdms2.tvariable.TransientVariable = other.xrArray.to_cdms2()
         v2 = v0.regrid( v1.getGrid() )
         return xa.DataArray.from_cdms2(v2)
-# =======
-#     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
-#         return self.align_xa( other, assume_sorted )
-#
+
+    def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
+         return self.align_xa( other, assume_sorted )
+
 #     def align_esmf( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
 #         if self.aligned( other ): return self
 #         try:
@@ -249,7 +247,7 @@ class EDASArray:
 #             return self.updateXa(new_data,"align")
 #         except NotImplementedError as err:
 #             raise err
-# >>>>>>> stratus
+
 
     def align_xa(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
