@@ -1,8 +1,9 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
+from stratus_endpoint.handler.base import TaskResult
 from enum import Enum, auto
 from edas.process.node import Node
 from edas.portal.parsers import WpsCwtParser
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 class SourceType(Enum):
     UNKNOWN = auto()
@@ -33,12 +34,12 @@ class DataSource:
 
     @classmethod
     def validate(cls, _address: str, stype: SourceType = SourceType.uri ):
-        allowed_sources = [ r.strip() for r in EdaskEnv.get("sources.allowed", "collection,https").split(",") ]
+        allowed_sources = [r.strip() for r in EdasEnv.get("sources.allowed", "collection,https").split(",")]
         toks = _address.split(":")
         scheme = toks[0].lower()
         if (stype.name.lower() == "uri") and (scheme in allowed_sources):
             if scheme == "https":
-                trusted_servers = [ r.strip() for r in EdaskEnv.get("trusted.dap.servers", "").split(",") ]
+                trusted_servers = [r.strip() for r in EdasEnv.get("trusted.dap.servers", "").split(",")]
                 for trusted_server in trusted_servers:
                     if _address.startswith( trusted_server ): return scheme, toks[1]
                 raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' in app.conf to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )
@@ -131,16 +132,17 @@ class VariableSource(Node):
 class VariableManager:
 
     @classmethod
-    def new(cls, variableSpecs: List[Dict[str, Any]] ):
+    def new(cls, variableSpecs: List[Dict[str, Any]], inputs: List[TaskResult] = None ):
         vsources = [ VariableSource.new(variableSpec) for variableSpec in variableSpecs ]
         vmap = {}
         for vsource in vsources:
             for var in vsource.vids:
                 vmap[var.id] = vsource
-        return VariableManager( vmap )
+        return VariableManager( vmap, inputs )
 
-    def __init__(self, _variables: Dict[str, VariableSource]):
+    def __init__(self, _variables: Dict[str, VariableSource], inputs: List[TaskResult] = None ):
         self.variables: Dict[str, VariableSource] = _variables
+        self.inputs = inputs
 
     def getVariable( self, id: str ) -> VariableSource:
         return self.variables.get( id )
@@ -149,4 +151,4 @@ class VariableManager:
         return self.variables.values()
 
     def __str__(self):
-        return "Variables[ {} ]".format( ";".join( [ str(v) for v in self.variables.values() ] ) )
+        return "Variables[ {}, {} ]".format( ";".join( [ str(v) for v in self.variables.values() ] ), ";".join( [ str(iv) for iv in self.inputs ] ) )

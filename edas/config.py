@@ -11,7 +11,7 @@ class ParameterManager:
         assert os.path.isdir( self.EDAS_CONFIG_DIR ), f"Error, the EDAS configuration directory '{self.EDAS_CONFIG_DIR}' does not exist"
         self.path = os.path.expanduser( os.path.join( self.EDAS_CONFIG_DIR, "app.conf" ) )
         assert os.path.isfile( self.path ), f"Error, the EDAS configuration file '{self.path}' does not exist.  Copy edas/resourses/app.conf.template to '{self.path}' and edit."
-        aliases = { "wps.server.address": "client.address" }
+        aliases = { "wps.server.address": "client.address", "scheduler.address": "dask.scheduler" }
         self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
         self.TRANSIENTS_DIR = self._parms.get( "edas.transients.dir", "/tmp" )
         self.COLLECTIONS_DIR = self._parms.get("edas.coll.dir", "~/.edas" )
@@ -48,10 +48,10 @@ class ParameterManager:
         if rv is None: return default
         return rv.lower().startswith("t")
 
-EdaskEnv = ParameterManager()
+EdasEnv = ParameterManager()
 
 if __name__ == '__main__':
-    print(EdaskEnv['dap.engine'])
+    print(EdasEnv['dap.engine'])
 
 
 

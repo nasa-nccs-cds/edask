@@ -1,28 +1,27 @@
 import logging, time
-import numpy.ma as ma
 from edas.process.task import Job
-from edas.workflow.modules.xarray import *
 from edas.workflow.module import edasOpManager
 from edas.process.manager import ExecHandler
-from dask.distributed import Client, Future, LocalCluster
-from edas.config import EdaskEnv
+from dask.distributed import Client
+from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 
 collection = "cip_eraint_mth"
 variable = "ta"
 time_range = [ "1981-01-01", "2011-01-01"]
-local = True
-scheduler = "edaskwndev01:8786"
+local = False
+# scheduler = "edaskwndev01:8786"
+scheduler = "foyer101:8786"
 
 domains = [{"name": "d0", "time": {"start": time_range[0], "end": time_range[1], "crs": "timestamps"}}]
 variables = [{"uri": f"collection://{collection}:", "name": f"{variable}:v0", "domain": "d0"}]
-operations = [{"name": "xarray.ave", "input": "v0", "axes": "t"}]
+operations = [{"name": "edas.ave", "input": "v0", "axes": "t"}]
 
 if __name__ == '__main__':
     print(f"Running test")
     appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-    EdaskEnv.update( appConf )
+    EdasEnv.update( appConf )
 
     if local:
         print( f"Initializing Local Dask cluster" )
@@ -43,13 +42,13 @@ if __name__ == '__main__':
     print(f" N Workers: {len(workers)} " )
 
     start_time1 = time.time()
-    job1 = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations )
+    job1 = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations, [] )
     print("Running workflow for requestId " +  job1.requestId )
     result1 = edasOpManager.buildTask( job1 )
     print("Completed first workflow in time " + str(time.time() - start_time1))
 
     start_time2 = time.time()
-    job2 = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations )
+    job2 = Job.init( "Test", "SCHEDULER_TEST", "jobId", domains, variables, operations, []  )
     print("Running workflow for requestId " +  job2.requestId )
     result2 = edasOpManager.buildTask( job2 )
     print("Completed second workflow in time " + str(time.time() - start_time2))

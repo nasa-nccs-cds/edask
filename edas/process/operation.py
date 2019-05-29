@@ -108,8 +108,9 @@ class WorkflowNode(Node):
         from edas.process.task import Job
         super(WorkflowNode, self).__init__( name, metadata )
         self.domain: str = _domain
-        nameToks = name.split(".")
+        nameToks = name.split(":") if ":" in name else name.split(".")
         self.module: str = nameToks[0]
+        assert len( nameToks ) > 1, "Expected '<module>.<operation>' format, received: '{}'".format(name)
         self.op: str = nameToks[1]
         self.axes: List[str] = self._getAxes("axis") + self._getAxes("axes")
         self._connectors: List[OperationConnector] = []
@@ -270,14 +271,21 @@ class OpNode(WorkflowNode):
 
     @classmethod
     def new(cls, operationSpec: Dict[str, Any] ):
-        name = operationSpec.get("name","")
+        name = operationSpec.get( "name", operationSpec.get("epa", None ) )
+        assert name is not None, "Operation spec must have 'name' or 'epa' parameter: " + str( operationSpec )
         domain = operationSpec.get("domain","")
         return OpNode(name, domain, operationSpec)
 
     def __init__(self, name: str, domain: str, metadata: Dict[str,Any] ):
-        super( OpNode, self ).__init__( name, domain, metadata)
+        super( OpNode, self ).__init__( name, domain, metadata )
+        self.logger.info (" Create OpNode: " + str(self.metadata))
+
+    def filterMetadata(self, metadata: Dict[str,Any] ) -> Dict[str,Any]:
+        return { k: v for k, v in metadata.items() if v != "" }
+
 
     def isResult(self):
+        if len( self.connectors ) == 0: return True
         for conn in self.connectors:
             if conn.isResult: return True
         return False
@@ -376,7 +384,7 @@ class OperationManager:
     def addInputOperations(self):
         for varSource in self.variables.getVariableSources():
             for id in varSource.ids:
-                op = SourceNode( "xarray.input", varSource.domain, varSource, id, {} )
+                op = SourceNode( "edas.input", varSource.domain, varSource, id, {} )
                 self.operations.append( op )
 
     def getDomain( self, name: str ) -> Domain:

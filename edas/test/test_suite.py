@@ -12,7 +12,7 @@ def test_ave_timeslice():
                                 "lon":  { "start":0, "end":100, "system":"values" },
                                 "time": { "start":'1990-01-01T00Z', "end":'1991-01-01T00Z', "system":"timestamps"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"xy" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -21,7 +21,7 @@ def test_eave1():
                                 "lon":  { "start":30, "end":40, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0,v1", "axis":"e" } ]
+    operations = [ { "name":"edas.ave", "input":"v0,v1", "axis":"e" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -34,19 +34,19 @@ def test_subset():
                 "lon": {"start": 40, "end": 42, "system": "values"},
                 "time": {"start": 10, "end": 15, "system": "indices"}}]
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-    operations = [ { "name": "xarray.subset", "input": "v0" } ]
+    operations = [ { "name": "edas.subset", "input": "v0" } ]
     results = mgr.testExec(domains, variables, operations)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_filter():
     domains = [{ "name":"d0",   "lat":  { "start":50, "end":55, "system":"values" },
                                 "lon":  { "start":40, "end":42, "system":"values" },
                                 "time": { "start":'1980-01-01', "end":'1990-01-01', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.filter", "input":"v0", "axis":"t", "sel":"aug"} ]
+    operations = [ { "name":"edas.filter", "input":"v0", "axis":"t", "sel":"aug"} ]
     results = mgr.testExec( domains, variables, operations )
-    print( results.xarrays[0].shape )
-    assert  results.xarrays[0].shape[0] == 10
+    print( results[0].xarrays[0].shape )
+    assert  results[0].xarrays[0].shape[0] == 10
 
 def test_ave1():
     # Verification data: nco_scripts/ave1.sh
@@ -57,9 +57,9 @@ def test_ave1():
                                 "lon":  { "start":0, "end":100, "system":"values" },
                                 "time": { "start":30, "end":50, "system":"indices" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"xy" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_ave_op_d0():
     # Verification data: nco_scripts/ave1.sh
@@ -70,9 +70,9 @@ def test_ave_op_d0():
                                 "lon":  { "start":0, "end":100, "system":"values" },
                                 "time": { "start":30, "end":50, "system":"indices" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_ave1_double_d0():
     # Verification data: nco_scripts/ave1.sh
@@ -83,9 +83,9 @@ def test_ave1_double_d0():
                                 "lon":  { "start":0, "end":100, "system":"values" },
                                 "time": { "start":30, "end":50, "system":"indices" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
     
 def test_max1() :
     # Verification data: nco_scripts/max1.sh
@@ -94,17 +94,17 @@ def test_max1() :
                                 "lon":  { "start":0, "end":10, "system":"values" },
                                 "time": { "start":40, "end":50, "system":"indices" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    operations = [ { "name":"edas.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_max_timeslice() :
     domains = [{ "name":"d0",   "lat":  { "start":0, "end":50, "system":"values" },
                                 "lon":  { "start":0, "end":10, "system":"values" },
                                 "time": { "start":'1990-01-01T00:00:00', "end":'1990-01-01T00:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    operations = [ { "name":"edas.max", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -113,7 +113,7 @@ def test_max_lon_slice() :
                                 "lon":  { "start":0, "end":0, "system":"values" },
                                 "time": { "start":'1990-01-01T00:00:00', "end":'1991-01-01T00:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.max", "input":"v0", "domain":"d0", "axes":"yt" } ]
+    operations = [ { "name":"edas.max", "input":"v0", "domain":"d0", "axes":"yt" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -126,24 +126,24 @@ def test_min1() :
                                 "lon":  { "start":30, "end":120, "system":"indices" },
                                 "time": { "start":30, "end":50, "system":"indices" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.min", "input":"v0", "domain":"d0", "axes":"xy" } ]
+    operations = [ { "name":"edas.min", "input":"v0", "domain":"d0", "axes":"xy" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
-    assert mgr.equals(results, [verification_data])
+    assert mgr.equals(results[0], [verification_data])
 
 def test_diff1() :
     domains = [{ "name":"d0",   "lat":  { "start":50, "end":70, "system":"values" },
                                 "lon":  { "start":30, "end":40, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
-    operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
+    operations = [ { "name":"edas.diff", "input":"v0,v1" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
 def test_diff2() :
     domains = [{ "name":"d0",   "time": { "start":'1980-01-01T00:00:00', "end":'1980-03-30T23:00:00', "system":"values" } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" }, { "uri": mgr.getAddress( "merra", "tas"), "name":"tas:v1", "domain":"d0" } ]
-    operations = [ { "name":"xarray.diff", "input":"v0,v1" } ]
+    operations = [ { "name":"edas.diff", "input":"v0,v1" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -152,7 +152,7 @@ def test_ave2() :
                                 "lon":  { "start":100, "end":110, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1982-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "groupby": "t.season" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"t", "groupby": "t.season" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -161,7 +161,7 @@ def test_decycle() :
                                 "lon":  { "start":100, "end":130, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.decycle", "input":"v0" } ]
+    operations = [ { "name":"edas.decycle", "input":"v0" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -170,9 +170,10 @@ def test_seasonal_cycle() :
                                'lon': {'start': 200, 'end': 260, 'crs': 'values'},
                                'time': {'start': '1980-01-01T00:00:00Z', 'end': '2012-12-31T23:59:00Z', 'crs': 'timestamps'}}]
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-    operations = [ { 'name': "xarray.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "xarray.ave", 'axes': "t", 'groupby': "t.season", "input":"v1" } ]
+    operations = [ { 'name': "edas.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "edas.ave", 'axes': "t", 'groupby': "t.season", "input":"v1" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result: xa.DataArray = variable.xr.load()
         assert result.shape == (4,)
     mgr.print(results)
@@ -182,9 +183,10 @@ def test_seasonal_means() :
                                'lon': {'start': 200, 'end': 260, 'crs': 'values'},
                                'time': {'start': '1980-01-01T00:00:00Z', 'end': '2012-12-31T23:59:00Z', 'crs': 'timestamps'}}]
     variables = [{"uri": mgr.getAddress("merra2", "tas"), "name": "tas:v0", "domain": "d0"}]
-    operations = [ { 'name': "xarray.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "xarray.ave", 'axes': "t", 'resample': "t.season", "input":"v1" } ]
+    operations = [ { 'name': "edas.ave", 'axes': "yx", "input": "v0:v1" } , {'name': "edas.ave", 'axes': "t", 'resample': "t.season", "input":"v1" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result: xa.DataArray = variable.xr.load()
         assert result.shape == (133,)
     mgr.print(results)
@@ -195,9 +197,10 @@ def test_yearly_time_ave():
                                 "lon":  { "start":100, "end":110, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'2000-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { 'name': "xarray.ave", 'axes': "t", "groupby": "t.year", "input":"v0" } ]
+    operations = [ { 'name': "edas.ave", 'axes': "t", "groupby": "t.year", "input":"v0" } ]
     results = mgr.testExec( domains, variables, operations )
-    for variable in results.inputs:
+    for result in results:
+      for variable in result.inputs:
         result = variable.xr.load()
         assert result.shape == (21,21,17)
     mgr.print(results)
@@ -207,9 +210,9 @@ def test_detrend() :
                                 "lon":  { "start":100, "end":130, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [  {"name": "xarray.decycle", "input": "v0", "result":"dc"},
-                    {"name": "xarray.detrend", "input": "dc", "axis":"t"},
-                    {"name": "xarray.noop", "input": "dc"} ]
+    operations = [  {"name": "edas.decycle", "input": "v0", "result":"dc"},
+                    {"name": "edas.detrend", "input": "dc", "axis":"t"},
+                    {"name": "edas.noop", "input": "dc"} ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -218,7 +221,7 @@ def test_ave3() :
                                 "lon":  { "start":100, "end":130, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
@@ -227,13 +230,13 @@ def test_ave_dash_in_input():
                                 "lon":  { "start":100, "end":130, "system":"values" },
                                 "time": { "start":'1980-01-01T00:00:00', "end":'1986-01-30T23:00:00', "system":"values"  } } ]
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v-0", "domain":"d0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v-0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
+    operations = [ { "name":"edas.ave", "input":"v-0", "domain":"d0", "axes":"t", "resample": "t.season" } ]
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
 def test_ave_no_domain() :
     variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0" } ]
-    operations = [ { "name":"xarray.ave", "input":"v0", "axes":"t", "resample": "t.season" } ]
+    operations = [ { "name":"edas.ave", "input":"v0", "axes":"t", "resample": "t.season" } ]
     results = mgr.testExec( [], variables, operations )
     mgr.print(results)
 

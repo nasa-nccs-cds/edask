@@ -1,12 +1,12 @@
 import logging, time
 import xarray as xr
 from dask.distributed import Client, Future, LocalCluster
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from typing import List, Optional, Tuple, Dict, Any
 
 variable = "t"
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-EdaskEnv.update(appConf)
+EdasEnv.update(appConf)
 
 if __name__ == "__main__":
     client = Client( n_workers=4, threads_per_worker=2, memory_limit='2GB' )

@@ -4,9 +4,10 @@ from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
+from stratus_endpoint.handler.base import Status
 from edas.util.logging import EDASLogger
 from edas.portal.cluster import EDASCluster
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno, uuid
 from threading import Thread
 import xarray as xa
@@ -20,7 +21,6 @@ class ExecHandlerBase:
         self.jobId = jobId
         self.cacheDir = kwargs.get( "cache", "/tmp")
         self.workers = kwargs.get( "workers", 1 )
-        self.completed = 0
         self.start_time = time.time()
         self.filePath = self.cacheDir + "/" + Job.randomStr(6) + ".nc"
 
@@ -36,16 +36,10 @@ class ExecHandlerBase:
         return expDir + "/" + name + "-" + Job.randomStr(6) + "." + type
 
     @abc.abstractmethod
-    def successCallback(self, resultFuture: Future): pass
-
-    @abc.abstractmethod
-    def failureCallback(self, ex: Exception): pass
+    def processFailure(self, ex: Exception): pass
 
     @abc.abstractmethod
     def processResult(self, result: EDASDataset  ): pass
-
-    @abc.abstractmethod
-    def iterationCallback( self, resultFuture: Future ): pass
 
     def mkDir(self, dir: str ) -> str:
         try:
@@ -56,23 +50,24 @@ class ExecHandlerBase:
 
 class SubmissionThread(Thread):
 
-    def __init__(self, job: Job, resultHandler: ExecHandlerBase):
+    def __init__(self, job: Job, processResults, processFailure ):
         Thread.__init__(self)
         self.job = job
-        self.resultHandler = resultHandler
+        self.processResults = processResults
+        self.processFailure = processFailure
         self.logger =  EDASLogger.getLogger()
 
     def run(self):
         start_time = time.time()
         try:
-            self.logger.info( "Running workflow for requestId " + self.job.requestId)
-            result = edasOpManager.buildTask( self.job )
+            self.logger.info( "* Running workflow for requestId " + self.job.requestId)
+            results: List[EDASDataset] = edasOpManager.buildTask( self.job )
             self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
-            self.resultHandler.processResult( result )
+            self.processResults( results )
         except Exception as err:
             self.logger.error( "Execution error: " + str(err))
             self.logger.error( traceback.format_exc() )
-            self.resultHandler.failureCallback(err)
+            self.processFailure(err)
 
 class ExecHandler(ExecHandlerBase):
 
@@ -84,61 +79,72 @@ class ExecHandler(ExecHandlerBase):
         self._processResults = True
         self.results: List[EDASDataset] = []
         self.job = _job
+        self._status = Status.IDLE
+        self._parms = {}
 
     def execJob(self, job: Job ) -> SubmissionThread:
-        self.sthread = SubmissionThread(job,self)
+        self.sthread = SubmissionThread( job, self.processResults, self.processFailure )
         self.sthread.start()
         self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
         return self.sthread
 
-    def getResult(self, timeout=None):
+    def status(self):
+        return self._status
+
+    def getEDASResult(self, timeout=None, block=False) -> List[EDASDataset]:
         self._processResults = False
-        self.sthread.join(timeout)
-        return self.mergeResults()
+        if block:
+            self.sthread.join(timeout)
+            return self.mergeResults()
+        else:
+            if self._status == Status.COMPLETED:
+                return self.mergeResults()
+            else: return []
 
-    def processResult( self, result: EDASDataset ):
-        self.results.append( result )
-        self._processFinalResult( )
+    def getResult(self, timeout=None, block=False) ->  List[xa.Dataset]:
+        edasResults = self.getEDASResult(timeout,block)
+        return [ edasResult.xr for edasResult in edasResults ] if edasResults is not None else []
+
+    def processResults( self, results: List[EDASDataset] ):
+        self.results.extend( results )
+        self._processFinalResults( )
         if self.portal: self.portal.removeHandler( self.clientId, self.jobId )
+        self._status = Status.COMPLETED
+        self.logger.info(" ----------------->>> EDAS REQUEST COMPLETED, result Len =  " + str(len(self.results))  )
 
-    def successCallback(self, resultFuture: Future):
-      status = resultFuture.status
-      if status == "finished":
-          self.results.append( resultFuture.result() )
-          self.logger.info( " Completed computation " + self.jobId + " in " + str(time.time() - self.start_time) + " seconds" )
-          self._processFinalResult( )
-      else:
-          self.failureCallback( resultFuture.result() )
-      if self.portal: self.portal.removeHandler( self.clientId, self.jobId )
-
-    def _processFinalResult( self ):
+    def _processFinalResults( self ):
         assert len(self.results), "No results generated by request"
         if self._processResults:
-            result = self.mergeResults()
-            try:
-                savePath = result.save()
-                if self.portal:
-                    sendData = self.job.runargs.get( "sendData", "true" ).lower().startswith("t")
-                    self.portal.sendFile( self.clientId, self.jobId, result.id, savePath, sendData )
-                else:
-                    self.printResult(savePath)
-            except Exception as err:
-                self.logger.error( "Error processing final result: " + str(err) )
-                self.logger.info(traceback.format_exc())
-                if self.portal:
-                    self.portal.sendFile(self.clientId, self.jobId, result.id, "", False )
+            self.logger.info(" ----------------->>> Process Final Result " )
+            results: List[EDASDataset] = self.mergeResults()
+            for result in results:
+                try:
+                    savePath = result.save()
+                    if self.portal:
+                        sendData = self.job.runargs.get( "sendData", "true" ).lower().startswith("t")
+                        self.portal.sendFile( self.clientId, self.jobId, result.id, savePath, sendData )
+                    else:
+                        self.printResult(savePath)
+                except Exception as err:
+                    self.logger.error( "Error processing final result: " + str(err) )
+                    self.logger.info(traceback.format_exc())
+                    if self.portal:
+                        self.portal.sendFile(self.clientId, self.jobId, result.id, "", False )
 
     def printResult( self, filePath: str ):
         dset = xa.open_dataset(filePath)
         print( str(dset) )
 
-    def mergeResults(self) -> EDASDataset:
+    def mergeResults(self) -> List[EDASDataset]:
+        if self.results[0].getResultClass() == "METADATA":
+            return self.results
         mergeMethod: str = self.results[0]["merge"]
-        if mergeMethod is None: return EDASDataset.merge( self.results )
+        if mergeMethod is None:
+            return EDASDataset.merge( self.results )
         mergeToks = mergeMethod.split(":")
         return self.getBestResult( mergeToks[0].strip().lower(), mergeToks[1].strip().lower() )
 
-    def getBestResult(self, method: str, parm: str )-> EDASDataset:
+    def getBestResult(self, method: str, parm: str )-> List[EDASDataset]:
         bestResult = None
         bestValue = None
         values = []
@@ -149,47 +155,53 @@ class ExecHandler(ExecHandlerBase):
             if bestResult is None or self.compare( method, float(pval), bestValue ):
                 bestResult = result
                 bestValue = float(pval)
-        return bestResult
+        return [ bestResult ]
 
     def compare(self, method: str, current: float, threshold: float ):
         if method == "min": return current < threshold
         if method == "max": return current > threshold
         raise Exception( "Unknown comparison method: " + method )
 
-    def getTbStr(self, ex ) -> str:
+    @classmethod
+    def getTbStr( cls, ex ) -> str:
         if ex.__traceback__  is None: return ""
         tb = traceback.extract_tb( ex.__traceback__ )
         return " ".join( traceback.format_list( tb ) )
 
-    def getErrorReport(self, ex ):
-        errMsg = getattr( ex, 'message', repr(ex) )
-        return errMsg + ">~>" +  str( self.getTbStr(ex) )
+    @classmethod
+    def getErrorReport( cls, ex ):
+        try:
+            errMsg = getattr( ex, 'message', repr(ex) )
+            return errMsg + ">~>" +  str( cls.getTbStr(ex) )
+        except:
+            return repr(ex)
 
-    def failureCallback(self, ex: Exception ):
-        try: error_message = self.getErrorReport( ex )
-        except: error_message = repr(ex)
+    def processFailure(self, ex: Exception):
+        error_message = self.getErrorReport( ex )
         if self.portal:
             self.portal.sendErrorReport( self.clientId, self.jobId, error_message )
             self.portal.removeHandler( self.clientId, self.jobId )
         else:
             self.logger.error( error_message )
+        self._status = Status.ERROR
+        self._parms["error"] = error_message
 
-    def iterationCallback( self, resultFuture: Future ):
-      status = resultFuture.status
-      if status == "finished":
-          self.completed = self.completed + 1
-          result: EDASDataset = resultFuture.result()
-          self.results.append(result)
-      else:
-          try:                      self.failureCallback( Exception("status = " + status + "\n>~>" + str( traceback.format_tb(resultFuture.traceback(60)) ) ) )
-          except TimeoutError:
-              try:                  self.failureCallback( Exception("status = " + status + ", Exception = " + str( resultFuture.exception(60) )  ) )
-              except TimeoutError:
-                                    self.failureCallback( Exception("status = " + status  ) )
-      if self.completed == self.workers:
-        self._processFinalResult()
-        if self.portal:
-            self.portal.removeHandler( self.clientId, self.jobId )
+    # def iterationCallback( self, resultFuture: Future ):
+    #   status = resultFuture.status
+    #   if status == "finished":
+    #       self.completed = self.completed + 1
+    #       result: EDASDataset = resultFuture.result()
+    #       self.results.append(result)
+    #   else:
+    #       try:                      self.processFailure(Exception("status = " + status + "\n>~>" + str(traceback.format_tb(resultFuture.traceback(60)))))
+    #       except TimeoutError:
+    #           try:                  self.processFailure(Exception("status = " + status + ", Exception = " + str(resultFuture.exception(60))))
+    #           except TimeoutError:
+    #                                 self.processFailure(Exception("status = " + status))
+    #   if self.completed == self.workers:
+    #     self._processFinalResult()
+    #     if self.portal:
+    #         self.portal.removeHandler( self.clientId, self.jobId )
 
 class GenericProcessManager:
   __metaclass__ = abc.ABCMeta
@@ -216,10 +228,22 @@ class GenericProcessManager:
     while( not self.hasResult(service,resultId) ): time.sleep(0.5)
 
 class ProcessManager(GenericProcessManager):
+  manager: "ProcessManager" = None
+
+  @classmethod
+  def getManager( cls ) -> Optional["ProcessManager"]:
+      return cls.manager
+
+  @classmethod
+  def initManager( cls, serverConfiguration: Dict[str,str] ) -> "ProcessManager":
+      if cls.manager is None:
+          cls.manager = ProcessManager(serverConfiguration)
+      return cls.manager
 
   def __init__( self, serverConfiguration: Dict[str,str] ):
       self.config = serverConfiguration
       self.logger =  EDASLogger.getLogger()
+      self.num_wps_requests = 0
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
       self.active = True
@@ -237,11 +261,31 @@ class ProcessManager(GenericProcessManager):
       self.scheduler_info = self.client.scheduler_info()
       self.workers: Dict = self.scheduler_info.pop("workers")
       self.logger.info(f" workers: {self.workers}")
-      self.metricsThread =  Thread( target=self.trackMetrics )
-      self.metricsThread.start()
+      log_metrics = serverConfiguration.get("log.scheduler.metrics", False )
+      if log_metrics:
+        self.metricsThread =  Thread( target=self.trackMetrics )
+        self.metricsThread.start()
+
+  def getCWTMetrics(self) -> Dict:
+      metrics_data = { key:{} for key in ['user_jobs_queued','user_jobs_running','wps_requests','cpu_ave','cpu_count','memory_usage','memory_available']}
+      metrics = self.getProfileData()
+      counts = metrics["counts"]
+      workers = metrics["workers"]
+      for key in ['tasks','processing','released','memory','saturated','waiting','waiting_data','unrunnable']: metrics_data['user_jobs_running'][key] = counts[key]
+      for key in ['tasks', 'waiting', 'waiting_data', 'unrunnable']: metrics_data['user_jobs_queued'][key] = counts[key]
+      for wId, wData in workers.items():
+          worker_metrics = wData["metrics"]
+          total_memory   = wData["memory_limit"]
+          memory_usage = worker_metrics["memory"]
+          metrics_data['memory_usage'][wId] = memory_usage
+          metrics_data['memory_available'][wId] = total_memory - memory_usage
+          metrics_data['cpu_count'][wId] = wData["ncores"]
+          metrics_data['cpu_ave'][wId] = worker_metrics["cpu"]
+      return metrics_data
 
   def trackMetrics(self, sleepTime=1.0 ):
       isIdle = False
+      self.logger.info(f" ** TRACKING METRICS ** ")
       while self.active:
           metrics = self.getProfileData()
           counts = metrics["counts"]
@@ -269,7 +313,8 @@ class ProcessManager(GenericProcessManager):
 
   def getDashboardAddress(self):
       stoks = self.scheduler_address.split(":")
-      return f"http://{stoks[-2]}:8787"
+      host_address = stoks[-2].strip("/")
+      return f"http://{host_address}:8787"
 
   def getCounts(self) -> Dict:
       profile_address = f"{self.getDashboardAddress()}/json/counts.json"

@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 import os
 from setuptools import setup, find_packages
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+install_requires = set()
+with open( "requirements.txt" ) as f:
+  for dep in f.read().split('\n'):
+      if dep.strip() != '' and not dep.startswith('-e'):
+          install_requires.add( dep )
+
 from shutil import copyfile
 HERE = os.path.dirname(__file__)
 CONFIG_FILE = os.path.join( HERE, "resources", 'app.conf.template' )
@@ -17,9 +26,11 @@ if not os.path.isfile(INSTALLED_HOST_FILE):
       copyfile( HOSTS, INSTALLED_HOST_FILE )
       print( f"Installing edas hosts file 'hosts' into directory '{CONFIG_DIR}'" )
 
+
 setup(name='edas',
       version='1.0',
-      description='EDASK: Earth Data Analytic Services using the dasK / xarray toolkit',
+      zip_safe=False,
+      description='EDAS: Earth Data Analytic Services using the dasK / xarray toolkit',
       author='Thomas Maxwell',
       author_email='thomas.maxwell@nasa.gov',
       url='https://github.com/nasa-nccs-cds/edas.git',

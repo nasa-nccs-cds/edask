@@ -18,14 +18,14 @@ class CacheTESTS:
     def cache_data(self):
         domains = [{ "name": "d0" }]
         variables = [{"uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/reanalysis/MERRA2/mon/atmos/tas.ncml", "name": "tas", "domain": "d0"}]
-        operations = [  {"name": "xarray.cache", "input": "tas", "result":"cip.20crv.tas" }  ]
+        operations = [  {"name": "edas.cache", "input": "tas", "result":"cip.20crv.tas" }  ]
         self.mgr.testExec(domains, variables, operations, False )
         print( "\n\n --------- Completed Cache OP --------- \n\n" )
 
     def use_cache(self):
         domains = [{"name": "d0", "lat": {"start": -80, "end": 80, "system": "values"},  "time": {"start": '1880-01-01T00', "end": '2012-01-01T00', "system": "values"} }]
         variables = [{ "uri": "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/reanalysis/MERRA2/mon/atmos/tas.ncml", "name": "tas:cip.20crv.tas", "domain": "d0", "cache":"opt" } ]
-        operations = [  {"name": "xarray.ave", "axis":"t", "input": "cip.20crv.tas" } ]
+        operations = [  {"name": "edas.ave", "axis":"t", "input": "cip.20crv.tas" } ]
         result = self.mgr.testExec(domains, variables, operations, False )
         self.print( result )
 

@@ -42,7 +42,7 @@ class MessageState(Enum):
 class ResponseManager(Thread):
 
     def __init__(self, context: zmq.Context, clientId: str, host: str, port: int, **kwargs ):
-        from edas.config import EdaskEnv
+        from edas.config import EdasEnv
         Thread.__init__(self)
         self.context = context
         self.logger = EDASLogger.getLogger()
@@ -57,7 +57,7 @@ class ResponseManager(Thread):
         self.filePaths = {}
         self.diag = bool(kwargs.get("diag",False))
         self.setDaemon(True)
-        self.cacheDir = EdaskEnv.CACHE_DIR
+        self.cacheDir = EdasEnv.CACHE_DIR
         self.log("Created RM, cache dir = " + self.cacheDir )
 
     def cacheResult(self, id: str, result: str ):

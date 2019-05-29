@@ -52,8 +52,8 @@ class WpsCwtParser:
     @classmethod
     def isoDateStr(cls, dTime: str)-> str:
         import dateparser
-        dt: datetime.datetime = dateparser.parse(dTime, settings={'TIMEZONE': 'UTC'} )
-        return dt.replace(microsecond=0).isoformat(" ")
+        dt: datetime.datetime = dateparser.parse(dTime) # , settings={'TIMEZONE': 'UTC'} )
+        return dt.replace(microsecond=0).isoformat( "T", timespec="seconds" ).split("+")[0]
 
     @classmethod
     def parseDatainputs(cls, datainputs) -> Dict[str,List[Dict[str,Any]]]:
@@ -132,7 +132,7 @@ if __name__ == '__main__':
 #    dt: datetime.datetime = dateparser.parse( '1990-01-01T00:00:00Z' )
 #    print( dt )
 
-    dset = xr.open_dataset( "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml", autoclose=True )
+    dset = xr.open_dataset( "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP//reanalysis/MERRA2/mon/atmos/tas.ncml" )
     tas = dset["tas"]
     slice = tas.load().sel( time = '1990-01-01' )
     print( slice )

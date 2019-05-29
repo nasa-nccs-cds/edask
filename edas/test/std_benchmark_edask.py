@@ -15,9 +15,8 @@ dataset = edas_cip_tas_6hr
 try:
     client = Client( 'edaskwndev01:8786' )
     print( "READ " + dataset )
-    
-    ds_m=xa.open_mfdataset( dataset, engine='netcdf4', data_vars=['tas'], parallel=True )
 
+    ds_m=xa.open_mfdataset( dataset, engine='netcdf4', data_vars=['tas'], parallel=True )
     print( "COMPUTE MEAN, Result:" )
 
     print( ds_m.tas.mean( dim=["lat","lon"], keep_attrs=True ).values )

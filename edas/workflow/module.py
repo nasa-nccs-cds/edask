@@ -8,8 +8,7 @@ from edas.process.task import TaskRequest, Job
 from edas.util.logging import EDASLogger
 from typing import List, Dict, Callable, Set, Optional
 import xarray as xa
-
-
+from collections import OrderedDict
 
 class OperationModule:
     __metaclass__ = ABCMeta
@@ -25,7 +24,7 @@ class OperationModule:
         return []
 
     @abstractmethod
-    def getCapabilities(self): pass
+    def getCapabilitiesXml(self): pass
 
     @abstractmethod
     def getSerializationStr(self):  pass
@@ -33,7 +32,7 @@ class OperationModule:
     def serialize(self): return "!".join([self._name, "python", self.getSerializationStr()])
 
     @property
-    def xml(self): return self.getCapabilities()
+    def xml(self): return self.getCapabilitiesXml()
 
 class KernelModule(OperationModule):
 
@@ -71,7 +70,8 @@ class KernelModule(OperationModule):
             self._instances[instanceName] = instance
         return instance
 
-    def getCapabilities(self): return '<module name="{}"> {} </module>'.format(self.getName(), " ".join([kernel().getCapabilities() for kernel in self._kernels.values()]))
+    def getCapabilitiesXml(self): return '<module name="{}"> {} </module>'.format(self.getName(), " ".join([kernel().getCapabilitiesXml() for kernel in self._kernels.values()]))
+    def getCapabilitiesJson(self): return dict(name=self.getName(), kernels=[kernel().getCapabilities() for kernel in self._kernels.values()])
     def getSerializationStr(self): return "~".join([ kernel().serialize() for kernel in self._kernels.values() ])
 
     def describeProcess( self, op ):
@@ -83,6 +83,7 @@ class KernelManager:
     def __init__( self ):
         self.logger =  EDASLogger.getLogger()
         self.operation_modules: Dict[str,KernelModule] = {}
+        self.utilNodes = { "edas.metrics" }
         self.build()
 
     def build(self):
@@ -124,11 +125,21 @@ class KernelManager:
         module = self.operation_modules[ module ]
         return module.createKernel( op )
 
-    def getCapabilities(self, type: str ) -> str:
+    def getCapabilitiesJson( self, type: str = "kernel" ) -> Dict:
         from edas.collection.agg import Collection
         self.logger.info( " GetCapabilities --> type: " + type )
+        if( type.lower().startswith("ker") or type.lower().startswith("op")  ):
+            specs = dict( modules = [opMod.getCapabilitiesJson() for opMod in self.operation_modules.values()] )
+            return specs
+        else:
+            return {}
+
+    def getCapabilitiesXml(self, type: str) -> str:
+        from edas.collection.agg import Collection
+        if type == None: type = "kernels"
+        self.logger.info( " GetCapabilities --> type: " + str(type) )
         if( type.lower().startswith("ker") ):
-            specs = [ opMod.getCapabilities() for opMod in self.operation_modules.values() ]
+            specs = [opMod.getCapabilitiesXml() for opMod in self.operation_modules.values()]
             return '<modules> {} </modules>'.format( " ".join( specs ) )
         elif( type.lower().startswith("col") ):
             specs = Collection.getCollectionsList()
@@ -164,15 +175,28 @@ class KernelManager:
         print( " $$$$ buildSubWorkflow[ " + op.name + "]: " + subWorkflowDatasets.arrayIds + " -> " + result.arrayIds)
         return result
 
-    def buildRequest(self, request: TaskRequest ) -> EDASDataset:
+    def buildRequest(self, request: TaskRequest ) -> List[EDASDataset]:
         request.linkWorkflow()
         resultOps: List[WorkflowNode] =  self.replaceProxyNodes( request.getResultOperations() )
         assert len(resultOps), "No result operations (i.e. without 'result' parameter) found"
-        self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
-        result = EDASDatasetCollection("BuildRequest")
-        for op in resultOps: result += self.buildSubWorkflow( request, op )
-        self.cleanup( request )
-        return result.getResultDataset()
+        if self.isUtilNode( resultOps[0] ):
+            self.logger.info( "Build Utility Request" )
+            return [ self.processUtilNode( resultOps[0] ) ]
+        else:
+            self.logger.info( "Build Request, resultOps = " + str( [ node.name for node in resultOps ] ))
+            result = EDASDatasetCollection("BuildRequest")
+            for op in resultOps: result += self.buildSubWorkflow( request, op )
+            self.cleanup( request )
+            return result.getResultDatasets()
+
+    def processUtilNode(self, node: WorkflowNode ) -> EDASDataset:
+        from edas.process.manager import ProcessManager
+        if node.name.lower() == "edas.metrics":
+            processManager = ProcessManager.getManager()
+            metrics = processManager.getCWTMetrics()
+            metrics["@ResultClass"] = "METADATA"
+            metrics["@ResultType"] = "METRICS"
+            return EDASDataset( OrderedDict(), metrics )
 
     def cleanup(self, request: TaskRequest):
         ops: List[WorkflowNode] = request.getOperations()
@@ -183,24 +207,22 @@ class KernelManager:
     def buildIndices( self, size: int ) -> xa.DataArray:
         return xa.DataArray( range(size), coords=[('node',range(size))] )
 
-    def buildTask( self, job: Job ) -> EDASDataset:
+    def buildTask( self, job: Job ) -> List[EDASDataset]:
         try:
             self.logger.info("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
         except Exception as err:
-            self.logger.error( "BuildTask Exception: " + str(err) )
-            self.logger.info( traceback.format_exc() )
+            self.logger.error( "BuildTask Exception: " + str(err) + "\n" + traceback.format_exc() )
             raise err
 
-    def testBuildTask( self, job: Job ) -> EDASDataset:
+    def testBuildTask( self, job: Job ) -> List[EDASDataset]:
         try:
             self.logger.info("Worker-> BuildTask, index = " + str(job.workerIndex) )
             request: TaskRequest = TaskRequest.new( job )
             return self.buildRequest( request )
         except Exception as err:
-            self.logger.error( "BuildTask Exception: " + str(err) )
-            self.logger.info( traceback.format_exc() )
+            self.logger.error( "testBuildTask Exception: " + str(err) + "\n" + traceback.format_exc()  )
             raise err
 
     # def buildTasks(self, job: Job ) -> EDASDataset:
@@ -234,12 +256,16 @@ class KernelManager:
             for inpputNode in rootNode.inputNodes:
                 self.createMasterNodes( inpputNode, masterNodeList, currentMasterNode )
 
+    def isUtilNode(self, node: WorkflowNode) -> bool :
+        return node.name.lower() in self.utilNodes
+
     def replaceProxyNodes( self, resultOps: List[WorkflowNode] )-> List[WorkflowNode]:
         masterNodes: Set[MasterNode] = set()
-        for node in resultOps: self.createMasterNodes( node, masterNodes )
+        for node in resultOps:
+            if self.isUtilNode(node): return [ node ]
+            self.createMasterNodes( node, masterNodes )
         for masterNode in masterNodes: masterNode.spliceIntoWorkflow()
         return resultOps
-
 
 edasOpManager = KernelManager()
 

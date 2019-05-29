@@ -1,4 +1,5 @@
 from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
+from stratus_endpoint.handler.base import TaskResult
 import logging, random, string, traceback
 import xarray as xa
 from edas.process.domain import DomainManager, Domain, AxisBounds, Axis
@@ -28,22 +29,26 @@ class UID:
 
 class Job:
 
-  def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], runargs: Dict[str, str], priority: float):
+  def __init__(self, requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str, List[Dict[str, Any]]], inputs: List[TaskResult], runargs: Dict[str, str], priority: float):
         self.logger = EDASLogger.getLogger()
         self.requestId = requestId
         self.process = process
         self.project = project
+        self.inputs = inputs
         self.experiment = experiment
         self.dataInputs = datainputs
         self.runargs = runargs
         self.priority = priority
         self.workerIndex = 0
         self.logger.info( f"Create job, runargs = {runargs}")
-        self.logger.info( traceback.format_stack() )
 
   @staticmethod
-  def new( requestId: str, project: str, experiment: str, process: str, datainputs: str,  runargs: Dict[str,str], priority: float ):
-    return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), runargs, priority)
+  def new( requestId: str, project: str, experiment: str, process: str, datainputs: str, inputs: List[TaskResult],  runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, WpsCwtParser.parseDatainputs( datainputs ), inputs, runargs, priority)
+
+  @staticmethod
+  def create( requestId: str, project: str, experiment: str, process: str, datainputs: Dict[str,List[Dict[str,Any]]], inputs: List[TaskResult], runargs: Dict[str,str], priority: float ):
+    return Job( requestId, project, experiment, process, datainputs, inputs, runargs, priority )
 
   @staticmethod
   def randomStr(length) -> str:
@@ -51,10 +56,10 @@ class Job:
       return ''.join(random.SystemRandom().choice(tokens) for _ in range(length))
 
   @classmethod
-  def init(cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], runargs=None, priority: float=0.0):
+  def init(cls, project: str, experiment: str, process: str, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], inputs: List[TaskResult], runargs=None, priority: float=0.0):
     if runargs is None:
         runargs = {}
-    return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, runargs, priority )
+    return Job( cls.randomStr(6), project, experiment, process, { "domain":domains, "variable":variables, "operation":operations }, inputs, runargs, priority )
 
   def copy( self, workerIndex: int ) -> "Job":
       newjob = copy.deepcopy( self )
@@ -81,10 +86,10 @@ class TaskRequest:
   @classmethod
   def new( cls, job: Job ):
     logger = EDASLogger.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format(job.process, str(job.dataInputs)))
+    logger.info( "TaskRequest--> process_name: {}, requestId: {}, datainputs: {}".format(job.process, job.requestId, str(job.dataInputs)))
     uid = UID( job.requestId )
     domainManager = DomainManager.new( job.dataInputs.get("domain") )
-    variableManager = VariableManager.new( job.dataInputs.get("variable") )
+    variableManager = VariableManager.new( job.dataInputs.get("variable", job.dataInputs.get("input") ), job.inputs )
     operationManager = OperationManager.new( job.dataInputs.get("operation"), domainManager, variableManager )
     rv = TaskRequest(uid, job.project, job.experiment, job.process, operationManager, job.runargs )
     return rv
@@ -92,7 +97,7 @@ class TaskRequest:
   @classmethod
   def init( cls, project: str, experiment: str, requestId: str, identifier: str, dataInputs: Dict[str,List[Dict[str,Any]]] ):
     logger = EDASLogger.getLogger()
-    logger.info( "TaskRequest--> process_name: {}, datainputs: {}".format( identifier, str( dataInputs ) ))
+    logger.info( "TaskRequest>-> process_name: {}, requestId: {}, datainputs: {}".format( identifier, requestId, str( dataInputs ) ))
     uid = UID( requestId )
     domainManager = DomainManager.new( dataInputs.get("domain") )
     variableManager = VariableManager.new( dataInputs.get("variable") )

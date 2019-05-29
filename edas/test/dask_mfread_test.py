@@ -1,12 +1,12 @@
 import logging, time
 import xarray as xr
 from dask.distributed import Client, Future, LocalCluster
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from typing import List, Optional, Tuple, Dict, Any
 
 variable = "tas"
 appConf = { "sources.allowed": "collection,https", "log.metrics": "true"}
-EdaskEnv.update(appConf)
+EdasEnv.update(appConf)
 
 client = Client( "127.0.0.1:8786", timeout=60 )
 

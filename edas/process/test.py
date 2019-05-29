@@ -1,16 +1,16 @@
 import logging, time, multiprocessing
 import numpy.ma as ma
 from edas.process.task import Job
-from edas.workflow.modules.xarray import *
+from edas.workflow.modules.edas import *
 from edas.workflow.module import edasOpManager
 from edas.util.logging import EDASLogger
 from edas.process.manager import ProcessManager, ExecHandler
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
+from threading import Thread
 
-CreateIPServer = "https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/"
-
+CreateIPServer = "https://dataserver.nccs.nasa.gov//thredds/dodsC/bypass/CREATE-IP"
 
 def q(item: str):
     i0 = item.strip()
@@ -59,13 +59,9 @@ class TestManager:
     def getVar(self, collection: str, varName: str, id: str, domain: str):
         return {"uri": self.getAddress(collection, varName), "name": varName + ":" + id, "domain": domain}
 
-    def testParseExec(self, domains: List[Dict[str, str]], variables: List[Dict[str, str]], operations: List[Dict[str, str]]) -> EDASDataset:
-        testRequest = l2s(["domain = " + dl2s(domains), "variable = " + dl2s(variables), "operation = " + dl2s(operations)])
-        job = Job.new("requestId", "jobId", testRequest)
-        return edasOpManager.buildTask(job)
-
-    def print(self, results: EDASDataset):
-        for variable in results.inputs:
+    def print(self, results: List[EDASDataset]):
+        for result in results:
+          for variable in result.inputs:
             result = variable.xr.load()
             self.logger.info("\n\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
             self.logger.info(result)
@@ -86,45 +82,77 @@ class LocalTestManager(TestManager):
 
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(LocalTestManager, self).__init__(_proj, _exp)
-        EdaskEnv.update( appConf )
+        EdasEnv.update(appConf)
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> List[EDASDataset]:
         t0 = time.time()
         runArgs = dict( ncores = multiprocessing.cpu_count() )
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, [], runArgs )
         datainputs = {"domain": domains, "variable": variables, "operation": operations}
         resultHandler = ExecHandler( "testJob", job )
         request: TaskRequest = TaskRequest.init(self.project, self.experiment, "requestId", "jobId", datainputs)
-        result = edasOpManager.buildRequest(request)
-        if processResult: resultHandler.processResult(result)
+        results: List[EDASDataset] = edasOpManager.buildRequest(request)
+        if processResult:
+            for result in results: resultHandler.processResult(result)
         self.logger.info( " Completed computation in " + str( time.time() - t0 ) + " seconds")
-        return result
+        return results
 
 class DistributedTestManager(TestManager):
 
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
-        EdaskEnv.update(appConf)
-        self.processManager = ProcessManager( EdaskEnv.parms )
-        time.sleep(40)
+        EdasEnv.update(appConf)
+        log_metrics = appConf.get("log_metrics",True)
+        self.processManager = ProcessManager.initManager( EdasEnv.parms )
+        time.sleep(10)
+        self.processing = False
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))
         self.logger.info(f" N Workers: {len(self.workers)} " )
         for addr, specs in self.workers.items():
             self.logger.info(f"  -----> Worker {addr}: {specs}" )
+        if log_metrics:
+            self.metricsThread =  Thread( target=self.trackCwtMetrics )
+            self.metricsThread.start()
+
+    def trackCwtMetrics(self, sleepTime=1.0):
+        isIdle = False
+        self.logger.info(f" ** TRACKING CWT METRICS ** ")
+        while True:
+            metrics = self.getCWTMetrics()
+            counts = metrics['user_jobs_running']
+            if counts['processing'] == 0:
+                if not isIdle:
+                    self.logger.info(f" ** CLUSTER IS IDLE ** ")
+                    isIdle = True
+            else:
+                isIdle = False
+                self.logger.info("   ------------------------- CWT METRICS  -------------------  ------------------------ ")
+                for key, value in metrics.items():
+                    self.logger.info(f" *** {key}: {value}")
+                self.logger.info("   ----------------------- -----------------------------------  ----------------------- ")
+                time.sleep(sleepTime)
+
+    def getCWTMetrics(self) -> Dict:
+        metrics_data = self.processManager.getCWTMetrics()
+        metrics_data['wps_requests'] = 1 if self.processing else 0
+        return metrics_data
 
     @property
     def ncores(self):
         sample_worker = list(self.workers.values())[0]
         return sample_worker["ncores"]
 
-    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  EDASDataset:
+    def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]]) ->  List[EDASDataset]:
         runArgs = dict( ncores=self.ncores )
-        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, runArgs )
+        job = Job.init( self.project, self.experiment, "jobId", domains, variables, operations, [], runArgs )
         execHandler = ExecHandler("local", job, workers=job.workers)
+        self.processing = True
         execHandler.execJob( job )
-        return execHandler.getResult()
+        result = execHandler.getEDASResult(block=True)
+        self.processing = False
+        return result
 
 
 

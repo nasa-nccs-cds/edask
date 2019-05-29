@@ -1,14 +1,14 @@
 from edas.workflow.data import EDASArray
 from typing import Dict
 from collections import OrderedDict
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 from edas.portal.parsers import SizeParser
 
 class CacheManager:
 
     def __init__(self):
         self.arrayCache: Dict[str,EDASArray] = OrderedDict()
-        self.maxSize = SizeParser.parse(EdaskEnv.get("cache.size.max", "500M"))
+        self.maxSize = SizeParser.parse(EdasEnv.get("cache.size.max", "500M"))
         self.currentSize = 0
 
     def cache(self, id: str, variable: EDASArray ):

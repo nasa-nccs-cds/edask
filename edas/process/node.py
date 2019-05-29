@@ -1,4 +1,5 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, Iterator, Set
+from edas.util.logging import EDASLogger
 import re
 
 class Param:
@@ -15,6 +16,7 @@ class Node:
            _metadata = {}
        self._name = name
        self.metadata: Dict[str,Any] = _metadata
+       self.logger = EDASLogger.getLogger()
 
     @property
     def name(self)->str: return self._name

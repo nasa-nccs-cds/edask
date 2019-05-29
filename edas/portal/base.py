@@ -1,7 +1,7 @@
 import zmq, traceback, time, logging, xml, socket
 from typing import List, Dict, Sequence, Set
 from edas.util.logging import EDASLogger
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 import random, string, os, queue, datetime
 from enum import Enum
 MB = 1024 * 1024
@@ -24,6 +24,9 @@ class Response:
     def message(self) -> str: return self._body.strip()
 
     def __str__(self) -> str: return self.__class__.__name__ + "[" + self.id() + "]: " + str(self._body)
+
+    def dict(self) -> Dict:
+        return dict( clientId = self.clientId, responseId = self.responseId, rtype = self.rtype, data = self._body )
 
 class Message ( Response ):
 
@@ -124,6 +127,7 @@ class Responder:
             bdata: bytes = dataPacket.getRawData()
             self.socket.send( bdata )
             self.logger.info("@@R: Sent data packet for " + dataPacket.id() + ", data Size: " + str(len(bdata)) )
+            for tline in traceback.format_stack(): self.logger.info( "@@TB: " + tline )
         else:
             self.logger.info( "@@R: Sent data header only for " + dataPacket.id() + "---> NO DATA!" )
 
@@ -154,7 +158,7 @@ class Responder:
     def close_connection( self ):
         try:
             for response in self.executing_jobs.values():
-                self.doSendErrorReport( self.socket, ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") );
+                self.doSendErrorReport( ErrorReport(response.clientId, response.responseId, "Job terminated by server shutdown.") )
             self.socket.close()
         except Exception: pass
 
@@ -189,7 +193,7 @@ class EDASPortal:
         self.responder.sendResponse( ErrorReport(clientId,responseId,msg) )
 
     def addHandler(self, clientId, jobId, handler ):
-        self.handlers[ clientId + "-" + jobId ] = handler
+        'wps_requests'[ clientId + "-" + jobId ] = handler
         return handler
 
     def removeHandler(self, clientId, jobId ):
@@ -203,17 +207,17 @@ class EDASPortal:
         self.responder.setExeStatus(clientId,rid,status)
 
     def sendArrayData( self, clientId: str, rid: str, origin: Sequence[int], shape: Sequence[int], data: bytes, metadata: Dict[str,str] ):
-        self.logger.debug( "@@Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
+        self.logger.info( "@@Portal: Sending response data to client for rid {}, nbytes={}".format( rid, len(data) ) )
         array_header_fields = [ "array", rid, self.ia2s(origin), self.ia2s(shape), self.m2s(metadata), "1" ]
         array_header = "|".join(array_header_fields)
         header_fields = [ rid, "array", array_header ]
         header = "!".join(header_fields)
-        self.logger.debug("Sending header: " + header)
+        self.logger.info("Sending header: " + header)
         self.responder.sendDataPacket( DataPacket( clientId, rid, header, data ) )
 
 
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ) -> str:
-        self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
+        self.logger.info( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
         with open(filePath, mode='rb') as file:
             file_header_fields = [ "array", jobId, name, os.path.basename(filePath) ]
             if not sendData: file_header_fields.append(filePath)
@@ -222,9 +226,9 @@ class EDASPortal:
             header = "!".join(header_fields)
             try:
                 data =  bytes(file.read()) if sendData else None
-                self.logger.debug("@@Portal ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath )
+                self.logger.info("@@Portal ##sendDataPacket: clientId=" + clientId + " jobId=" + jobId + " name=" + name + " path=" + filePath )
                 self.responder.sendDataPacket( DataPacket( clientId, jobId, header, data ) )
-                self.logger.debug("@@Portal Done sending file data packet: " + header)
+                self.logger.info("@@Portal Done sending file data packet: " + header)
             except Exception as ex:
                 self.logger.info( "@@Portal Error sending file : " + filePath + ": " + str(ex) )
                 traceback.print_exc()
@@ -295,9 +299,9 @@ class EDASPortal:
                 # clientId = elem( self.taskSpec, 0 )
                 # runargs = self.getRunArgs( self.taskSpec )
                 # jobId = runargs.getOrElse("jobId", self.randomIds.nextString)
-                self.logger.error( "@@Portal: Execution error: " + str(ex) )
-                traceback.print_exc()
-                self.sendResponseMessage( Message( parts[0], "error", str(ex)) )
+                msg = "@@Portal: Execution error: " + str(ex) + "\n" + traceback.format_exc()
+                self.logger.error( msg )
+                self.sendResponseMessage( Message( parts[0], "error", msg ) )
 
         self.logger.info( "@@Portal: EXIT EDASPortal")
 

@@ -1,5 +1,6 @@
 import traceback
-import atexit, ast, os, json
+from threading import Thread
+import atexit, ast, os, json, time
 from edas.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edas.workflow.module import edasOpManager
@@ -7,7 +8,7 @@ from edas.portal.parsers import WpsCwtParser
 from edas.portal.cluster import EDASCluster
 from edas.process.task import Job
 from edas.process.manager import ExecHandler, ProcessManager
-from edas.config import EdaskEnv
+from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
@@ -17,26 +18,54 @@ class EDASapp(EDASPortal):
     def elem( array: Sequence[str], index: int, default: str = "" )-> str:
          return array[index] if( len(array) > index ) else default
 
-    def __init__( self, scheduler_address: str = None, client_address: str = None, request_port: int = None, response_port: int = None ):
-        super( EDASapp, self ).__init__(get_or_else(client_address, EdaskEnv.get("wps.server.address", "*")),
-                                        get_or_else(request_port, EdaskEnv.get("request.port", 4556)),
-                                        get_or_else(response_port, EdaskEnv.get("response.port", 4557)))
+
+    def __init__( self, client_address: str = None, request_port: int = None, response_port: int = None ):
+        super( EDASapp, self ).__init__(get_or_else(client_address, EdasEnv.get("wps.server.address", "*")),
+                                        get_or_else(request_port, EdasEnv.get("request.port", 4556)),
+                                        get_or_else(response_port, EdasEnv.get("response.port", 4557)))
         self.process = "edas"
         self.processManager = None
         atexit.register( self.term, "ShutdownHook Called" )
         self.logger.info( "STARTUP CLUSTER")
-        self.processManager = ProcessManager( EdaskEnv.parms )
+        self.processManager = ProcessManager.initManager( EdasEnv.parms )
         self.scheduler_info = self.processManager.client.scheduler_info()
         workers: Dict = self.scheduler_info.pop("workers")
         self.logger.info(" @@@@@@@ SCHEDULER INFO: " + str(self.scheduler_info ))
         self.logger.info(f" N Workers: {len(workers)} " )
         for addr, specs in workers.items(): self.logger.info(f"  -----> Worker {addr}: {specs}" )
+        log_metrics = EdasEnv.parms.get("log.cwt.metrics", True )
+        if log_metrics:
+            self.metricsThread =  Thread( target=self.trackCwtMetrics )
+            self.metricsThread.start()
+
+    def trackCwtMetrics(self, sleepTime=1.0):
+        isIdle = False
+        self.logger.info(f" ** TRACKING CWT METRICS ** ")
+        while self.active:
+            metrics = self.getCWTMetrics()
+            counts = metrics['user_jobs_running']
+            if counts['processing'] == 0:
+                if not isIdle:
+                    self.logger.info(f" ** CLUSTER IS IDLE ** ")
+                    isIdle = True
+            else:
+                isIdle = False
+                self.logger.info("   ------------------------- CWT METRICS  -------------------  ------------------------ ")
+                for key, value in metrics.items():
+                    self.logger.info(f" *** {key}: {value}")
+                self.logger.info("   ----------------------- -----------------------------------  ----------------------- ")
+                time.sleep(sleepTime)
+
+    def getCWTMetrics(self) -> Dict:
+        metrics_data = self.processManager.getCWTMetrics()
+        metrics_data['wps_requests'] = len( self.handlers )
+        return metrics_data
 
     def start( self ): self.run()
 
     def getCapabilities(self, type: str  ) -> Message:
-        capabilities = edasOpManager.getCapabilities(type)
-        return Message( type, "capabilities", capabilities )
+        capabilities: Dict = edasOpManager.getCapabilitiesJson(type)
+        return Message( type, "capabilities", json.dumps(capabilities) )
 
     def getVariableSpec(self, collId: str, varId: str  ) -> Message:
         from edas.collection.agg import Collection
@@ -47,7 +76,7 @@ class EDASapp(EDASPortal):
     def describeProcess(self, utilSpec: Sequence[str] ) -> Message:
         ( module, op ) = WpsCwtParser.split( [":","."], utilSpec[1] )
         description = edasOpManager.describeProcess( module, op )
-        return Message( utilSpec[0], "capabilities", description )
+        return Message( utilSpec[0], "capabilities", json.dumps( description ) )
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message:
         uType = utilSpec[0].lower()
@@ -59,7 +88,7 @@ class EDASapp(EDASPortal):
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
         if uType.startswith( "metrics" ):
             mtype = utilSpec[1].lower()
-            metrics = self.processManager.getProfileData(mtype)
+            metrics = self.getCWTMetrics() if mtype == "cwt" else self.processManager.getProfileData(mtype)
             return Message("metrics", mtype, json.dumps( metrics ) )
         if uType.startswith("health"):
             mtype = utilSpec[1].lower()
