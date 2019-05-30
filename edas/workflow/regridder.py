@@ -39,13 +39,13 @@ class Regridder:
     @classmethod
     def regrid( cls, source: "EDASArray", gridSpec: str ) -> xa.DataArray:
         v0: cdms2.tvariable.TransientVariable = source.xrArray.to_cdms2()
-        ( xbounds, ybounds ) = ( v0.getLongitude().getBounds(), v0.getLatitude().getBounds() )
-        grid = cls.generate_user_defined_grid(gridSpec, (xbounds[0], xbounds[-1], ybounds[0], ybounds[-1]) )
+        ( xaxis, yaxis ) = ( v0.getLongitude(), v0.getLatitude() )
+        grid = cls.generate_user_defined_grid(gridSpec, (yaxis[0], yaxis[-1]), (xaxis[0], xaxis[-1]) )
         v2 = v0.regrid( grid )
         return xa.DataArray.from_cdms2(v2)
 
     @classmethod
-    def generate_user_defined_grid(cls, gridSpec: str, bounds = None ):
+    def generate_user_defined_grid(cls, gridSpec: str, lat_bounds = None, lon_bounds = None ):
         try:
             grid_type, grid_param = gridSpec.split('~')
         except AttributeError:
@@ -58,9 +58,12 @@ class Regridder:
         if grid_type.lower() == 'uniform':
             result = re.match('^(.*)x(.*)$', grid_param)
             if result is None: raise Exception( f'Failed to parse uniform configuration from {grid_param}' )
-
-            start_lat, nlat, delta_lat = cls.parse_uniform_arg(result.group(1), -90.0, 180.0 )
-            start_lon, nlon, delta_lon = cls.parse_uniform_arg(result.group(2), 0.0, 360.0 )
+            lat_start = -90.0 if lat_bounds is None else lat_bounds[0]
+            lat_extent = 180.0 if lat_bounds is None else lat_bounds[1] - lat_bounds[0]
+            lon_start = 0.0 if lon_bounds is None else lon_bounds[0]
+            lon_extent = 360.0 if lon_bounds is None else lon_bounds[1] - lon_bounds[0]
+            start_lat, nlat, delta_lat = cls.parse_uniform_arg(result.group(1), lat_start, lat_extent )
+            start_lon, nlon, delta_lon = cls.parse_uniform_arg(result.group(2), lon_start, lon_extent )
             grid = cdms2.createUniformGrid(start_lat, nlat, delta_lat, start_lon, nlon, delta_lon)
 
             logger.info('Created target uniform grid {} from lat {}:{}:{} lon {}:{}:{}'.format( grid.shape, start_lat, delta_lat, nlat, start_lon, delta_lon, nlon))
