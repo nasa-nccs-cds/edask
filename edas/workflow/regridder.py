@@ -38,21 +38,18 @@ class Regridder:
 
     @classmethod
     def regrid( cls, source: "EDASArray", gridSpec: str ) -> xa.DataArray:
+        try: grid_type, grid_param = gridSpec.split('~')
+        except Exception: raise Exception(f'Error generating grid "{gridSpec}"')
+
         v0: cdms2.tvariable.TransientVariable = source.xrArray.to_cdms2()
         ( xaxis, yaxis ) = ( v0.getLongitude(), v0.getLatitude() )
-        grid = cls.generate_user_defined_grid(gridSpec, (yaxis[0], yaxis[-1]), (xaxis[0], xaxis[-1]) )
+        grid = cls.generate_user_defined_grid(grid_type, grid_param, (yaxis[0], yaxis[-1]), (xaxis[0], xaxis[-1]) )
         v2 = v0.regrid( grid )
+        if grid_type.lower() == 'gaussian': v2 = v2.subRegion( latitude=(yaxis[0], yaxis[-1], 'co'), longitude=(xaxis[0], xaxis[-1]) )
         return xa.DataArray.from_cdms2(v2)
 
     @classmethod
-    def generate_user_defined_grid(cls, gridSpec: str, lat_bounds = None, lon_bounds = None ):
-        try:
-            grid_type, grid_param = gridSpec.split('~')
-        except AttributeError:
-            return None
-        except ValueError:
-            raise Exception(f'Error generating grid "{gridSpec}"')
-
+    def generate_user_defined_grid(cls, grid_type, grid_param, lat_bounds = None, lon_bounds = None ):
         logger.info('Generating grid %r %r', grid_type, grid_param)
 
         if grid_type.lower() == 'uniform':
