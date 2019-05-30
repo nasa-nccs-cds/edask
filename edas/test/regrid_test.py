@@ -16,5 +16,12 @@ def test_eave1():
     results = mgr.testExec( domains, variables, operations )
     mgr.print(results)
 
+def test_regrid():
+    domains = [ {"name":"d0", "lat":{ "start":0, "end":80, "system":"values" }, "time":{ "start":'1980-01-01T00:00:00', "end":'1980-12-31T23:00:00', "system":"values"} } ]
+    variables = [ { "uri": mgr.getAddress( "merra2", "tas"), "name":"tas:v0", "domain":"d0" } ]
+    operations = [ { "name":"xarray.regrid", "input":"v0", "gridder":"gaussian~32" } ]
+    results = mgr.testExec( domains, variables, operations )
+    mgr.print(results)
+
 if __name__ == '__main__':
-    test_eave1()
+    test_regrid()

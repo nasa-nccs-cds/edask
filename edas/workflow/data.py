@@ -225,15 +225,15 @@ class EDASArray:
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
-            self.logger.info(" CDMS ALIGN ")
             from edas.workflow.regridder import Regridder
             new_data = Regridder.align( self, other )
+            self.logger.info(" CDMS ALIGN ")
         except ImportError:
             try:
-                self.logger.info(" INTERP OVER CHUNKS ")
                 new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
+                self.logger.info(" INTERP OVER CHUNKS ")
             except:
-                self.logger.info( " INTERP WITH MERGE CHUNKS ")
+                self.logger.info(" INTERP WITH MERGE CHUNKS ")
                 this_merged = self.xrArray.chunk( {"t": 1} )
                 other_merged = other.xrArray.chunk( {"t": 1} )
                 new_data = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
