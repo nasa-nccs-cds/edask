@@ -222,38 +222,12 @@ class EDASArray:
         rv.addTransform(  Transformation( "resample", **kwargs ) )
         return rv
 
-    def regrid( self, other: "EDASArray" ) -> xa.DataArray:
-        if self.aligned(other): return self
-        import cdms2
-        v0: cdms2.tvariable.TransientVariable = self.xrArray.to_cdms2()
-        v1: cdms2.tvariable.TransientVariable = other.xrArray.to_cdms2()
-        v2 = v0.regrid( v1.getGrid() )
-        return xa.DataArray.from_cdms2(v2)
-
     def align(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
-         return self.align_xa( other, assume_sorted )
-
-#     def align_esmf( self, other: "EDASArray", assume_sorted=True ) -> "EDASArray":
-#         if self.aligned( other ): return self
-#         try:
-#             import xesmf as xe
-#             ds0 = self.xrDataset( standard_names=True )
-#             ds1 = other.xrDataset( standard_names=True )
-#             self.logger.info( f"Create dataset: coords = {ds0.coords}, variables = {ds0.variables}" )
-#             regridder = xe.Regridder( ds0, ds1, 'bilinear')
-# #            new_data = self.xr.interp_like( other.xr, "linear", assume_sorted )
-#             new_data = regridder( self.xrArray )
-#             regridder.clean_weight_file()
-#             return self.updateXa(new_data,"align")
-#         except NotImplementedError as err:
-#             raise err
-
-
-    def align_xa(self, other: "EDASArray", assume_sorted=True) -> "EDASArray":
         if self.aligned(other): return self
         try:
-            self.logger.info(" CDMS REGRID ")
-            new_data = self.regrid( other )
+            self.logger.info(" CDMS ALIGN ")
+            from edas.workflow.regridder import Regridder
+            new_data = Regridder.align( self, other )
         except ImportError:
             try:
                 self.logger.info(" INTERP OVER CHUNKS ")
@@ -264,6 +238,15 @@ class EDASArray:
                 other_merged = other.xrArray.chunk( {"t": 1} )
                 new_data = this_merged.interp_like( other_merged, "linear", assume_sorted ).chunk( self.xr.chunks )
         return self.updateXa( new_data, "align" )
+
+    def regrid(self, gridSpec: str ) -> "EDASArray":
+        try:
+            self.logger.info(" CDMS REGRID ")
+            from edas.workflow.regridder import Regridder
+            new_data = Regridder.regrid( self, gridSpec )
+        except ImportError:
+            raise Exception( "Must install the cdms2 package to enable regridding")
+        return self.updateXa( new_data, "regrid" )
 
     def updateXa(self, new_data: xa.DataArray, name:str, rename_dict=None, product=None) -> "EDASArray":
         if rename_dict is None:

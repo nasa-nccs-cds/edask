@@ -34,6 +34,14 @@ class MaxKernel(OpKernel):
     def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
         return [variable.max( node.axes )]
 
+class RegridKernel(OpKernel):
+    def __init__( self ):
+        OpKernel.__init__( self, KernelSpec("regrid", "Regrid Kernel","Regrids the array according to gridSpec, e.g. 'uniform~.25x.25' or 'gaussian~32' " ) )
+
+    def processVariable( self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+        gridSpec = node.getParam( Param("gridder", True) )
+        return [ variable.regrid( gridSpec ) ]
+
 class MinKernel(OpKernel):
     def __init__( self ):
         OpKernel.__init__( self, KernelSpec("min", "Minimum Kernel","Computes the minimum of the array elements along the given axes." ) )
