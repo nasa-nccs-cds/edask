@@ -13,13 +13,16 @@ logger = EDASLogger.getLogger()
 class Regridder:
 
     @classmethod
-    def parse_uniform_arg( cls, value, default_start, default_n ):
+    def parse_uniform_arg( cls, value, default_start, default_n, bounds  ):
         result = re.match('^(\\d\\.?\\d?)$|^(-?\\d\\.?\\d?):(\\d\\.?\\d?):(\\d\\.?\\d?)$', value)
         if result is None: raise Exception(f'Failed to parse uniform argument {value}')
 
         groups = result.groups()
         if groups[1] is None:
             delta = int(groups[0])
+            if bounds is not None:
+                default_start = bounds[0]
+                default_n = bounds[1] - bounds[0]
             default_n = old_div( default_n, delta )
         else:
             default_start = int(groups[1])
@@ -54,12 +57,8 @@ class Regridder:
         if grid_type.lower() == 'uniform':
             result = re.match('^(.*)x(.*)$', grid_param)
             if result is None: raise Exception( f'Failed to parse uniform configuration from {grid_param}' )
-            lat_start = -90.0 if lat_bounds is None else lat_bounds[0]
-            lat_extent = 180.0 if lat_bounds is None else lat_bounds[1] - lat_bounds[0]
-            lon_start = 0.0 if lon_bounds is None else lon_bounds[0]
-            lon_extent = 360.0 if lon_bounds is None else lon_bounds[1] - lon_bounds[0]
-            start_lat, nlat, delta_lat = cls.parse_uniform_arg(result.group(1), lat_start, lat_extent )
-            start_lon, nlon, delta_lon = cls.parse_uniform_arg(result.group(2), lon_start, lon_extent )
+            start_lat, nlat, delta_lat = cls.parse_uniform_arg(result.group(1), -90.0, 180.0, lat_bounds )
+            start_lon, nlon, delta_lon = cls.parse_uniform_arg(result.group(2), 0.0, 360.0, lon_bounds )
             grid = cdms2.createUniformGrid(start_lat, nlat, delta_lat, start_lon, nlon, delta_lon)
 
             logger.info('Created target uniform grid {} from lat {}:{}:{} lon {}:{}:{}'.format( grid.shape, start_lat, delta_lat, nlat, start_lon, delta_lon, nlon))
