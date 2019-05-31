@@ -31,4 +31,4 @@ def test_regrid_gaussian():
     mgr.print(results)
 
 if __name__ == '__main__':
-    test_regrid()
+    test_regrid_gaussian()
