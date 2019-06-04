@@ -8,7 +8,6 @@ from distributed.scheduler import ( TaskState, WorkerState )
 from edas.util.logging import EDASLogger
 from distributed.cli.utils import (install_signal_handlers, uri_from_host_port)
 from distributed.proctitle import (enable_proctitle_on_children,enable_proctitle_on_current)
-from threading import Thread
 from edas.config import EdasEnv
 
 def getHost():

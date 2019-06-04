@@ -99,7 +99,7 @@ class EDASEndpoint(Endpoint):
 
     def request(self, requestSpec: Dict, inputs: List[TaskResult] = None, **kwargs ) -> TaskHandle:
         rid = requestSpec.get( "rid" )
-        cid = requestSpec.get("cid" )
+        cid = requestSpec.get( "cid" )
         self.logger.info( f"EDAS Endpoint--> processing rid {rid}")
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
@@ -157,9 +157,11 @@ if __name__ == '__main__':
     request = dict(
         domain = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"}, "lon": {"start": 40, "end": 60, "system": "values"},  "time": {"start": "1980-01-01", "end":  "1981-12-31", "crs": "timestamps"}} ],
         input = [ {"uri": CIP("merra2","tas"), "name": "tas:v0", "domain": "d0"} ],
-        operation = [ { "name": "edas.subset", "input": "v0" } ]
+        operation = [ { "name": "edas.subset", "input": "v0" } ],
+        rid = "test1",
+        cid = "C1"
     )
-    task = ep.request( **request )
+    task = ep.request( request )
 
     if task.status == Status.COMPLETED:
         result = task.getResult( block = True )
