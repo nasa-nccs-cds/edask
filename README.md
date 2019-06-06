@@ -10,18 +10,12 @@ Create Conda env:
 ```
     > conda create -n edask -c conda-forge python=3.6 bokeh bottleneck dask dateparser decorator defusedxml distributed eofs keras libnetcdf netCDF4 networkx requests  six paramiko pillow pydap pyparsing pytest python-graphviz pyyaml pyzmq scikit-learn scipy  xarray zeromq esmpy
     > source activate edas
-<<<<<<< HEAD
 ```   
+
 Regridding support (optional) requires the cdms2 package:
 ```
     > conda install -c conda-forge cdms2
-
-=======
-```      
-Regridding support (optionsal) requires some additional depemdencies:
-```
-    > pip install xesmf
->>>>>>> stratus
+    
 ``` 
 Install EDAS:
 ```
