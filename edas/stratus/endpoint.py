@@ -22,13 +22,12 @@ class EDASEndpoint(Endpoint):
         self.process = "edas"
         self.handlers = {}
         self.processManager = None
-        self.cluster = None
         self._epas = [ "edas*", "xarray*" ]
         atexit.register( self.shutdown, "ShutdownHook Called" )
 
     def epas( self ) -> List[str]: return self._epas
 
-    def init( self, cluster = None ):
+    def init( self ):
         self.processManager = ProcessManager.initManager( EdasEnv.parms )
         self.scheduler_info = self.processManager.client.scheduler_info()
         self.logger.info(" \n @@@@@@@ SCHEDULER INFO:\n " + str(self.scheduler_info ))
@@ -68,10 +67,6 @@ class EDASEndpoint(Endpoint):
         if uType.startswith( "var" ):
             if len( utilSpec ) <= 2: raise Exception( "Missing parameter(s) to getVariableSpec" )
             return self.getVariableSpec( utilSpec[1], utilSpec[2]  )
-        if uType.startswith( "metrics" ):
-            mtype = utilSpec[1].lower()
-            metrics = self.cluster.getMetrics( mtype)
-            return Message("metrics",mtype, json.dumps( metrics ) ).dict()
         return Message("","","").dict()
 
     def addHandler(self, submissionId, handler ):
@@ -115,8 +110,6 @@ class EDASEndpoint(Endpoint):
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )
-        if self.cluster is not None:
-            self.cluster.shutdown()
         if self.processManager is not None:
             self.processManager.term()
 
