@@ -16,8 +16,6 @@ class ExecHandler(TaskHandle):
         self._processResults = True
         self.results = queue.Queue()
         self.job = _job
-        self._status = Status.IDLE
-        self._exception = None
         self.start_time = time.time()
 
     def execJob(self, job: Job ) -> SubmissionThread:
@@ -26,12 +24,6 @@ class ExecHandler(TaskHandle):
         self.sthread.start()
         self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
         return self.sthread
-
-    def status(self):
-        return self._status
-
-    def exception(self) -> Exception:
-        return self._exception
 
     def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
         edasResults: List[EDASDataset] = self.results.get( block, timeout )
@@ -43,7 +35,7 @@ class ExecHandler(TaskHandle):
 
     def processResult( self, result: EDASDataset ):
         self.results.put( result )
-        self._status = Status.COMPLETED
+        self.messages.setStatus( Status.COMPLETED )
         self.logger.info(" ----------------->>> STRATUS REQUEST COMPLETED "  )
 
     @classmethod
@@ -63,7 +55,4 @@ class ExecHandler(TaskHandle):
     def processFailure(self, ex: Exception):
         error_message = self.getErrorReport( ex )
         self.logger.error( error_message )
-        self._status = Status.ERROR
-        self._exception = Exception( error_message )
-        self._parms["type"] = "error"
-        self._parms["mesage"] = error_message
+        self.messages.setException( ex )

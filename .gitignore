@@ -106,3 +106,6 @@ venv.bak/
 
 # PyCharm stuff:
 .DS_Store
+
+# Dask stuff:
+dask-worker-space/
