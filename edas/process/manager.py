@@ -62,7 +62,7 @@ class SubmissionThread(Thread):
         try:
             self.logger.info( "* Running workflow for requestId " + self.job.requestId)
             results: List[EDASDataset] = edasOpManager.buildTask( self.job )
-            self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+            self.logger.info( "Completed edas workflow in time " + str(time.time()-start_time) )
             self.processResults( results )
         except Exception as err:
             self.logger.error( "Execution error: " + str(err))
@@ -389,7 +389,7 @@ class ProcessManager(GenericProcessManager):
     try:
         self.logger.info( f"Running workflow for requestId: {job.requestId}, scheduler: {self.scheduler_address}" )
         result = edasOpManager.buildTask( job )
-        self.logger.info( "Completed workflow in time " + str(time.time()-start_time) )
+        self.logger.info( "Completed EDAS workflow in time " + str(time.time()-start_time) )
         return result
     except Exception as err:
         self.logger.error( "Execution error: " + str(err))

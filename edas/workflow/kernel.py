@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time, socket, threading, os, traceback, glob
+import logging, random, string, time, socket, threading, os, traceback, glob, math
 from edas.process.task import TaskRequest
-from typing import List, Dict, Set, Any, Optional
+from typing import List, Dict, Set, Any, Optional, ValuesView
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
 from edas.data.sources.timeseries import TimeConversions
 from edas.collection.agg import Archive
@@ -248,6 +248,7 @@ class InputKernel(Kernel):
         else:
             dataSource: DataSource = snode.varSource.dataSource
             if dataSource.type == SourceType.collection:
+                from edas.collection.agg import Axis as AggAxis, File as AggFile
                 collection = Collection.new( dataSource.address )
                 self.logger.info("Input collection: " + dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
@@ -258,9 +259,15 @@ class InputKernel(Kernel):
                     endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
+                    use_chunks = False
+                    if use_chunks:
+                        agg = collection.getAggregation(aggId)
+                        nchunks = agg.getChunkSize(250)
+                        chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
+                    else: chunk_kwargs = {}
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
-                    self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
-                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True )
+                    self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}" )
+                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
                     self.logger.info(f"Collection import complete.")

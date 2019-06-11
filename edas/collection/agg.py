@@ -1,13 +1,14 @@
-import os, time
+import os, time, math
 from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
+from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView, Optional
 from edas.process.source import VID
 from edas.config import EdasEnv
 import defusedxml.ElementTree as ET
 from edas.util.logging import EDASLogger
+
 def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
 
 def parse_dict( dict_spec ):
@@ -240,6 +241,16 @@ class Aggregation:
         self.dims = {}
         self.vars = {}
         self._parseAggFile()
+
+    def getChunkSize(self, maxFiles: int ) -> Optional[int]:
+        files: List[File] = list(self.fileList())
+        nfiles = float(len(files))
+        nchunks = None
+        if nfiles > maxFiles:
+            taxis: Axis = self.axes.get("time")
+            if taxis is not None:
+                nchunks = int( math.ceil( nfiles / maxFiles ) ) * files[1].size
+        return nchunks
 
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
