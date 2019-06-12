@@ -246,7 +246,7 @@ class Aggregation:
         files: List[File] = list(self.fileList())
         nfiles = float(len(files))
         nchunks = None
-        fileSize = files[1].size
+        fileSize = files[0].size
         if nfiles > maxFiles:
             taxis: Axis = self.axes.get("time")
             if taxis is not None:
