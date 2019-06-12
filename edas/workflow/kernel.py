@@ -259,7 +259,7 @@ class InputKernel(Kernel):
                     endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
-                    use_chunks = False
+                    use_chunks = True
                     if use_chunks:
                         agg = collection.getAggregation(aggId)
                         nchunks = agg.getChunkSize(250)
