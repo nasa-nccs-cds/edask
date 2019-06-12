@@ -243,14 +243,13 @@ class Aggregation:
         self._parseAggFile()
 
     def getChunkSize(self, maxFiles: int ) -> Tuple[Optional[int], int, int]:
+        from statistics import median
         files: List[File] = list(self.fileList())
+        fileSize = median( [ f.size for f in files ] )
         nfiles = float(len(files))
         nchunks = None
-        fileSize = files[0].size
         if nfiles > maxFiles:
-            taxis: Axis = self.axes.get("time")
-            if taxis is not None:
-                nchunks = int( math.ceil( nfiles / maxFiles ) ) * fileSize
+            nchunks = int( math.ceil( nfiles / maxFiles ) ) * fileSize
         return ( nchunks, int(nfiles), fileSize )
 
     def _parseAggFile(self):
