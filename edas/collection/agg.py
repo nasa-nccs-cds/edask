@@ -249,7 +249,7 @@ class Aggregation:
         nfiles = float(len(files))
         nchunks = None
         if nfiles > maxFiles:
-            nchunks = int( math.ceil( nfiles / maxFiles ) ) * fileSize
+            nchunks = int( math.ceil(nfiles/maxFiles) * fileSize )
         return ( nchunks, int(nfiles), fileSize )
 
     def _parseAggFile(self):

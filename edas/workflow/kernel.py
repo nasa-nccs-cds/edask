@@ -262,8 +262,9 @@ class InputKernel(Kernel):
                     use_chunks = True
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     if use_chunks:
+                        nReadPartitions = EdasEnv.get("mfdataset.npartitions", 500)
                         agg = collection.getAggregation(aggId)
-                        nchunks, nFiles, fileSize = agg.getChunkSize(250)
+                        nchunks, nFiles, fileSize = agg.getChunkSize(nReadPartitions)
                         chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
                         self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}" )
                     else:
