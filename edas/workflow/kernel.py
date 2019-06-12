@@ -260,13 +260,15 @@ class InputKernel(Kernel):
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
                     use_chunks = True
+                    pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
                     if use_chunks:
                         agg = collection.getAggregation(aggId)
-                        nchunks = agg.getChunkSize(250)
+                        nchunks, nFiles, fileSize = agg.getChunkSize(250)
                         chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
-                    else: chunk_kwargs = {}
-                    pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
-                    self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}" )
+                        self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}" )
+                    else:
+                        chunk_kwargs = {}
+                        self.logger.info( f"Open mfdataset: vars={vars},  NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
                     dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )

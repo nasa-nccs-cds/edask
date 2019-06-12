@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView, Optional
+from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView, Optional, Tuple
 from edas.process.source import VID
 from edas.config import EdasEnv
 import defusedxml.ElementTree as ET
@@ -242,15 +242,16 @@ class Aggregation:
         self.vars = {}
         self._parseAggFile()
 
-    def getChunkSize(self, maxFiles: int ) -> Optional[int]:
+    def getChunkSize(self, maxFiles: int ) -> Tuple[Optional[int], int, int]:
         files: List[File] = list(self.fileList())
         nfiles = float(len(files))
         nchunks = None
+        fileSize = files[1].size
         if nfiles > maxFiles:
             taxis: Axis = self.axes.get("time")
             if taxis is not None:
-                nchunks = int( math.ceil( nfiles / maxFiles ) ) * files[1].size
-        return nchunks
+                nchunks = int( math.ceil( nfiles / maxFiles ) ) * fileSize
+        return ( nchunks, int(nfiles), fileSize )
 
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
