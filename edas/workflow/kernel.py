@@ -267,7 +267,7 @@ class InputKernel(Kernel):
                         agg = collection.getAggregation(aggId)
                         nchunks, fileSize = agg.getChunkSize( nReadPartitions, nFiles )
                         chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
-                        self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}" )
+                        self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}, startDate={startDate}, endDate={endDate}" )
                     else:
                         chunk_kwargs = {}
                         self.logger.info( f"Open mfdataset: vars={vars},  NFILES={nFiles}, FILES[0]={pathList[0]}" )
