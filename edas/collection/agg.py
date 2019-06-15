@@ -242,15 +242,14 @@ class Aggregation:
         self.vars = {}
         self._parseAggFile()
 
-    def getChunkSize(self, maxFiles: int ) -> Tuple[Optional[int], int, int]:
+    def getChunkSize(self, maxFiles: int, nfiles: int ) -> Tuple[Optional[int], int]:
         from statistics import median
         files: List[File] = list(self.fileList())
         fileSize = median( [ f.size for f in files ] )
-        nfiles = float(len(files))
         nchunks = None
         if nfiles > maxFiles:
-            nchunks = int( math.ceil(nfiles/maxFiles) * fileSize )
-        return ( nchunks, int(nfiles), fileSize )
+            nchunks = int( math.ceil(nfiles/float(maxFiles)) * fileSize )
+        return ( nchunks, fileSize )
 
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)
