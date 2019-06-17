@@ -116,8 +116,10 @@ class EDASArray:
     def product(self, value: str ): self["product"] = value
 
     def persist(self) -> Union[xa.DataArray,DataArrayGroupBy]:
-        xrd = self.xr
-        if isinstance(xrd,DataArrayGroupBy): return xrd
+        xrd: xa.DataArray = self.xr
+        if isinstance(xrd,DataArrayGroupBy):
+            self.logger.warn( " EDASArray.persist returning DataArrayGroupBy" )
+            return xrd
         if self.loaded_data is None:
             client = None # Client.current()
             if client is None:
@@ -328,7 +330,8 @@ class EDASArray:
             return self.mean(axes)
         else:
             data = self.persist()
-            weighted_var = data * weights
+            weighted_var: xa.DataArray = data * weights
+            self.logger.info( f"Computing Weighted ave: weighted_var shape = {weighted_var.shape}, axes = {axes}")
             sum = weighted_var.sum( axes )
             axes.remove("y")
             norm = weights * data.count( axes ) if len( axes ) else weights
