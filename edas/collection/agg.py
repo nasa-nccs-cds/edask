@@ -96,6 +96,7 @@ class Collection:
         return Collection(name, spec_file)
 
     def __init__(self, _name, _spec_file ):
+        self.logger = EDASLogger.getLogger()
         self.name = _name
         self.spec = os.path.expanduser( _spec_file )
         self.aggs = {}
@@ -103,6 +104,7 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
+        self.logger.info( f"Retreiving spec for collection {self.name} from spec file {self.spec}")
         assert os.path.isfile(self.spec), "Unknown Collection: " + self.spec + ", Collections dir = " + self.baseDir
         with open( self.spec, "r" ) as file:
             for line in file.readlines():
