@@ -1,0 +1,1 @@
+from flask_hello_world import application
