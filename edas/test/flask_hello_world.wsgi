@@ -1,1 +1,1 @@
-from flask_hello_world import application
+from flask_hello_world import app as application
