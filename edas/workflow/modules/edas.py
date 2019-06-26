@@ -1,5 +1,6 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, TimeOpKernel
 import xarray as xa
+from xarray.core.groupby import DataArrayGroupBy
 from edas.process.operation import WorkflowNode, OpNode
 from edas.process.task import TaskRequest
 from edas.workflow.data import EDASArray, EDASDatasetCollection
@@ -106,6 +107,43 @@ class DecycleKernel(OpKernel):
         if norm:
             anomalies = anomalies.groupby(grouping) / data.groupby(grouping).std('t')
         return [variable.updateXa( anomalies, "decycle" )]
+
+class TimeAggKernel(OpKernel):
+    def __init__(self):
+        OpKernel.__init__(self, KernelSpec("TimeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested periods"))
+
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> List[EDASArray]:
+        variable.persist()
+        period = "t." + node.getParm("period", 'month')
+        operation = str(node.getParm("op", 'mean')).lower()
+        return [ variable.timeAgg( period, operation) ]
+
+class WorldClimKernel(OpKernel):
+    def __init__(self):
+        OpKernel.__init__(self, KernelSpec("WorldClim", "WorldClim Kernel", "Computes the 20 WorldClim fields"))
+
+
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        resultArrays = [ ]
+        tempID = node.getParm("temp")
+        assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
+        precipID = node.getParm("precip")
+        assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
+        tempVar = inputs.getArray( tempID )
+        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs"
+        precipVar = inputs.getArray( precipID )
+        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs"
+        dailyTmax = tempVar.timeAgg("day","max")
+        dailyTmin = tempVar.timeAgg("day","min")
+        Tmax: EDASArray = dailyTmax.timeAgg("month","max")
+        Tmin: EDASArray = dailyTmax.timeAgg("month", "min")
+        Tave = (Tmax+Tmin)/2
+        resultArrays.append( Tave.ave(["m"], name="bio1") )
+        Trange = (Tmax-Tmin)/2
+        resultArrays.append( Trange.ave(["m"], name="bio2") )
+
+        return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
+
 
 class DetrendKernel(OpKernel):
     def __init__( self ):

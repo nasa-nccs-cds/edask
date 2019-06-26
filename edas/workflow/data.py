@@ -259,6 +259,16 @@ class EDASArray:
 #        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
 #        return EDASArray(self.name, self.domId, xrdata  )
 
+    def timeAgg(self, period: str, operation: str) -> "EDASArray":
+        grouped_data: DataArrayGroupBy = self.xr.groupby(period)
+        if operation == "mean": aggregation = grouped_data.mean('t')
+        elif operation == "ave": aggregation = grouped_data.mean('t')
+        elif operation == "max": aggregation = grouped_data.max('t')
+        elif operation == "min": aggregation = grouped_data.min('t')
+        elif operation == "sum": aggregation = grouped_data.sum('t')
+        else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
+        return self.updateXa(aggregation, "TimeAgg")
+
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         from edas.portal.parsers import WpsCwtParser
         pointMap: Dict[str,Any] = {}
@@ -315,16 +325,16 @@ class EDASArray:
     def coord(self, axis: Axis):
         return self.xrArray.coords.get( axis.name.lower() )
 
-    def max( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), "max" )
+    def max( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), kwargs.get("name","max") )
 
-    def min( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), "min" )
+    def min( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), kwargs.get("name","min") )
 
-    def mean( self, axes: List[str] ) -> "EDASArray":                          # Unweighted
-        return self.updateXa( self.xr.mean(dim=axes, keep_attrs=True), "mean" )
+    def mean( self, axes: List[str], **kwargs ) -> "EDASArray":                          # Unweighted
+        return self.updateXa( self.xr.mean(dim=axes, keep_attrs=True), kwargs.get("name","mean") )
 
-    def ave(self, axes: List[str] ) -> "EDASArray":                           # Weighted
+    def ave(self, axes: List[str], **kwargs ) -> "EDASArray":                           # Weighted
         weights = self.getWeights( axes )
         if weights is None:
             return self.mean(axes)
@@ -336,7 +346,7 @@ class EDASArray:
             axes.remove("y")
             norm = weights * data.count( axes ) if len( axes ) else weights
             new_data =  sum / norm.sum("y")
-            return self.updateXa(new_data,"ave")
+            return self.updateXa(new_data, kwargs.get("name","ave") )
 
     def getWeights(self, axes: List[str]  ) -> Optional[xa.Dataset]:
         if 'y' in axes:
@@ -345,32 +355,36 @@ class EDASArray:
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
 
-    def median( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), "median" )
+    def median( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), kwargs.get("name","median") )
 
-    def var( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.var(dim=axes, keep_attrs=True), "var" )
+    def var( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.var(dim=axes, keep_attrs=True), kwargs.get("name","var") )
 
-    def std( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.std(dim=axes, keep_attrs=True), "std" )
+    def std( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.std(dim=axes, keep_attrs=True), kwargs.get("name","std") )
 
-    def sum( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), "sum" )
+    def sum( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), kwargs.get("name","sum") )
 
-    def __sub__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr - other.xr
+    def __sub__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray ) else other
+        result: xa.DataArray = self.xr - other_data
         return self.updateXa(result, "diff")
 
-    def __add__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr + other.xr
+    def __add__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr + other_data
         return self.updateXa(result, "sum")
 
-    def __mul__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr * other.xr
+    def __mul__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr * other_data
         return self.updateXa(result, "mul")
 
-    def __truediv__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr / other.xr
+    def __truediv__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr / other_data
         return self.updateXa(result, "div")
 
     def get(self, key: str, default: Optional[str] ) -> str: return self.xrArray.attrs.get( key, default )
