@@ -6,6 +6,7 @@ import string, random, os, re, traceback
 from edas.collection.agg import Archive
 import abc, math, time, itertools
 import xarray as xa
+from xarray.core.resample import DatasetResample
 from edas.data.sources.timeseries import TimeIndexer
 from edas.util.logging import EDASLogger
 from xarray.core.groupby import DataArrayGroupBy
@@ -76,6 +77,10 @@ class EDASArray:
         self._data = data
         self.name = name
         self.addDomain( _domId )
+
+    def rename(self, name: str ) -> "EDASArray":
+        self.name = name
+        return self
 
     def purge(self, rename_dict=None):
         if rename_dict is None:
@@ -259,8 +264,18 @@ class EDASArray:
 #        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
 #        return EDASArray(self.name, self.domId, xrdata  )
 
-    def timeAgg(self, period: str, operation: str) -> "EDASArray":
-        grouped_data: DataArrayGroupBy = self.xr.groupby(period)
+    def timeResample(self, period: str, operation: str ) -> "EDASArray":
+        grouped_data: DatasetResample = self.xr.resample( t = period)
+        if operation == "mean":  aggregation = grouped_data.mean()
+        elif operation == "ave": aggregation = grouped_data.mean()
+        elif operation == "max": aggregation = grouped_data.max()
+        elif operation == "min": aggregation = grouped_data.min()
+        elif operation == "sum": aggregation = grouped_data.sum()
+        else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
+        return self.updateXa(aggregation, "TimeAgg")
+
+    def timeAgg(self, period: str, operation: str ) -> "EDASArray":
+        grouped_data: DataArrayGroupBy = self.xr.groupby( "t." + period )
         if operation == "mean": aggregation = grouped_data.mean('t')
         elif operation == "ave": aggregation = grouped_data.mean('t')
         elif operation == "max": aggregation = grouped_data.max('t')

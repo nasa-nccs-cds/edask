@@ -114,7 +114,7 @@ class TimeAggKernel(OpKernel):
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> List[EDASArray]:
         variable.persist()
-        period = "t." + node.getParm("period", 'month')
+        period = node.getParm("period", 'month')
         operation = str(node.getParm("op", 'mean')).lower()
         return [ variable.timeAgg( period, operation) ]
 
@@ -122,9 +122,24 @@ class WorldClimKernel(OpKernel):
     def __init__(self):
         OpKernel.__init__(self, KernelSpec("WorldClim", "WorldClim Kernel", "Computes the 20 WorldClim fields"))
 
+    def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
+        lowpassSelector = selectionVar.xr.rolling(time=3, min_periods=2, center=True).mean()   # TODO: handle boundary conditions as in Spec
+        if op == "max": extremeValue = lowpassSelector.max(["m"])
+        elif op == "min": extremeValue = lowpassSelector.min(["m"])
+        else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
+        selectedMonth = lowpassSelector.where( lowpassSelector == extremeValue )
+        if targetVar is None:
+            resultXarray = selectionVar.xr.isel( m=selectedMonth )
+        else:
+            selectedTarget0 =  targetVar.xr.isel( m=(selectedMonth-1) )    # TODO: handle boundary conditions
+            selectedTarget1 =  targetVar.xr.isel( m=selectedMonth )
+            selectedTarget2 =  targetVar.xr.isel( m=(selectedMonth+1) )
+            resultXarray = ( selectedTarget0 + selectedTarget1 + selectedTarget2) / 3
+        return targetVar.updateXa( resultXarray, name )
+
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
-        resultArrays = [ ]
+        resultArrays: Dict[str,EDASArray] = {}
         tempID = node.getParm("temp")
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
         precipID = node.getParm("precip")
@@ -135,14 +150,34 @@ class WorldClimKernel(OpKernel):
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs"
         dailyTmax = tempVar.timeAgg("day","max")
         dailyTmin = tempVar.timeAgg("day","min")
+        monthlyPrecip = precipVar.timeAgg("month","sum")
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
-        Tmin: EDASArray = dailyTmax.timeAgg("month", "min")
+        Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
         Tave = (Tmax+Tmin)/2
-        resultArrays.append( Tave.ave(["m"], name="bio1") )
+        TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2
-        resultArrays.append( Trange.ave(["m"], name="bio2") )
 
-        return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
+        resultArrays['1'] = Tave.ave(["m"], name="bio1")
+        resultArrays['2'] = Trange.ave(["m"], name="bio2")
+        resultArrays['4'] = Tave.std(["m"], name="bio4")
+        resultArrays['4a'] = (( TKave.std(["m"],keep_attrs=True)*100 )/(resultArrays['1'] + 273.15)).rename("bio4a")
+        resultArrays['5'] = Tmax.max(["m"], name="bio5")
+        resultArrays['6'] = Tmin.min(["m"], name="bio6")
+        resultArrays['7'] = (resultArrays['5'] - resultArrays['6']).rename("bio7")
+        resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
+        resultArrays['9'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" )
+        resultArrays['3'] = ( ( resultArrays['2']*100 )/ resultArrays['7'] ).rename("bio3")
+        resultArrays['10'] = self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" )
+        resultArrays['11'] = self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" )
+        resultArrays['12'] = monthlyPrecip.sum(["m"], name="bio12")
+        resultArrays['13'] = monthlyPrecip.max(["m"], name="bio13")
+        resultArrays['14'] = monthlyPrecip.min(["m"], name="bio14")
+        resultArrays['15'] = ( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 ).rename("bio15")
+        resultArrays['16'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16")
+        resultArrays['17'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17")
+        resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
+        resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
+        return self.buildProduct( inputs.id, request, node, list(resultArrays.values()), inputs.attrs )
 
 
 class DetrendKernel(OpKernel):
