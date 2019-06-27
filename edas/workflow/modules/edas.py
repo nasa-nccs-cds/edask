@@ -120,7 +120,7 @@ class TimeAggKernel(OpKernel):
 
 class WorldClimKernel(OpKernel):
     def __init__(self):
-        OpKernel.__init__(self, KernelSpec("WorldClim", "WorldClim Kernel", "Computes the 20 WorldClim fields"))
+        OpKernel.__init__(self, KernelSpec("worldClim", "WorldClim Kernel", "Computes the 20 WorldClim fields"))
 
     def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
         lowpassSelector = selectionVar.xr.rolling(time=3, min_periods=2, center=True).mean()   # TODO: handle boundary conditions as in Spec
@@ -140,14 +140,14 @@ class WorldClimKernel(OpKernel):
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
         resultArrays: Dict[str,EDASArray] = {}
-        tempID = node.getParm("temp")
+        tempID = node.getParm("temp","temp")
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
-        precipID = node.getParm("precip")
+        precipID = node.getParm("precip","precip")
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
-        tempVar = inputs.getArray( tempID )
-        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs"
-        precipVar = inputs.getArray( precipID )
-        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs"
+        tempVar = inputs.findArray( tempID )
+        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
+        precipVar = inputs.findArray( precipID )
+        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeAgg("day","max")
         dailyTmin = tempVar.timeAgg("day","min")
         monthlyPrecip = precipVar.timeAgg("month","sum")

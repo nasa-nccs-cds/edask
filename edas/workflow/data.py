@@ -265,17 +265,21 @@ class EDASArray:
 #        return EDASArray(self.name, self.domId, xrdata  )
 
     def timeResample(self, period: str, operation: str ) -> "EDASArray":
-        grouped_data: DatasetResample = self.xr.resample( t = period)
-        if operation == "mean":  aggregation = grouped_data.mean()
-        elif operation == "ave": aggregation = grouped_data.mean()
-        elif operation == "max": aggregation = grouped_data.max()
-        elif operation == "min": aggregation = grouped_data.min()
-        elif operation == "sum": aggregation = grouped_data.sum()
-        else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
+        xrInput = self.xr
+        self.logger.info( f" timeResample({xrInput.name}): coords = {xrInput.coords.indexes} ")
+        resampled_data: DatasetResample = xrInput.resample( t = period )
+        if operation == "mean":  aggregation = resampled_data.mean()
+        elif operation == "ave": aggregation = resampled_data.mean()
+        elif operation == "max": aggregation = resampled_data.max()
+        elif operation == "min": aggregation = resampled_data.min()
+        elif operation == "sum": aggregation = resampled_data.sum()
+        else: raise Exception( "Unrecognised operation in timeResample operation: " + operation )
         return self.updateXa(aggregation, "TimeAgg")
 
     def timeAgg(self, period: str, operation: str ) -> "EDASArray":
-        grouped_data: DataArrayGroupBy = self.xr.groupby( "t." + period )
+        xrInput = self.xr
+        self.logger.info( f" TimeAgg({xrInput.name}): coords = {xrInput.coords.indexes} ")
+        grouped_data: DataArrayGroupBy = xrInput.groupby( "t." + period )
         if operation == "mean": aggregation = grouped_data.mean('t')
         elif operation == "ave": aggregation = grouped_data.mean('t')
         elif operation == "max": aggregation = grouped_data.max('t')
@@ -537,7 +541,12 @@ class EDASDataset:
         return self.attrs.get("product",None)
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr[0].coords[name]
-    def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
+    def getArray(self, id: str  ) -> Optional[EDASArray]: return self.arrayMap.get(id,None)
+
+    def findArray(self, id: str  ) -> Optional[EDASArray]:
+        for key in self.arrayMap.keys():
+            if id in key: return self.arrayMap[key]
+        return None
 
     def customArraymap(self, id: str  ) -> "OrderedDict[str,EDASArray]":
         result = OrderedDict()
