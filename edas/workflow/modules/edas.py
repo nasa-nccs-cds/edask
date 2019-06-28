@@ -119,18 +119,29 @@ class TimeAggKernel(OpKernel):
         return [ variable.timeAgg( period, operation) ]
 
 class WorldClimKernel(OpKernel):
-    def __init__(self):
-        OpKernel.__init__(self, KernelSpec("worldClim", "WorldClim Kernel", "Computes the 20 WorldClim fields"))
+    def __init__(self, kid:str = "worldClim" ):
+        OpKernel.__init__(self, KernelSpec(kid, "WorldClim Kernel", "Computes the 20 WorldClim fields"))
 
     def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
-        lowpassSelector = selectionVar.xr.rolling(time=3, min_periods=2, center=True).mean()   # TODO: handle boundary conditions as in Spec
-        if op == "max": extremeValue = lowpassSelector.max(["m"])
-        elif op == "min": extremeValue = lowpassSelector.min(["m"])
+        self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
+        selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
+        lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()   # TODO: handle boundary conditions as in Spec
+        if op == "max": extremeValue: xa.DataArray = lowpassSelector.max(["m"])
+        elif op == "min": extremeValue: xa.DataArray = lowpassSelector.min(["m"])
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
-        selectedMonth = lowpassSelector.where( lowpassSelector == extremeValue )
+        selectedMonth: xa.DataArray = lowpassSelector.where( lowpassSelector == extremeValue )
+        self.logger.info(f" >>>>>---> selectedMonth = {selectedMonth}\n >>>>>>> lowpassSelector = {lowpassSelector}\n >>>>>>> extremeValue = {extremeValue}")
+        print("1")
+        selectorData = lowpassSelector[:,0,0]
+        print("2")
+        extremeVal = extremeValue[0,0]
+        print("3")
+        self.logger.info(f" >>>>>--->  lowpassSelector values = {selectorData.values}\n >>>>>>> extreme value = {extremeVal.values}")
+        print("4")
         if targetVar is None:
             resultXarray = selectionVar.xr.isel( m=selectedMonth )
         else:
+            self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, index = {selectedMonth}" )
             selectedTarget0 =  targetVar.xr.isel( m=(selectedMonth-1) )    # TODO: handle boundary conditions
             selectedTarget1 =  targetVar.xr.isel( m=selectedMonth )
             selectedTarget2 =  targetVar.xr.isel( m=(selectedMonth+1) )
@@ -148,8 +159,8 @@ class WorldClimKernel(OpKernel):
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
-        dailyTmax = tempVar.timeAgg("day","max")
-        dailyTmin = tempVar.timeAgg("day","min")
+        dailyTmax = tempVar.timeResample("D","max")
+        dailyTmin = tempVar.timeResample("D","min")
         monthlyPrecip = precipVar.timeAgg("month","sum")
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
         Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
@@ -178,6 +189,29 @@ class WorldClimKernel(OpKernel):
         resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
         resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
         return self.buildProduct( inputs.id, request, node, list(resultArrays.values()), inputs.attrs )
+
+class WorldClimTestKernel(WorldClimKernel):
+    def __init__(self):
+        WorldClimKernel.__init__(self,"worldClimTest")
+
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        resultArrays: Dict[str,EDASArray] = {}
+        tempID = node.getParm("temp","temp")
+        assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
+        precipID = node.getParm("precip","precip")
+        assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
+        tempVar = inputs.findArray( tempID )
+        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
+        precipVar = inputs.findArray( precipID )
+        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
+        dailyTmax = tempVar.timeResample("D","max")
+        dailyTmin = tempVar.timeResample("D","min")
+        monthlyPrecip = precipVar.timeAgg("month","sum")
+        Tmax: EDASArray = dailyTmax.timeAgg("month","max")
+        Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
+        Tave = (Tmax+Tmin)/2
+        resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
+        return self.buildProduct(inputs.id, request, node, list(resultArrays.values()), inputs.attrs)
 
 
 class DetrendKernel(OpKernel):

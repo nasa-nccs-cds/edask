@@ -212,14 +212,22 @@ class EDASArray:
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
 
     def aligned( self, other: "EDASArray" ):
-#        print( f"ALIGNED: domId= {self.domId} {other.domId}, shape =  {self.xr.shape} {other.xr.shape}, dims = {self.xr.dims} {other.xr.dims}")
-        return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
+        return self.coordsAligned( other, 'x' ) and self.coordsAligned( other, 'y' )
 
     def groupby( self, grouping: str ):
         grouped_data = self.xr.groupby(grouping)
         rv = EDASArray(self.name, self.domId, grouped_data )
         rv.addTransform( Transformation( "groupby", group=grouping ) )
         return rv
+
+    def coordsAligned(self, other: "EDASArray", cid: str ) -> bool:
+        c0: xa.DataArray =  self.xr.coords.get( cid, None )
+        c1: xa.DataArray =  other.xr.coords.get( cid, None )
+        if c0 is None or c1 is None: return True
+        d0, d1 = c0.values, c1.values
+        aligned = np.allclose( d0, d1, 0.0, 0.1, True )
+#        self.logger.info( f" coordsAligned[{cid}]: {c0.data} {c1.data} {aligned}")
+        return aligned
 
     def resample( self, resampling:str ):
         if resampling is None: return self
@@ -266,27 +274,29 @@ class EDASArray:
 
     def timeResample(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
-        self.logger.info( f" timeResample({xrInput.name}): coords = {xrInput.coords.indexes} ")
-        resampled_data: DatasetResample = xrInput.resample( t = period )
-        if operation == "mean":  aggregation = resampled_data.mean()
-        elif operation == "ave": aggregation = resampled_data.mean()
-        elif operation == "max": aggregation = resampled_data.max()
-        elif operation == "min": aggregation = resampled_data.min()
-        elif operation == "sum": aggregation = resampled_data.sum()
+        if 't' in xrInput.dims: xrInput = xrInput.rename({'t': 'time'})
+        self.logger.info( f" timeResample({xrInput.name}): coords = {xrInput.coords.keys} ")
+        resampled_data: DatasetResample = xrInput.resample( time = period, keep_attrs=True )
+        if operation == "mean":  aggregation = resampled_data.mean('time')
+        elif operation == "ave": aggregation = resampled_data.mean('time')
+        elif operation == "max": aggregation = resampled_data.max('time')
+        elif operation == "min": aggregation = resampled_data.min( 'time')
+        elif operation == "sum": aggregation = resampled_data.sum( 'time')
         else: raise Exception( "Unrecognised operation in timeResample operation: " + operation )
         return self.updateXa(aggregation, "TimeAgg")
 
     def timeAgg(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
-        self.logger.info( f" TimeAgg({xrInput.name}): coords = {xrInput.coords.indexes} ")
-        grouped_data: DataArrayGroupBy = xrInput.groupby( "t." + period )
-        if operation == "mean": aggregation = grouped_data.mean('t')
-        elif operation == "ave": aggregation = grouped_data.mean('t')
-        elif operation == "max": aggregation = grouped_data.max('t')
-        elif operation == "min": aggregation = grouped_data.min('t')
-        elif operation == "sum": aggregation = grouped_data.sum('t')
+        if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
+        self.logger.info( f" TimeAgg({xrInput.name}): coords = {xrInput.coords.keys()} ")
+        grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
+        if operation == "mean": aggregation = grouped_data.mean('time')
+        elif operation == "ave": aggregation = grouped_data.mean('time')
+        elif operation == "max": aggregation = grouped_data.max('time')
+        elif operation == "min": aggregation = grouped_data.min('time')
+        elif operation == "sum": aggregation = grouped_data.sum('time')
         else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
-        return self.updateXa(aggregation, "TimeAgg")
+        return self.updateXa(aggregation.rename( {'month':'m'} ), "TimeAgg")
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         from edas.portal.parsers import WpsCwtParser
