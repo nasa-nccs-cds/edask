@@ -126,18 +126,11 @@ class WorldClimKernel(OpKernel):
         self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
         selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
         lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()   # TODO: handle boundary conditions as in Spec
-        if op == "max": extremeValue: xa.DataArray = lowpassSelector.max(["m"])
-        elif op == "min": extremeValue: xa.DataArray = lowpassSelector.min(["m"])
+        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m" )
+        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m" )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
-        selectedMonth: xa.DataArray = lowpassSelector.where( lowpassSelector == extremeValue )
-        self.logger.info(f" >>>>>---> selectedMonth = {selectedMonth}\n >>>>>>> lowpassSelector = {lowpassSelector}\n >>>>>>> extremeValue = {extremeValue}")
-        print("1")
-        selectorData = lowpassSelector[:,0,0]
-        print("2")
-        extremeVal = extremeValue[0,0]
-        print("3")
-        self.logger.info(f" >>>>>--->  lowpassSelector values = {selectorData.values}\n >>>>>>> extreme value = {extremeVal.values}")
-        print("4")
+#        selectedMonth: xa.DataArray = lowpassSelector.where( lowpassSelector == extremeValue, drop=True ).squeeze()
+        self.logger.info(f" >>>>>---> selectedMonth = {selectedMonth}\n >>>>>>> lowpassSelector = {lowpassSelector}")
         if targetVar is None:
             resultXarray = selectionVar.xr.isel( m=selectedMonth )
         else:
