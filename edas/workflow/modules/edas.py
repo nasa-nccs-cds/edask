@@ -149,7 +149,7 @@ class WorldClimKernel(OpKernel):
         tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         Tunits: str = tempVar.xr.attrs.get("units",None)
-        if Tunits is not None and Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
+        if Tunits is None or Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
@@ -197,7 +197,7 @@ class WorldClimTestKernel(WorldClimKernel):
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         Tunits: str = tempVar.xr.attrs.get("units",None)
         self.logger.info( f"TEMP units, {Tunits}" )
-        if Tunits is not None and Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
+        if Tunits is None or Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
