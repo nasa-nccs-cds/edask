@@ -136,7 +136,7 @@ class WorldClimKernel(OpKernel):
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
             self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, selector dims = {selectors[0].dims}" )
             self.logger.info(f" >>>>>---> selectedMonth1 = {selectors[0].values}")
-            targetVars = [ targetVar.xr.isel(m=selector) for selector in selectors ]
+            targetVars = [ targetVar[selector.expand_dims('m',0)] for selector in selectors ]
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
         return targetVar.updateXa( resultXarray, name )
 
