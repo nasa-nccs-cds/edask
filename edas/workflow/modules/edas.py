@@ -139,7 +139,7 @@ class WorldClimKernel(OpKernel):
             target = targetVar.xr.stack(z=('y', 'x'))
             targetVars = [ target.isel( m=selector.stack(z=('y', 'x')) ) for selector in selectors ]
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
-        return targetVar.updateXa( resultXarray, name )
+        return targetVar.updateXa( resultXarray.unstack(), name )
 
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
