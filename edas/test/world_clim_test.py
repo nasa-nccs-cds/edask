@@ -7,7 +7,7 @@ def world_clim( mgr: LocalTestManager ):
                                     "lon":  { "start":240, "end":260, "system":"values" },
                                     "time": { "start":'1990-01-01T00Z', "end":'1991-01-01T00Z', "system":"timestamps"  } } ]
         variables = [ { "uri": mgr.getAddress( "merra2-6hr", "tas"), "name":"tas:temp", "domain":"d0" }, { "uri": mgr.getAddress( "merra2-6hr", "pr"), "name":"pr:precip", "domain":"d0" } ]
-        operations = [ { "name":"edas.worldClimTest", "input":"temp,precip"  } ]
+        operations = [ { "name":"edas.worldClim", "input":"temp,precip"  } ]
         results = mgr.testExec( domains, variables, operations )
         mgr.print(results)
     except Exception as ex:
