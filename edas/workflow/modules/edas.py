@@ -129,15 +129,14 @@ class WorldClimKernel(OpKernel):
         if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m" )
         elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m" )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
-#        selectedMonth: xa.DataArray = lowpassSelector.where( lowpassSelector == extremeValue, drop=True ).squeeze()
         self.logger.info(f" >>>>>---> selectedMonth = {selectedMonth}\n >>>>>>> lowpassSelector = {lowpassSelector}")
         if targetVar is None:
-            resultXarray = selectionVar.xr.isel( m=selectedMonth )
+            resultXarray = selectionVar.xr[ selectedMonth ]
         else:
             self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, index = {selectedMonth}" )
-            selectedTarget0 =  targetVar.xr.isel( m=(selectedMonth-1) )    # TODO: handle boundary conditions
-            selectedTarget1 =  targetVar.xr.isel( m=selectedMonth )
-            selectedTarget2 =  targetVar.xr.isel( m=(selectedMonth+1) )
+            selectedTarget0 =  targetVar.xr[ selectedMonth-1 ]    # TODO: handle boundary conditions
+            selectedTarget1 =  targetVar.xr[ selectedMonth ]
+            selectedTarget2 =  targetVar.xr[ selectedMonth+1 ]
             resultXarray = ( selectedTarget0 + selectedTarget1 + selectedTarget2) / 3
         return targetVar.updateXa( resultXarray, name )
 
