@@ -133,7 +133,7 @@ class WorldClimKernel(OpKernel):
         if targetVar is None:
             resultXarray = selectionVar.xr[ selectedMonth ]
         else:
-            self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, target shape = {targetVar.xr.shape}, indexer shape = {selectedMonth.xr.shape}" )
+            self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, target shape = {targetVar.xr.shape}, indexer shape = {selectedMonth.shape}" )
             selectedTarget0 =  targetVar.xr[ selectedMonth-1 ]    # TODO: handle boundary conditions
             selectedTarget1 =  targetVar.xr[ selectedMonth ]
             selectedTarget2 =  targetVar.xr[ selectedMonth+1 ]
