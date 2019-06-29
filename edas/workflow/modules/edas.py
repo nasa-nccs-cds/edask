@@ -148,7 +148,8 @@ class WorldClimKernel(OpKernel):
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
         tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        self.logger.info( f"TEMP input, attrs: {tempVar.xr.attrs.keys()}" )
+        Tunits: str = tempVar.xr.attrs.get("units",None)
+        if Tunits is not None and Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
@@ -194,7 +195,9 @@ class WorldClimTestKernel(WorldClimKernel):
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
         tempVar = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        self.logger.info( f"TEMP input, attrs: {tempVar.xr.attrs.keys()}" )
+        Tunits: str = tempVar.xr.attrs.get("units",None)
+        self.logger.info( f"TEMP units, {Tunits}" )
+        if Tunits is not None and Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
