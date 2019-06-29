@@ -126,15 +126,15 @@ class WorldClimKernel(OpKernel):
         self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
         selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
         lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()   # TODO: handle boundary conditions as in Spec
-        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m" )
-        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m" )
+        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m", keep_attrs=True )
+        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m", keep_attrs=True )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
         self.logger.info(f" >>>>>---> selectedMonth = {selectedMonth.values}")
         if targetVar is None:
             resultXarray = selectionVar.xr[ selectedMonth ]
         else:
-            self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, target shape = {targetVar.xr.shape}, indexer shape = {selectedMonth.shape}" )
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
+            self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, target shape = {targetVar.xr.shape}, selectors shape = {selectors[0].shape}, selectors type = {selectors[0]}" )
             targetVars = [ targetVar.xr.isel(m=selector) for selector in selectors ]
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
         return targetVar.updateXa( resultXarray, name )
