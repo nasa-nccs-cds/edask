@@ -122,6 +122,15 @@ class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
         OpKernel.__init__(self, KernelSpec(kid, "WorldClim Kernel", "Computes the 20 WorldClim fields"))
 
+    def toCelcius(self, tempVar: EDASArray ):
+        Tunits: str = tempVar.xr.attrs.get("units",None)
+        if Tunits is None:
+            if tempVar.xr[0,0,0] > 150:
+                return tempVar - 273.15
+        elif Tunits.lower().startswith("k"):
+            return tempVar - 273.15
+        return tempVar
+
     def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
         self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
         selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
@@ -132,13 +141,15 @@ class WorldClimKernel(OpKernel):
         if targetVar is None:
             target = selectionVar.xr.stack(z=('y', 'x'))
             resultXarray =  target.isel( m=selectedMonth.stack(z=('y', 'x')) )
+            resultVar = selectionVar
         else:
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
             self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, selector dims = {selectors[0].dims}" )
             target = targetVar.xr.stack(z=('y', 'x'))
             targetVars = [ target.isel( m=selector.stack(z=('y', 'x')) ) for selector in selectors ]
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
-        return targetVar.updateXa( resultXarray.unstack(), name )
+            resultVar = targetVar
+        return resultVar.updateXa( resultXarray.unstack(), name )
 
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
@@ -149,8 +160,7 @@ class WorldClimKernel(OpKernel):
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
         tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        Tunits: str = tempVar.xr.attrs.get("units",None)
-        if Tunits is None or Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
+        tempVar = self.toCelcius( tempVar )
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
@@ -196,9 +206,7 @@ class WorldClimTestKernel(WorldClimKernel):
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
         tempVar = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        Tunits: str = tempVar.xr.attrs.get("units",None)
-        self.logger.info( f"TEMP units, {Tunits}" )
-        if Tunits is None or Tunits.lower().startswith("k"): tempVar = tempVar - 273.15
+        tempVar = self.toCelcius( tempVar )
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
