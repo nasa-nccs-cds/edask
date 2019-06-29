@@ -148,8 +148,9 @@ class WorldClimKernel(OpKernel):
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
         precipID = node.getParm("precip","precip")
         assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
-        tempVar = inputs.findArray( tempID )
+        tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
+        self.logger.info( f"TEMP input, attrs: {tempVar.xr.attrs.keys()}" )
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
