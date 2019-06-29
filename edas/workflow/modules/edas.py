@@ -130,7 +130,8 @@ class WorldClimKernel(OpKernel):
         elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m", keep_attrs=True )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
         if targetVar is None:
-            resultXarray = selectionVar.xr[ selectedMonth ]
+            target = selectionVar.xr.stack(z=('y', 'x'))
+            resultXarray =  target.isel( m=selectedMonth.stack(z=('y', 'x')) )
         else:
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
             self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, selector dims = {selectors[0].dims}" )
