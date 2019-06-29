@@ -9,8 +9,8 @@ def test_world_clim (mgr ):
                 "lon": {"start": 240, "end": 260, "system": "values"},
                 "time": {"start": '1990-01-01T00Z', "end": '1991-01-01T00Z', "system": "timestamps"}}]
 
-    variables = [{"uri": "collection://merra2-6hr", "name": "tas:temp", "domain": "d0"},
-                 {"uri": "collection://merra2-6hr", "name": "pr:precip", "domain": "d0"}]
+    variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
+                 {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
 
     operations = [{"name": "edas.worldClimTest", "input": "temp,precip"}]
 
