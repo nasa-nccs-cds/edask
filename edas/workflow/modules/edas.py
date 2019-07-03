@@ -153,11 +153,11 @@ class WorldClimKernel(OpKernel):
 
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
-        resultArrays: Dict[str,EDASArray] = {}
+        resultArrays: Dict[str,EDASArray] = {  }
         tempID = node.getParm("temp","temp")
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
         precipID = node.getParm("precip","precip")
-        assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
+        assert precipID is not None, "Must specify name of the precipitation input variable using  the 'precip' parameter"
         tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         tempVar = self.toCelcius( tempVar )
