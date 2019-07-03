@@ -209,6 +209,8 @@ class WorldClimTestKernel(WorldClimKernel):
         tempVar = self.toCelcius( tempVar )
         precipVar = inputs.findArray( precipID )
         assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
+        self.print( "Input Fields", [ tempVar, precipVar ] )
+
         dailyTmax = tempVar.timeResample("D","max")
         dailyTmin = tempVar.timeResample("D","min")
         monthlyPrecip = precipVar.timeAgg("month","sum")
@@ -217,6 +219,13 @@ class WorldClimTestKernel(WorldClimKernel):
         Tave = (Tmax+Tmin)/2
         resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
         return self.buildProduct(inputs.id, request, node, list(resultArrays.values()), inputs.attrs)
+
+    def print(self, title: str, results: List[EDASArray]):
+        self.logger.info( f"\n\n {title}" )
+        for result in results:
+            result = result.xr.load()
+            self.logger.info("\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
+            self.logger.info(result)
 
 
 class DetrendKernel(OpKernel):
