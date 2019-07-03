@@ -131,7 +131,18 @@ class WorldClimKernel(OpKernel):
             return tempVar - 273.15
         return tempVar
 
-    def stack(self, name: str, array: xa.DataArray) -> xa.DataArray:
+    def print(self, title: str, results: List[EDASArray]):
+        self.logger.info( f"\n\n {title}" )
+        for result in results:
+            result = result.xr.load()
+            self.logger.info("\n ***** Result {}, shape = {}, data:".format(result.name, str(result.shape)))
+            self.logger.info(result.data.tolist())
+
+    def print_array(self, name: str, array: xa.DataArray ):
+        self.logger.info("\n ***** Result {}: {}, shape = {}, data:".format(name, array.name, str(array.shape)))
+        self.logger.info(array.data.tolist())
+
+    def stack(self, array: xa.DataArray) -> xa.DataArray:
         for d in ['y', 'x']:
             if d not in array.dims:
                 array = array.expand_dims( d, -1 )
@@ -144,6 +155,7 @@ class WorldClimKernel(OpKernel):
         if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m", keep_attrs=True )
         elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m", keep_attrs=True )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
+        self.print_array( "selectedMonth", selectedMonth )
 
         if targetVar is None:
             target = self.stack('target', selectionVar.xr)
@@ -229,12 +241,6 @@ class WorldClimTestKernel(WorldClimKernel):
         resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
         return self.buildProduct(inputs.id, request, node, list(resultArrays.values()), inputs.attrs)
 
-    def print(self, title: str, results: List[EDASArray]):
-        self.logger.info( f"\n\n {title}" )
-        for result in results:
-            result = result.xr.load()
-            self.logger.info("\n ***** Result {}, shape = {}, data:".format(result.name, str(result.shape)))
-            self.logger.info(result.data.dumps())
 
 
 class DetrendKernel(OpKernel):
