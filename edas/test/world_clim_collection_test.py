@@ -5,9 +5,9 @@ LOCAL_TESTS = True
 
 def test_world_clim (mgr ):
 
-    domains = [{"name": "d0", "lat": {"start": 35, "end": 45, "system": "values"},
-                "lon": {"start": 240, "end": 260, "system": "values"},
-                "time": {"start": '1990-01-01T00Z', "end": '1991-01-01T00Z', "system": "timestamps"}}]
+    domains = [{"name": "d0", "lat": {"start": 35, "end": 37, "system": "values"},
+                "lon": {"start": 240, "end": 242, "system": "values"},
+                "time": {"start": '1990-01-01T00Z', "end": '1990-12-23T59Z', "system": "timestamps"}}]
 
     variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                  {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
