@@ -213,9 +213,12 @@ class WorldClimTestKernel(WorldClimKernel):
 
         dailyTmax = tempVar.timeResample("D","max")
         dailyTmin = tempVar.timeResample("D","min")
+        self.print("Daily Temp:", [tempVar, precipVar])
+
         monthlyPrecip = precipVar.timeAgg("month","sum")
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
         Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
+        self.print("Monthly Temp Max/Min:", [Tmax, Tmin])
         Tave = (Tmax+Tmin)/2
         resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
         return self.buildProduct(inputs.id, request, node, list(resultArrays.values()), inputs.attrs)
