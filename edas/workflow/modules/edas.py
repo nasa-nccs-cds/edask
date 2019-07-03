@@ -158,13 +158,13 @@ class WorldClimKernel(OpKernel):
         self.print_array( "selectedMonth", selectedMonth )
 
         if targetVar is None:
-            target = self.stack('target', selectionVar.xr)
-            resultXarray =  target.isel( m=self.stack('selectedMonth', selectedMonth) )
+            target = self.stack( selectionVar.xr)
+            resultXarray =  target.isel( m=self.stack( selectedMonth) )
             resultVar = selectionVar
         else:
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
-            target = self.stack('target', targetVar.xr)
-            targetVars = [ target.isel( m=self.stack( 'selectedMonth', selector ) ) for selector in selectors ]
+            target = self.stack( targetVar.xr)
+            targetVars = [ target.isel( m=self.stack( selector ) ) for selector in selectors ]
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
             resultVar = targetVar
         return resultVar.updateXa( resultXarray.unstack(), name )
