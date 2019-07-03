@@ -131,31 +131,10 @@ class WorldClimKernel(OpKernel):
             return tempVar - 273.15
         return tempVar
 
-    # def getValueForSelectedQuarter1(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
-    #     self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
-    #     selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
-    #     lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()   # TODO: handle boundary conditions as in Spec
-    #     if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m", keep_attrs=True )
-    #     elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m", keep_attrs=True )
-    #     else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
-    #     if targetVar is None:
-    #         target = selectionVar.xr.stack(z=('y', 'x'))
-    #         resultXarray =  target.isel( m=selectedMonth.stack(z=('y', 'x')) )
-    #         resultVar = selectionVar
-    #     else:
-    #         selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
-    #         self.logger.info(f" >>>>>---> slice target, dims = {targetVar.xr.dims}, selector dims = {selectors[0].dims}" )
-    #         target = targetVar.xr.stack(z=('y', 'x'))
-    #         targetVars = [ target.isel( m=selector.stack(z=('y', 'x')) ) for selector in selectors ]
-    #         resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
-    #         resultVar = targetVar
-    #     return resultVar.updateXa( resultXarray.unstack(), name )
-
     def stack(self, name: str, array: xa.DataArray) -> xa.DataArray:
         for d in ['y', 'x']:
             if d not in array.dims:
                 array = array.expand_dims( d, -1 )
-        print ( f"Stacking array '{name}'' with array dims: {array.dims} ")
         return array.stack( z=['y', 'x'] )
 
     def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
@@ -254,8 +233,8 @@ class WorldClimTestKernel(WorldClimKernel):
         self.logger.info( f"\n\n {title}" )
         for result in results:
             result = result.xr.load()
-            self.logger.info("\n ***** Result {}, shape = {}".format(result.name, str(result.shape)))
-            self.logger.info(result)
+            self.logger.info("\n ***** Result {}, shape = {}, data:".format(result.name, str(result.shape)))
+            self.logger.info(result.data.dumps())
 
 
 class DetrendKernel(OpKernel):
