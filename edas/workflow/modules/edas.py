@@ -140,7 +140,7 @@ class WorldClimKernel(OpKernel):
 
     def print_array(self, name: str, array: xa.DataArray ):
         self.logger.info("\n ***** Result {}: {}, shape = {}, data:".format(name, array.name, str(array.shape)))
-        self.logger.info(array.data.tolist())
+        self.logger.info( str( array.values.tolist() ) )
 
     def stack(self, array: xa.DataArray) -> xa.DataArray:
         for d in ['y', 'x']:
