@@ -134,7 +134,7 @@ class WorldClimKernel(OpKernel):
     def stack(self, name: str, array: xa.DataArray) -> xa.DataArray:
         space_dims = [ d for d in ['y', 'x'] if d in array.dims ]
         print ( f"Stacking array {name} with dims {space_dims}")
-        return array.stack(z=space_dims) if len(space_dims) else array
+        return array.stack(z=space_dims) if len(space_dims) > 0 else array
 
     def getValueForSelectedQuarter1(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
         self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
