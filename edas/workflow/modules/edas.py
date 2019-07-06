@@ -236,7 +236,7 @@ class WorldClimTestKernel(WorldClimKernel):
         monthlyPrecip = precipVar.timeAgg("month","sum")
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
         Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
-        self.print("Monthly Precip:", [precipVar])
+        self.print("Monthly Precip:", [monthlyPrecip])
         Tave = (Tmax+Tmin)/2
         self.print("Monthly Temp Max/Min/Ave:", [Tmax, Tmin, Tave])
         resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
