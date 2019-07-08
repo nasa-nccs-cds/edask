@@ -59,6 +59,6 @@ if __name__ == "__main__":
     time_range_10y = [ "1981-01-01", "1991-01-01" ]
     time_range_1y  = [ "1991-01-01", "1992-01-01"]
     time_range_6m =  [ "1981-01-01", "1981-01-06"]
-    test_collection_mean( mgr, collection, variable, time_range_6m )
+    test_collection_mean( mgr, collection, variable, time_range_30y )
 
 
