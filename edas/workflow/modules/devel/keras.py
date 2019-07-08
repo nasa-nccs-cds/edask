@@ -68,21 +68,21 @@ class ModelPredictionKernel(OpKernel):
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("model", "Model Kernel","Represents a trained neural network." ) )
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         modelId = node.getParm( "model", "model" )
         model = ModelOps.loadModel( self.archivePath( modelId, {} ) )
         weights = model.get_weights()
         print( "MODEL WEIGHTS: " + str(weights))
         input_size = weights[0].shape[0]
         input = KerasModel.getNetworkInput( node, variable, input_size )
-        return [ KerasModel.map( "predict", model, input ) ]
+        return KerasModel.map( "predict", model, input )
 
 class BackProjectionMap(OpKernel):
 
     def __init__( self ):
         Kernel.__init__( self, KernelSpec("backProject", "Back project model node","Generates patterns that maximally activate each output node." ) )
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> List[EDASArray]:
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray ) -> EDASArray:
         modelId = node.getParm( "model", "model" )
         model: Model = ModelOps.loadModel( self.archivePath( modelId, {} ) )
 
@@ -97,7 +97,7 @@ class BackProjectionMap(OpKernel):
             out_loss, out_grad = iterate([input_img_data, 0])
             input_img_data -= out_grad * 0.1
             self.logger.info( str(i) + ": loss = " + str(out_loss) )
-        return [ EDASArray( "Back Projection Map", variable.domId, xa.DataArray(input_img_data) ) ]
+        return EDASArray( "Back Projection Map", variable.domId, xa.DataArray(input_img_data) )
 
 class TrainKernel(OpKernel):
     def __init__( self ):

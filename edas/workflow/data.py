@@ -198,8 +198,9 @@ class EDASArray:
             dset.rename( dict(x="lat",y="lon",z="lev",t="time"), True)
         return dset
 
-    def propagateHistory( self, precursor: "EDASArray" ):
+    def propagateHistory( self, precursor: "EDASArray" ) -> "EDASArray":
         if precursor.product is not None: self._product = precursor.product
+        return self
 
     def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
         if len( dims ) <= dimIndex: return default
@@ -224,6 +225,7 @@ class EDASArray:
         c0: xa.DataArray =  self.xr.coords.get( cid, None )
         c1: xa.DataArray =  other.xr.coords.get( cid, None )
         if c0 is None or c1 is None: return True
+        if c0.shape != c1.shape: return False
         d0, d1 = c0.values, c1.values
         aligned = np.allclose( d0, d1, 0.0, 0.1, True )
 #        self.logger.info( f" coordsAligned[{cid}]: {c0.data} {c1.data} {aligned}")
