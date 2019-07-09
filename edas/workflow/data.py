@@ -368,7 +368,7 @@ class EDASArray:
     def ave(self, axes: List[str], **kwargs ) -> "EDASArray":                           # Weighted
         weights = self.getWeights( axes )
         if weights is None:
-            return self.mean(axes)
+            return self.mean( axes, **kwargs )
         else:
             data = self.persist()
             weighted_var: xa.DataArray = data * weights
