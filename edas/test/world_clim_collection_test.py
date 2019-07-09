@@ -14,10 +14,9 @@ def test_world_clim (mgr ):
     variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                  {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
 
-    operations = [{"name": "edas.worldClimTest", "input": "temp,precip"}]
+    operations = [{"name": "edas.worldClim", "input": "temp,precip"}]
 
     results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
-    mgr.print(results)
     results[0].save( "cip_merra2_6hr-WorldClim")
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ def world_clim( mgr: LocalTestManager ):
         variables = [ { "uri": mgr.getAddress( "merra2-6hr", "tas"), "name":"tas:temp", "domain":"d0" }, { "uri": mgr.getAddress( "merra2-6hr", "pr"), "name":"pr:precip", "domain":"d0" } ]
         operations = [ { "name":"edas.worldClim", "input":"temp,precip"  } ]
         results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
-        mgr.print(results)
         results[0].save("cip_merra2_6hr-WorldClim")
     except Exception as ex:
         print( traceback.format_exc() )
