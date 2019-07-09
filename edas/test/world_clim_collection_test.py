@@ -3,13 +3,16 @@ from typing import List, Optional, Tuple, Dict, Any
 from edas.workflow.kernel import EDASDataset
 import time
 appConf = { "sources.allowed": "collection,https" }
-LOCAL_TESTS = True
+LOCAL_TESTS = False
+GLOBAL = True
 
 def test_world_clim (mgr ):
 
-    domains = [{"name": "d0", "lat": {"start": 25, "end": 50, "system": "values"},
-                "lon": {"start": 200, "end": 300, "system": "values"},
-                "time": {"start": '1990-01-01T00Z', "end": '1991-02-01T00Z', "system": "timestamps"}}]
+    domains = [ {"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '1991-02-01T00Z', "system": "timestamps"} } ]
+
+    if not GLOBAL:
+        domains[0]["lat"] = {"start": 25, "end": 50, "system": "values"}
+        domains[0]["lon"] = {"start": 200, "end": 300, "system": "values"}
 
     variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                  {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
