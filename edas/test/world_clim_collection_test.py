@@ -7,9 +7,13 @@ LOCAL_TESTS = True
 
 def test_world_clim (mgr ):
 
-    domains = [{"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '1991-02-01T00Z', "system": "timestamps"}}]
+    domains = [{"name": "d0", "lat": {"start": 25, "end": 50, "system": "values"},
+                "lon": {"start": 200, "end": 300, "system": "values"},
+                "time": {"start": '1990-01-01T00Z', "end": '1991-02-01T00Z', "system": "timestamps"}}]
+
     variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                  {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
+
     operations = [{"name": "edas.worldClimTest", "input": "temp,precip"}]
 
     results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
