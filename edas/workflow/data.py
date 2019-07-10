@@ -225,10 +225,12 @@ class EDASArray:
         c0: xa.DataArray =  self.xr.coords.get( cid, None )
         c1: xa.DataArray =  other.xr.coords.get( cid, None )
         if c0 is None or c1 is None: return True
-        if c0.shape != c1.shape: return False
+        if c0.shape != c1.shape:
+            self.logger.info(f" coords NOT Aligned[{cid}]: {c0.shape} {c1.shape}")
+            return False
         d0, d1 = c0.values, c1.values
         aligned = np.allclose( d0, d1, 0.0, 0.1, True )
-#        self.logger.info( f" coordsAligned[{cid}]: {c0.data} {c1.data} {aligned}")
+        if not aligned: self.logger.info( f" coords-not-Aligned[{cid}]: {c0.data} {c1.data}")
         return aligned
 
     def resample( self, resampling:str ):
