@@ -294,7 +294,7 @@ class EDASArray:
         if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
         self.logger.info( f" TimeAgg({xrInput.name}): coords = {xrInput.coords.keys()} ")
         grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
-        if operation == "mean": aggregation = grouped_data.mean('time')
+        if operation == "mean":  aggregation = grouped_data.mean('time')
         elif operation == "ave": aggregation = grouped_data.mean('time')
         elif operation == "max": aggregation = grouped_data.max('time')
         elif operation == "min": aggregation = grouped_data.min('time')
@@ -303,7 +303,6 @@ class EDASArray:
         return self.updateXa(aggregation.rename( {'month':'m'} ), "TimeAgg")
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
-        from edas.portal.parsers import WpsCwtParser
         pointMap: Dict[str,Any] = {}
         valSliceMap: Dict[str, Any] = {}
         indexSliceMap: Dict[str, Any] = {}

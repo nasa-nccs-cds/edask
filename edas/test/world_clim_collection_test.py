@@ -8,7 +8,7 @@ GLOBAL = True
 
 def test_world_clim_mean ( mgr, start_year ):
 
-    variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"}, {"uri": "collection://cip_merra2_6hr", "name": "hus:moist", "domain": "d0"}]
+    variables = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp", "domain": "d0"}, {"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "QV2M:moist", "domain": "d0"}]
     operations = [{"name": "edas.worldClim", "input": "temp,moist"}]
 
     worldClimResults = {}
