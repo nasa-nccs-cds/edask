@@ -136,7 +136,7 @@ class TaskRequest:
       new_bounds: AxisBounds = bound
       for input in inputs:
         coord: xa.DataArray = input.coord(axis)
-        if coord is not None:
+        if coord is not None and len( coord.shape ) > 0:
             if (axis == Axis.T) and bound.isValueType and bound.start == bound.end:
                 index: pd.DatetimeIndex = coord.get_index("t")
                 loc = index.get_loc( bound.start, method="nearest" )
