@@ -142,7 +142,7 @@ class TaskRequest:
                 loc = index.get_loc( bound.start, method="nearest" )
                 new_bounds = AxisBounds( "t", loc, loc+1, bound.step, "index", bound.metadata, bound._timeDelta )
             else:
-                assert len( coord.shape ) == 1, "Not currently supporting multi-dimensional axes: " + coord.name
+                assert len( coord.shape ) == 1, f"Not currently supporting multi-dimensional axes: {coord.name}, shape: {coord.shape}"
                 values = coord.values
                 new_bounds = new_bounds.crop( axis, 0, len(coord.values)-1 ) if new_bounds.system.startswith("ind") else new_bounds.crop( axis, values[0], values[-1] )
       return new_bounds
