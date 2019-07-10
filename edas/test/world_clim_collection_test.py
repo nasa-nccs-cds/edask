@@ -8,16 +8,16 @@ GLOBAL = True
 
 def test_world_clim (mgr ):
 
-    domains = [ {"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '1991-02-01T00Z', "system": "timestamps"} } ]
+    domains = [ {"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '2000-01-01T00Z', "system": "timestamps"} } ]
 
     if not GLOBAL:
         domains[0]["lat"] = {"start": 25, "end": 50, "system": "values"}
         domains[0]["lon"] = {"start": 200, "end": 300, "system": "values"}
 
     variables = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
-                 {"uri": "collection://cip_merra2_6hr", "name": "pr:precip", "domain": "d0"}]
+                 {"uri": "collection://cip_merra2_6hr", "name": "hus:moist", "domain": "d0"}]
 
-    operations = [{"name": "edas.worldClim", "input": "temp,precip"}]
+    operations = [{"name": "edas.worldClim", "input": "temp,moist"}]
 
     results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
     results[0].save( "cip_merra2_6hr-WorldClim")

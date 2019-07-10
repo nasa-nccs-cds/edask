@@ -802,9 +802,9 @@ class EDASDataset:
     def archivePath(self, id: str = None  ) -> str:
         proj =  self.attrs.get( "proj", self.randomStr(4) )
         exp =   self.attrs.get( "exp", self.randomStr(4) )
-        id =  self.attrs.get( "archive", "" )
-        if not id: id = "archive-" + self.randomStr(4)
-        return Archive.getFilePath( proj, exp, id )
+        aid =  self.attrs.get( "archive", "" ) if not id else id
+        if not aid: aid = "archive-" + self.randomStr(4)
+        return Archive.getFilePath( proj, exp, aid )
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)
     def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )

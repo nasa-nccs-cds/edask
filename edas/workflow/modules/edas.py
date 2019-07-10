@@ -172,17 +172,18 @@ class WorldClimKernel(OpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
         resultArrays: Dict[str,EDASArray] = {  }
         tempID = node.getParm("temp","temp")
+        version = node.getParm("version", "mean")
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
-        precipID = node.getParm("precip","precip")
-        assert precipID is not None, "Must specify name of the precipitation input variable using  the 'precip' parameter"
+        moistID = node.getParm("moist","moist")
+        assert moistID is not None, "Must specify name of the moisture input variable using  the 'moist' parameter"
         tempVar: EDASArray = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         tempVar = self.toCelcius( tempVar )
-        precipVar = inputs.findArray( precipID )
-        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
+        moistVar = inputs.findArray( moistID )
+        assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
         dailyTmax = tempVar.timeResample("D","max")
         dailyTmin = tempVar.timeResample("D","min")
-        monthlyPrecip = precipVar.timeAgg("month","sum")
+        monthlyPrecip = moistVar.timeAgg( "month", version )
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
         Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
         Tave = (Tmax+Tmin)/2
@@ -204,7 +205,7 @@ class WorldClimKernel(OpKernel):
         resultArrays['12'] = monthlyPrecip.sum(["m"], name="bio12")
         resultArrays['13'] = monthlyPrecip.max(["m"], name="bio13")
         resultArrays['14'] = monthlyPrecip.min(["m"], name="bio14")
-        resultArrays['15'] = ( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 ).rename("bio15")
+        resultArrays['15'] = (( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 )).rename("bio15")
         resultArrays['16'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16")
         resultArrays['17'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17")
         resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
@@ -219,20 +220,20 @@ class WorldClimTestKernel(WorldClimKernel):
         resultArrays: Dict[str,EDASArray] = {}
         tempID = node.getParm("temp","temp")
         assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
-        precipID = node.getParm("precip","precip")
-        assert precipID is not None, "Must specify name of the precipitation input variable using the 'precip' parameter"
+        moistID = node.getParm("moist","moist")
+        assert moistID is not None, "Must specify name of the moisture input variable using the 'moist' parameter"
         tempVar = inputs.findArray( tempID )
         assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
         tempVar = self.toCelcius( tempVar )
-        precipVar = inputs.findArray( precipID )
-        assert precipVar is not None, f"Can't locate precipitation variable {precipID} in inputs: {inputs.ids}"
-        self.print( "Input Fields", [ tempVar, precipVar ] )
+        moistVar = inputs.findArray( moistID )
+        assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
+        self.print( "Input Fields", [ tempVar, moistVar ] )
 
         dailyTmax = tempVar.timeResample("D","max")
         dailyTmin = tempVar.timeResample("D","min")
         self.print("Daily Max/Min:", [dailyTmax, dailyTmin])
 
-        monthlyPrecip = precipVar.timeAgg("month","sum")
+        monthlyPrecip = moistVar.timeAgg("month","sum")
         Tmax: EDASArray = dailyTmax.timeAgg("month","max")
         Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
         self.print("Monthly Precip:", [monthlyPrecip])
