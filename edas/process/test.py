@@ -102,7 +102,7 @@ class DistributedTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(DistributedTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
-        log_metrics = appConf.get("log_metrics",True)
+        log_metrics = appConf.get("log_metrics",False)
         self.processManager = ProcessManager.initManager( EdasEnv.parms )
         time.sleep(10)
         self.processing = False
