@@ -229,7 +229,7 @@ class EDASArray:
             self.logger.info(f" coords NOT Aligned[{cid}]: {c0.shape} {c1.shape}")
             return False
         d0, d1 = c0.values, c1.values
-        aligned = np.allclose( d0, d1, 0.0, 0.1, True )
+        aligned = np.allclose( d0, d1, 0.0, 1.0, True )
         if not aligned: self.logger.info( f" coords-not-Aligned[{cid}]: {c0.data} {c1.data}")
         return aligned
 
