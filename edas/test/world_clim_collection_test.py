@@ -8,7 +8,7 @@ GLOBAL = True
 
 def test_world_clim (mgr ):
 
-    domains = [ {"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '2000-01-01T00Z', "system": "timestamps"} } ]
+    domains = [ {"name": "d0", "time": {"start": '1990-01-01T00Z', "end": '2000-01-01T00Z', "system": "timestamps"}, "lev": {"start": 0, "end": 0, "system": "indices"} } ]
 
     if not GLOBAL:
         domains[0]["lat"] = {"start": 25, "end": 50, "system": "values"}
