@@ -713,10 +713,10 @@ class EDASDataset:
                     dataset0.arrayMap[vid] = dataset1.arrayMap[vid]
         else:
             for vid in dataset0.arrayMap.keys():
-                if   method == "add": dataset0[vid] = dataset0[vid] + other
-                elif method == "sub": dataset0[vid] = dataset0[vid] - other
-                elif method == "mul": dataset0[vid] = dataset0[vid] * other
-                elif method == "div": dataset0[vid] = dataset0[vid] / other
+                if   method == "add": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + other
+                elif method == "sub": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - other
+                elif method == "mul": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * other
+                elif method == "div": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / other
         return dataset0
 
     @staticmethod
