@@ -698,7 +698,7 @@ class EDASDataset:
     def __truediv__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
         return self.combine(other, False, "div")
 
-    def div(self, other: Union["EDASDataset",float,int], inplace = False, method ="add") -> "EDASDataset":
+    def combine(self, other: Union["EDASDataset",float,int], inplace = False, method ="add") -> "EDASDataset":
         dataset0 = self if inplace else EDASDataset(self.arrayMap, self.attrs)
         if isinstance(other, EDASArray):
             dataset1: EDASDataset = other
