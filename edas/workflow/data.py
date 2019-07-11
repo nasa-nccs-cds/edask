@@ -279,7 +279,7 @@ class EDASArray:
     def timeResample(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename({'t': 'time'})
-        self.logger.info( f" timeResample({xrInput.name}): coords = {xrInput.coords.keys} ")
+        self.logger.info( f" timeResample({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
         resampled_data: DatasetResample = xrInput.resample( time = period, keep_attrs=True )
         if operation == "mean":  aggregation = resampled_data.mean('time')
         elif operation == "ave": aggregation = resampled_data.mean('time')
@@ -292,7 +292,7 @@ class EDASArray:
     def timeAgg(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
-        self.logger.info( f" TimeAgg({xrInput.name}): coords = {xrInput.coords.keys()} ")
+        self.logger.info( f" TimeAgg({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
         grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
         if operation == "mean":  aggregation = grouped_data.mean('time')
         elif operation == "ave": aggregation = grouped_data.mean('time')
@@ -677,10 +677,48 @@ class EDASDataset:
         for array in self.inputs:
             xrplot.plot( array.xr, col = facet_axis )
 
-    def __iadd__(self, other: "EDASDataset" ) -> "EDASDataset":
-        self.arrayMap.update( other.arrayMap )
-        self.attrs.update( other.attrs )
-        return self
+    def __iadd__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True)
+
+    def __add__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False)
+
+    def __isub__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True, "sub")
+
+    def __sub__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "sub")
+
+    def __imul__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True, "mul")
+
+    def __mul__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "mul")
+
+    def __truediv__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "div")
+
+    def div(self, other: Union["EDASDataset",float,int], inplace = False, method ="add") -> "EDASDataset":
+        dataset0 = self if inplace else EDASDataset(self.arrayMap, self.attrs)
+        if isinstance(other, EDASArray):
+            dataset1: EDASDataset = other
+            dataset0.attrs.update(dataset1.attrs)
+            for vid in dataset1.arrayMap.keys():
+                if method == "add":
+                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + dataset1.arrayMap[vid] if vid in dataset0.arrayMap.keys() else dataset1.arrayMap[vid]
+                elif method == "sub" and vid in dataset0.arrayMap.keys():
+                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - dataset1.arrayMap[vid]
+                elif method == "mul" and vid in dataset0.arrayMap.keys():
+                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * dataset1.arrayMap[vid]
+                elif method == "div" and vid in dataset0.arrayMap.keys():
+                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / dataset1.arrayMap[vid]
+        else:
+            for vid in dataset0.arrayMap.keys():
+                if method == "add":   dataset0[vid] = dataset0[vid] + other
+                elif method == "sub": dataset0[vid] = dataset0[vid] - other
+                elif method == "mul": dataset0[vid] = dataset0[vid] * other
+                elif method == "div": dataset0[vid] = dataset0[vid] / other
+        return dataset0
 
     def plot(self, idmatch: str = None ):
         import matplotlib.pyplot as plt

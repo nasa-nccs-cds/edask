@@ -170,6 +170,7 @@ class WorldClimKernel(OpKernel):
 
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        self.logger.info( f"Computing WorldClim fields for domain: {request.domain( node.domain )}" )
         resultArrays: Dict[str,EDASArray] = {  }
         tempID = node.getParm("temp","temp")
         version = node.getParm("version", "mean")

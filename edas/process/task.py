@@ -154,7 +154,7 @@ class TaskRequest:
   def getOperations(self) -> List[WorkflowNode]:
       return self.operationManager.getOperations()
 
-  def domain(self, domId: str, offset: Optional[str] ) -> Domain:
+  def domain(self, domId: str, offset: Optional[str] = None ) -> Domain:
       dom = self.operationManager.getDomain(domId)
       return dom.offset( offset )
 
