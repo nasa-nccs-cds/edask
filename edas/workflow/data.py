@@ -2,7 +2,7 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView, Iterator
 from edas.process.domain import Domain, Axis
-import string, random, os, re, traceback
+import string, random, os, re, copy
 from edas.collection.agg import Archive
 import abc, math, time, itertools
 import xarray as xa
@@ -699,26 +699,29 @@ class EDASDataset:
         return self.combine(other, False, "div")
 
     def combine(self, other: Union["EDASDataset",float,int], inplace = False, method ="add") -> "EDASDataset":
-        dataset0 = self if inplace else EDASDataset(self.arrayMap, self.attrs)
-        if isinstance(other, EDASArray):
+        dataset0 = self if inplace else EDASDataset.copy( self )
+        if isinstance( other, EDASDataset ):
             dataset1: EDASDataset = other
             dataset0.attrs.update(dataset1.attrs)
             for vid in dataset1.arrayMap.keys():
-                if method == "add":
-                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + dataset1.arrayMap[vid] if vid in dataset0.arrayMap.keys() else dataset1.arrayMap[vid]
-                elif method == "sub" and vid in dataset0.arrayMap.keys():
-                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - dataset1.arrayMap[vid]
-                elif method == "mul" and vid in dataset0.arrayMap.keys():
-                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * dataset1.arrayMap[vid]
-                elif method == "div" and vid in dataset0.arrayMap.keys():
-                    dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / dataset1.arrayMap[vid]
+                if vid in dataset0.arrayMap.keys():
+                    if   method == "add":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + dataset1.arrayMap[vid]
+                    elif method == "sub":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - dataset1.arrayMap[vid]
+                    elif method == "mul":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * dataset1.arrayMap[vid]
+                    elif method == "div":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / dataset1.arrayMap[vid]
+                elif method == "add":
+                    dataset0.arrayMap[vid] = dataset1.arrayMap[vid]
         else:
             for vid in dataset0.arrayMap.keys():
-                if method == "add":   dataset0[vid] = dataset0[vid] + other
+                if   method == "add": dataset0[vid] = dataset0[vid] + other
                 elif method == "sub": dataset0[vid] = dataset0[vid] - other
                 elif method == "mul": dataset0[vid] = dataset0[vid] * other
                 elif method == "div": dataset0[vid] = dataset0[vid] / other
         return dataset0
+
+    @staticmethod
+    def copy( other: "EDASDataset" ) -> "EDASDataset":
+        return EDASDataset( copy.copy( other.arrayMap ), copy.copy( other.attrs ) )
 
     def plot(self, idmatch: str = None ):
         import matplotlib.pyplot as plt
