@@ -9,7 +9,7 @@ from edas.portal.parsers import WpsCwtParser
 from edas.util.logging import EDASLogger
 from edas.process.task import Job
 from edas.process.manager import ProcessManager
-from edas.stratus.manager import ExecHandler
+from edas.stratus.manager import TaskExecHandler
 from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -100,13 +100,13 @@ class EDASEndpoint(Endpoint):
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
           job = Job.create( rid, proj, exp, 'exe', requestSpec, inputs, {}, 1.0 )
-          execHandler: ExecHandler = self.addHandler( rid, ExecHandler( cid, job ) )
+          execHandler: TaskExecHandler = self.addHandler(rid, TaskExecHandler(cid, job))
           execHandler.execJob( job )
           return execHandler
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return TaskHandle( rid=rid, cid=cid, status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
+            return TaskHandle(rid=rid, cid=cid, status = Status.ERROR, error = TaskExecHandler.getErrorReport(err))
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )

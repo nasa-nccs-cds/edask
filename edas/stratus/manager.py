@@ -7,10 +7,10 @@ from stratus_endpoint.handler.base import Status, TaskHandle, TaskResult
 from edas.util.logging import EDASLogger
 import xarray as xa
 
-class ExecHandler(TaskHandle):
+class TaskExecHandler(TaskHandle):
 
     def __init__( self, cid: str, _job: Job, **kwargs ):
-        super(ExecHandler, self).__init__( **{ "rid": _job.requestId, "cid": cid, **kwargs } )
+        super(TaskExecHandler, self).__init__(**{"rid": _job.requestId, "cid": cid, **kwargs})
         self.logger = EDASLogger.getLogger()
         self.sthread = None
         self._processResults = True
