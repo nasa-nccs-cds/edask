@@ -166,10 +166,14 @@ class WorldClimKernel(OpKernel):
             resultXarray =  target.isel( m=self.stack( selectedMonth) )
             resultVar = selectionVar
         else:
+            targetVars = []
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
             target: xa.DataArray = self.stack( targetVar.xr)
-            self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selectionVar: {selectionVar.name}")
-            targetVars = [ target.isel( m=self.stack( selector ) ) for selector in selectors ]
+            for selector in selectors:
+                stacked_selector  = self.stack( selector )
+                self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selector shape: {stacked_selector.shape}")
+                targetVars.append( target.isel( m=stacked_selector ) )
+                self.logger.info("ZZ...")
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
             resultVar = targetVar
         return resultVar.updateXa( resultXarray.unstack(), name )
