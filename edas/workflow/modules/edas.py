@@ -153,6 +153,7 @@ class WorldClimKernel(OpKernel):
 
     def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
 #        self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
+        assert selectionVar.xrArray.shape[0] == 12, "Must have full year of data to compute WorldClim fields"
         selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
         lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()
         if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m", keep_attrs=True )
