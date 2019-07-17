@@ -166,14 +166,13 @@ class WorldClimKernel(OpKernel):
             resultXarray =  target.isel( m=self.stack( selectedMonth) )
             resultVar = selectionVar
         else:
+            selectedMonth.persist()
             targetVars = []
             selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
             target: xa.DataArray = self.stack( targetVar.xr)
             for selector in selectors:
                 stacked_selector  = self.stack( selector )
                 self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selector shape: {stacked_selector.shape}")
-                target.load(); stacked_selector.load()
-                self.logger.info("XX...")
                 targetVars.append( target.isel( m=stacked_selector ) )
                 self.logger.info("ZZ...")
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
@@ -203,6 +202,7 @@ class WorldClimKernel(OpKernel):
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2
         self.start_time = time.time()
+        Tave.persist(); monthlyPrecip.persist()
 
         self.exeLog(1);   resultArrays['1']  = Tave.ave(["m"], name="bio1")
         self.exeLog(2);   resultArrays['2']  = Trange.ave(["m"], name="bio2")
