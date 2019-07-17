@@ -174,7 +174,6 @@ class WorldClimKernel(OpKernel):
                 stacked_selector  = self.stack( selector )
                 self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selector shape: {stacked_selector.shape}")
                 targetVars.append( target.isel( m=stacked_selector ) )
-                self.logger.info("ZZ...")
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
             resultVar = targetVar
         return resultVar.updateXa( resultXarray.unstack(), name )
@@ -225,7 +224,8 @@ class WorldClimKernel(OpKernel):
         self.exeLog(18);  resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
         self.exeLog(19);  resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
 
-        return self.buildProduct( inputs.id, request, node, list(resultArrays.values()), inputs.attrs )
+        results: List[EDASArray] = [ tempVar.updateXa( result.persist(), "bio-"+index ) for index, result in resultArrays.items() ]
+        return self.buildProduct( inputs.id, request, node, results, inputs.attrs )
 
 class WorldClimTestKernel(WorldClimKernel):
     def __init__(self):
