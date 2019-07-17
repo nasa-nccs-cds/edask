@@ -29,6 +29,6 @@ def test_world_clim_mean ( mgr, start_year, nYears=10 ):
 
 if __name__ == "__main__":
     mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"edaskwndev01:8786" } )
-    test_world_clim_mean( mgr, 1990, 10 )
+    test_world_clim_mean( mgr, 1990, 1 )
 
 
