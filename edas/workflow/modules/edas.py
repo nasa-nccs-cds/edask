@@ -172,6 +172,8 @@ class WorldClimKernel(OpKernel):
             for selector in selectors:
                 stacked_selector  = self.stack( selector )
                 self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selector shape: {stacked_selector.shape}")
+                target.load(); stacked_selector.load()
+                self.logger.info("XX...")
                 targetVars.append( target.isel( m=stacked_selector ) )
                 self.logger.info("ZZ...")
             resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
