@@ -1,12 +1,12 @@
 from ..kernel import Kernel, KernelSpec, EDASDataset, OpKernel, TimeOpKernel
-import xarray as xa
+import time, xarray as xa
 from xarray.core.groupby import DataArrayGroupBy
 from edas.process.operation import WorkflowNode, OpNode
 from edas.process.task import TaskRequest
 from edas.workflow.data import EDASArray, EDASDatasetCollection
 from edas.process.node import Param, Node
 from edas.collection.agg import Archive
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Union
 from  scipy import stats, signal
 from edas.process.domain import Axis, DomainManager
 from edas.data.cache import EDASKCacheMgr
@@ -120,6 +120,7 @@ class TimeAggKernel(OpKernel):
 class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
         OpKernel.__init__(self, KernelSpec(kid, "WorldClim Kernel", "Computes the 20 WorldClim fields"))
+        self.start_time = None
 
     def toCelcius(self, tempVar: EDASArray ):
         Tunits: str = tempVar.xr.attrs.get("units",None)
@@ -129,6 +130,9 @@ class WorldClimKernel(OpKernel):
         elif Tunits.lower().startswith("k"):
             return tempVar - 273.15
         return tempVar
+
+    def exeLog(self, index: Union[int,float] ):
+        self.logger.info(f"Computing WorldClim Field {index}, elapsed = {(time.time()-self.start_time)/60.0} min")
 
     def print(self, title: str, results: List[EDASArray]):
         self.logger.info( f"\n\n {title}" )
@@ -191,27 +195,29 @@ class WorldClimKernel(OpKernel):
         Tave = (Tmax+Tmin)/2
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2
+        self.start_time = time.time()
 
-        resultArrays['1'] = Tave.ave(["m"], name="bio1")
-        resultArrays['2'] = Trange.ave(["m"], name="bio2")
-        resultArrays['4'] = Tave.std(["m"], name="bio4")
-        resultArrays['4a'] = (( TKave.std(["m"],keep_attrs=True)*100 )/(resultArrays['1'] + 273.15)).rename("bio4a")
-        resultArrays['5'] = Tmax.max(["m"], name="bio5")
-        resultArrays['6'] = Tmin.min(["m"], name="bio6")
-        resultArrays['7'] = (resultArrays['5'] - resultArrays['6']).rename("bio7")
-        resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
-        resultArrays['9'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" )
-        resultArrays['3'] = ( ( resultArrays['2']*100 )/ resultArrays['7'] ).rename("bio3")
-        resultArrays['10'] = self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" )
-        resultArrays['11'] = self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" )
-        resultArrays['12'] = monthlyPrecip.sum(["m"], name="bio12")
-        resultArrays['13'] = monthlyPrecip.max(["m"], name="bio13")
-        resultArrays['14'] = monthlyPrecip.min(["m"], name="bio14")
-        resultArrays['15'] = (( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 )).rename("bio15")
-        resultArrays['16'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16")
-        resultArrays['17'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17")
-        resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
-        resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
+        self.exeLog(1);   resultArrays['1']  = Tave.ave(["m"], name="bio1")
+        self.exeLog(2);   resultArrays['2']  = Trange.ave(["m"], name="bio2")
+        self.exeLog(4);   resultArrays['4']  = Tave.std(["m"], name="bio4")
+        self.exeLog(4.5); resultArrays['4a'] = (( TKave.std(["m"],keep_attrs=True)*100 )/(resultArrays['1'] + 273.15)).rename("bio4a")
+        self.exeLog(5);   resultArrays['5']  = Tmax.max(["m"], name="bio5")
+        self.exeLog(6);   resultArrays['6']  = Tmin.min(["m"], name="bio6")
+        self.exeLog(7);   resultArrays['7']  = (resultArrays['5'] - resultArrays['6']).rename("bio7")
+        self.exeLog(8);   resultArrays['8']  = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
+        self.exeLog(9);   resultArrays['9']  = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" )
+        self.exeLog(3);   resultArrays['3']  = ( ( resultArrays['2']*100 )/ resultArrays['7'] ).rename("bio3")
+        self.exeLog(10);  resultArrays['10'] = self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" )
+        self.exeLog(11);  resultArrays['11'] = self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" )
+        self.exeLog(12);  resultArrays['12'] = monthlyPrecip.sum(["m"], name="bio12")
+        self.exeLog(13);  resultArrays['13'] = monthlyPrecip.max(["m"], name="bio13")
+        self.exeLog(14);  resultArrays['14'] = monthlyPrecip.min(["m"], name="bio14")
+        self.exeLog(15);  resultArrays['15'] = (( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 )).rename("bio15")
+        self.exeLog(16);  resultArrays['16'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16")
+        self.exeLog(17);  resultArrays['17'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17")
+        self.exeLog(18);  resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
+        self.exeLog(19);  resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
+
         return self.buildProduct( inputs.id, request, node, list(resultArrays.values()), inputs.attrs )
 
 class WorldClimTestKernel(WorldClimKernel):
