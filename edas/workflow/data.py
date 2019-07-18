@@ -292,16 +292,17 @@ class EDASArray:
     def timeAgg(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
-        self.logger.info( f" TimeAgg({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
+        self.logger.info( f" TimeAgg({xrInput.name}): input coords = {list(xrInput.coords.keys())}, input shape = {list(xrInput.shape)}  ")
         grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
-        if operation == "mean":  aggregation = grouped_data.mean('time')
-        elif operation == "ave": aggregation = grouped_data.mean('time')
-        elif operation == "max": aggregation = grouped_data.max('time')
-        elif operation == "min": aggregation = grouped_data.min('time')
-        elif operation == "sum": aggregation = grouped_data.sum('time')
+        if operation == "mean":  aggregation: xa.DataArray = grouped_data.mean('time')
+        elif operation == "ave": aggregation: xa.DataArray = grouped_data.mean('time')
+        elif operation == "max": aggregation: xa.DataArray = grouped_data.max('time')
+        elif operation == "min": aggregation: xa.DataArray = grouped_data.min('time')
+        elif operation == "sum": aggregation: xa.DataArray = grouped_data.sum('time')
         else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
-        if 'month' in aggregation.keys(): aggregation = aggregation.rename( {'month':'m'} )
-        if 'day' in aggregation.keys():   aggregation = aggregation.rename({'day': 'd'})
+        self.logger.info(f" --> Result: dims = {list(aggregation.dims.keys())}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+        if 'month' in aggregation.dims.keys(): aggregation = aggregation.rename( {'month':'m'} )
+        if 'day' in aggregation.dims.keys():   aggregation = aggregation.rename({'day': 'd'})
         return self.updateXa( aggregation, "TimeAgg")
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
