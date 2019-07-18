@@ -276,11 +276,11 @@ class EDASArray:
 #        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
 #        return EDASArray(self.name, self.domId, xrdata  )
 
-    def timeResample(self, period: str, operation: str ) -> "EDASArray":
+    def timeResample(self, freq: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename({'t': 'time'})
         self.logger.info( f" timeResample({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
-        resampled_data: DatasetResample = xrInput.resample( time = period, keep_attrs=True )
+        resampled_data: DatasetResample = xrInput.resample( time = freq, keep_attrs=True )
         if operation == "mean":  aggregation = resampled_data.mean('time')
         elif operation == "ave": aggregation = resampled_data.mean('time')
         elif operation == "max": aggregation = resampled_data.max('time')

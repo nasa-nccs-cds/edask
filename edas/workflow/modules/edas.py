@@ -123,9 +123,9 @@ class TimeResampleKernel(OpKernel):
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
         variable.persist()
-        period = node.getParm("period", 'month')
+        freq = node.getParm("freq", 'month')
         operation = str(node.getParm("op", 'mean')).lower()
-        return variable.timeResample( period, operation )
+        return variable.timeResample( freq, operation )
 
 class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
