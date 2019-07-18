@@ -1,5 +1,6 @@
 from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
+from edas.workflow.kernel import EDASDataset
 import xarray as xa
 from stratus.app.core import StratusCore
 
@@ -23,5 +24,6 @@ domains = [{"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{
 requestSpec = dict( domain=domains, input = variables_6h, operation = operations )
 task: TaskHandle = client.request(requestSpec)
 result: Optional[TaskResult] = task.getResult(block=True)
-for dataset in result.data:
-    print( f"Got result, vars = {dataset.variables.keys()}")
+edasDataset = EDASDataset.new( result.getDataset() )
+edasDataset.save( "cip-merra2-tas-dailyMax-monthlyAve" )
+
