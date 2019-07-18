@@ -109,13 +109,23 @@ class DecycleKernel(OpKernel):
 
 class TimeAggKernel(OpKernel):
     def __init__(self):
-        OpKernel.__init__(self, KernelSpec("timeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested periods"))
+        OpKernel.__init__(self, KernelSpec("timeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested period bins"))
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
         variable.persist()
         period = node.getParm("period", 'month')
         operation = str(node.getParm("op", 'mean')).lower()
         return variable.timeAgg( period, operation)
+
+class TimeResampleKernel(OpKernel):
+    def __init__(self):
+        OpKernel.__init__(self, KernelSpec("timeResample", "Time Resample Kernel", "Aggregates data over time into the requested timestep"))
+
+    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
+        variable.persist()
+        period = node.getParm("period", 'month')
+        operation = str(node.getParm("op", 'mean')).lower()
+        return variable.timeResample( period, operation )
 
 class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
