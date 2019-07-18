@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple, Dict, Any
 from edas.workflow.kernel import EDASDataset
 import time
 appConf = { "sources.allowed": "collection,https" }
-LOCAL_TESTS = False
 GLOBAL = True
 
 def test_world_clim_mean ( mgr, start_year, nYears=10 ):
@@ -14,7 +13,7 @@ def test_world_clim_mean ( mgr, start_year, nYears=10 ):
     worldClimResults = {}
     for iYear in range(0,nYears):
         base_year = start_year + iYear
-        domains = [ {"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+1}-01-01T00Z', "system": "timestamps"}, "lev": {"start": 0, "end": 0, "system": "indices"} } ]
+        domains = [ {"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+1}-01-01T00Z', "system": "timestamps"} } ]
         if not GLOBAL:
             domains[0]["lat"] = { "start": 25, "end": 50, "system": "values" }
             domains[0]["lon"] = { "start": 200, "end": 300, "system": "values" }
@@ -28,7 +27,8 @@ def test_world_clim_mean ( mgr, start_year, nYears=10 ):
     (worldClimResultSum/nYears).save( f"merra2-WorldClim-mean-{start_year}-{start_year+nYears}")
 
 if __name__ == "__main__":
-    mgr = LocalTestManager( "PyTest", __file__, appConf ) if LOCAL_TESTS else DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"explore101:8786" } )
+#    mgr = LocalTestManager( "PyTest", __file__, appConf )
+    mgr = DistributedTestManager( "PyTest",  __file__, { **appConf, "scheduler.address":"explore101:8786" } )
     test_world_clim_mean( mgr, 1990, 1 )
 
 
