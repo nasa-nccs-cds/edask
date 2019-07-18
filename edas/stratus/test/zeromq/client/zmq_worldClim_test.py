@@ -10,12 +10,16 @@ client = stratus.getClient()
 base_year = 1990
 nYears = 1
 
-variables = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp", "domain": "d0"},
-             {"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "QV2M:moist", "domain": "d0"}]
+variables_1h = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp", "domain": "d0"},
+                {"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "QV2M:moist", "domain": "d0"}]
+
+variables_6h = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
+                {"uri": "collection://cip_merra2_6hr", "name": "pr:moist", "domain": "d0"}]
+
 operations = [{"name": "edas.worldClim", "input": "temp,moist"}]
 domains = [{"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+nYears-1}-12-31T23Z', "system": "timestamps"}}]
 
-requestSpec = dict( domain=domains, input = variables, operation = operations )
+requestSpec = dict( domain=domains, input = variables_1h, operation = operations )
 task: TaskHandle = client.request(requestSpec)
 result: Optional[TaskResult] = task.getResult(block=True)
 for dataset in result.data:
