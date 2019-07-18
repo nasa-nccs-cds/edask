@@ -300,7 +300,9 @@ class EDASArray:
         elif operation == "min": aggregation = grouped_data.min('time')
         elif operation == "sum": aggregation = grouped_data.sum('time')
         else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
-        return self.updateXa(aggregation.rename( {'month':'m'} ), "TimeAgg")
+        if 'month' in aggregation.keys(): aggregation = aggregation.rename( {'month':'m'} )
+        if 'day' in aggregation.keys():   aggregation = aggregation.rename({'day': 'd'})
+        return self.updateXa( aggregation, "TimeAgg")
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         pointMap: Dict[str,Any] = {}
