@@ -109,7 +109,7 @@ class DecycleKernel(OpKernel):
 
 class TimeAggKernel(OpKernel):
     def __init__(self):
-        OpKernel.__init__(self, KernelSpec("TimeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested periods"))
+        OpKernel.__init__(self, KernelSpec("timeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested periods"))
 
     def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
         variable.persist()
