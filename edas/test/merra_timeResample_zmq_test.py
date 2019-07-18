@@ -1,6 +1,5 @@
 from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
-from edas.process.test import TestDataManager as mgr
 import xarray as xa
 from stratus.app.core import StratusCore
 
@@ -16,8 +15,8 @@ variables_1h = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp
 variables_6h = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                 {"uri": "collection://cip_merra2_6hr", "name": "pr:moist", "domain": "d0"}]
 
-operations = [ { "name": "edas.timeAgg", "input": "temp:daily_max", "period": "day", "op": "max" },
-               { "name": "edas.timeAgg", "input": "daily_max", "period": "month", "op": "ave" } ]
+operations = [ { "name": "edas.timeResample", "input": "temp:daily_max", "period": "day", "op": "max" },
+               { "name": "edas.timeResample", "input": "daily_max", "period": "month", "op": "ave" } ]
 
 domains = [{"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+nYears-1}-12-31T23Z', "system": "timestamps"}}]
 

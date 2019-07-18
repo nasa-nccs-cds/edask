@@ -287,7 +287,8 @@ class EDASArray:
         elif operation == "min": aggregation = resampled_data.min( 'time')
         elif operation == "sum": aggregation = resampled_data.sum( 'time')
         else: raise Exception( "Unrecognised operation in timeResample operation: " + operation )
-        return self.updateXa(aggregation, "TimeAgg")
+        self.logger.info(f" --> Result: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+        return self.updateXa(aggregation, "timeResample")
 
     def timeAgg(self, period: str, operation: str ) -> "EDASArray":
         xrInput = self.xr
@@ -303,7 +304,7 @@ class EDASArray:
         self.logger.info(f" --> Result: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
         if 'month' in aggregation.coords.keys(): aggregation = aggregation.rename( {'month':'m'} )
         if 'day' in aggregation.coords.keys():   aggregation = aggregation.rename({'day': 'd'})
-        return self.updateXa( aggregation, "TimeAgg")
+        return self.updateXa( aggregation, "timeAgg")
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         pointMap: Dict[str,Any] = {}
