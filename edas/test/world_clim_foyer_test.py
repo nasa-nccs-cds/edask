@@ -7,7 +7,8 @@ GLOBAL = True
 
 def test_world_clim_mean ( mgr, start_year, nYears=10 ):
 
-    variables = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp", "domain": "d0"}, {"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "QV2M:moist", "domain": "d0"}]
+    variables = [{"uri": "collection:/cip_merra2_6hr", "name": "tas:temp", "domain": "d0"}, {"uri": "collection://cip_merra2_6hr", "name": "pr:moist", "domain": "d0"}]
+#    variables = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp", "domain": "d0"}, {"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "QV2M:moist", "domain": "d0"}]
     operations = [{"name": "edas.worldClim", "input": "temp,moist"}]
 
     worldClimResults = {}
@@ -24,7 +25,7 @@ def test_world_clim_mean ( mgr, start_year, nYears=10 ):
 
     worldClimResultSum = worldClimResults[0]
     for iYear in range(1, nYears): worldClimResultSum = worldClimResultSum + worldClimResults[iYear]
-    (worldClimResultSum/nYears).save( f"merra2-WorldClim-mean-{start_year}-{start_year+nYears}")
+    (worldClimResultSum/nYears).save( f"cip-merra2-WorldClim-mean-GLOBAL-FOYER-{start_year}-{start_year+nYears}")
 
 if __name__ == "__main__":
 #    mgr = LocalTestManager( "PyTest", __file__, appConf )
