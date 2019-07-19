@@ -292,8 +292,8 @@ class EDASArray:
             elif op == "sum": aggregation = resampled_data.sum( 'time')
             elif op == "std": aggregation = resampled_data.std('time')
             else: raise Exception( "Unrecognised operation in timeResample operation: " + op )
-            self.logger.info(f" --> Result: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
-            results.append( self.updateXa(aggregation, "timeResample") )
+            self.logger.info(f" --> Result[{op}]: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            results.append( self.updateXa(aggregation, "timeResample-" + op ) )
         return results
 
     def timeAgg(self, period: str, operations: str ) -> List["EDASArray"]:
@@ -311,10 +311,10 @@ class EDASArray:
             elif op == "sum": aggregation: xa.DataArray = grouped_data.sum('time')
             elif op == "std": aggregation: xa.DataArray = grouped_data.std('time')
             else: raise Exception( "Unrecognised operation in timeAgg operation: " + op )
-            self.logger.info(f" --> Result: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            self.logger.info(f" --> Result[{op}]: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
             if 'month' in aggregation.coords.keys(): aggregation = aggregation.rename( {'month':'m'} )
             if 'day' in aggregation.coords.keys():   aggregation = aggregation.rename({'day': 'd'})
-            results.append( self.updateXa( aggregation, "timeAgg") )
+            results.append( self.updateXa( aggregation, "timeAgg-" + op ) )
         return results
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):

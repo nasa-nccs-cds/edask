@@ -16,8 +16,8 @@ variables_1h = [{"uri": "collection://merra2_inst1_2d_asm_Nx", "name": "T2M:temp
 variables_6h = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "domain": "d0"},
                 {"uri": "collection://cip_merra2_6hr", "name": "pr:moist", "domain": "d0"}]
 
-operations = [ { "name": "edas.timeResample", "input": "temp:daily_max", "freq": "1D", "op": "max" },
-               { "name": "edas.timeResample", "input": "daily_max", "freq": "1M", "op": "std" } ]
+operations = [ { "name": "edas.timeResample", "input": "temp:daily_maxmin", "freq": "1D", "op": "max,min" },
+               { "name": "edas.timeResample", "input": "daily_maxmin", "freq": "1M", "op": "ave,std" } ]
 
 domains0 = [{ "name": "d0" }]
 domains1 = [{"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+nYears-1}-12-31T23Z', "system": "timestamps"}}]
