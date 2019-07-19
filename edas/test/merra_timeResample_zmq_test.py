@@ -17,12 +17,12 @@ variables_6h = [{"uri": "collection://cip_merra2_6hr", "name": "tas:temp", "doma
                 {"uri": "collection://cip_merra2_6hr", "name": "pr:moist", "domain": "d0"}]
 
 operations = [ { "name": "edas.timeResample", "input": "temp:daily_max", "freq": "1D", "op": "max" },
-               { "name": "edas.timeResample", "input": "daily_max", "freq": "1M", "op": "ave" } ]
+               { "name": "edas.timeResample", "input": "daily_max", "freq": "1M", "op": "std" } ]
 
 domains0 = [{ "name": "d0" }]
 domains1 = [{"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+nYears-1}-12-31T23Z', "system": "timestamps"}}]
 
-requestSpec = dict( domain=domains0, input = variables_6h, operation = operations )
+requestSpec = dict( domain=domains1, input = variables_6h, operation = operations )
 task: TaskHandle = client.request(requestSpec)
 result: Optional[TaskResult] = task.getResult(block=True)
 edasDataset = EDASDataset.new( result.getDataset() )
