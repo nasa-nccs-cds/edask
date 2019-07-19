@@ -277,37 +277,45 @@ class EDASArray:
 #        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
 #        return EDASArray(self.name, self.domId, xrdata  )
 
-    def timeResample(self, freq: str, operation: str ) -> "EDASArray":
+    def timeResample(self, freq: str, operations: str ) -> List["EDASArray"]:
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename({'t': 'time'})
         self.logger.info( f" timeResample({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
         resampled_data: DatasetResample = xrInput.resample( time = freq, keep_attrs=True )
-        if operation == "mean":  aggregation = resampled_data.mean('time')
-        elif operation == "ave": aggregation = resampled_data.mean('time')
-        elif operation == "max": aggregation = resampled_data.max('time')
-        elif operation == "min": aggregation = resampled_data.min( 'time')
-        elif operation == "sum": aggregation = resampled_data.sum( 'time')
-        elif operation == "std": aggregation = resampled_data.std('time')
-        else: raise Exception( "Unrecognised operation in timeResample operation: " + operation )
-        self.logger.info(f" --> Result: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
-        return self.updateXa(aggregation, "timeResample")
+        results: List["EDASArray"] = []
+        ops = operations.split(",")
+        for op in ops:
+            if op == "mean":  aggregation = resampled_data.mean('time')
+            elif op == "ave": aggregation = resampled_data.mean('time')
+            elif op == "max": aggregation = resampled_data.max('time')
+            elif op == "min": aggregation = resampled_data.min( 'time')
+            elif op == "sum": aggregation = resampled_data.sum( 'time')
+            elif op == "std": aggregation = resampled_data.std('time')
+            else: raise Exception( "Unrecognised operation in timeResample operation: " + op )
+            self.logger.info(f" --> Result: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            results.append( self.updateXa(aggregation, "timeResample") )
+        return results
 
-    def timeAgg(self, period: str, operation: str ) -> "EDASArray":
+    def timeAgg(self, period: str, operations: str ) -> List["EDASArray"]:
         xrInput = self.xr
         if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
         self.logger.info( f" TimeAgg({xrInput.name}): input coords = {list(xrInput.coords.keys())}, input shape = {list(xrInput.shape)}  ")
         grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
-        if operation == "mean":  aggregation: xa.DataArray = grouped_data.mean('time')
-        elif operation == "ave": aggregation: xa.DataArray = grouped_data.mean('time')
-        elif operation == "max": aggregation: xa.DataArray = grouped_data.max('time')
-        elif operation == "min": aggregation: xa.DataArray = grouped_data.min('time')
-        elif operation == "sum": aggregation: xa.DataArray = grouped_data.sum('time')
-        elif operation == "std": aggregation: xa.DataArray = grouped_data.std('time')
-        else: raise Exception( "Unrecognised operation in timeAgg operation: " + operation )
-        self.logger.info(f" --> Result: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
-        if 'month' in aggregation.coords.keys(): aggregation = aggregation.rename( {'month':'m'} )
-        if 'day' in aggregation.coords.keys():   aggregation = aggregation.rename({'day': 'd'})
-        return self.updateXa( aggregation, "timeAgg")
+        results: List["EDASArray"] = []
+        ops = operations.split(",")
+        for op in ops:
+            if op == "mean":  aggregation: xa.DataArray = grouped_data.mean('time')
+            elif op == "ave": aggregation: xa.DataArray = grouped_data.mean('time')
+            elif op == "max": aggregation: xa.DataArray = grouped_data.max('time')
+            elif op == "min": aggregation: xa.DataArray = grouped_data.min('time')
+            elif op == "sum": aggregation: xa.DataArray = grouped_data.sum('time')
+            elif op == "std": aggregation: xa.DataArray = grouped_data.std('time')
+            else: raise Exception( "Unrecognised operation in timeAgg operation: " + op )
+            self.logger.info(f" --> Result: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            if 'month' in aggregation.coords.keys(): aggregation = aggregation.rename( {'month':'m'} )
+            if 'day' in aggregation.coords.keys():   aggregation = aggregation.rename({'day': 'd'})
+            results.append( self.updateXa( aggregation, "timeAgg") )
+        return results
 
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
         pointMap: Dict[str,Any] = {}

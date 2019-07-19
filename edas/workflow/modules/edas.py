@@ -111,7 +111,11 @@ class TimeAggKernel(OpKernel):
     def __init__(self):
         OpKernel.__init__(self, KernelSpec("timeAgg", "Time Aggregation Kernel", "Aggregates data over time into requested period bins"))
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        resultArrays = [ result for inputArray in inputs.arrayMap.values() for result in self.processVariables( request, node, inputArray )  ]
+        return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
+
+    def processVariables(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> List[EDASArray]:
         variable.persist()
         period = node.getParm("period", 'month')
         operation = str(node.getParm("op", 'mean')).lower()
@@ -121,7 +125,11 @@ class TimeResampleKernel(OpKernel):
     def __init__(self):
         OpKernel.__init__(self, KernelSpec("timeResample", "Time Resample Kernel", "Aggregates data over time into the requested timestep"))
 
-    def processVariable(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> EDASArray:
+    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
+        resultArrays = [ result for inputArray in inputs.arrayMap.values() for result in self.processVariables( request, node, inputArray )  ]
+        return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
+
+    def processVariables(self, request: TaskRequest, node: OpNode, variable: EDASArray) -> List[EDASArray]:
         variable.persist()
         freq = node.getParm("freq", 'month')
         operation = str(node.getParm("op", 'mean')).lower()
