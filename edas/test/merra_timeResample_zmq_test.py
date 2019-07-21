@@ -2,6 +2,7 @@ from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.workflow.kernel import EDASDataset
 from stratus.app.core import StratusCore
+import traceback
 
 settings = dict(stratus=dict(type="zeromq", client_address="127.0.0.1", request_port="4556", response_port="4557"))
 stratus = StratusCore(settings)
@@ -21,10 +22,13 @@ domains1 = [ {"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f
 domains = domains1 if singleYear else domains0
 
 def compute( requestSpec: Dict, rid: str ):
-    task: TaskHandle = client.request(requestSpec)
-    result: Optional[TaskResult] = task.getResult(block=True)
-    edasDataset = EDASDataset.new(result.getDataset())
-    edasDataset.save(rid)
+    try:
+        task: TaskHandle = client.request(requestSpec)
+        result: Optional[TaskResult] = task.getResult(block=True)
+        edasDataset = EDASDataset.new(result.getDataset())
+        edasDataset.save(rid)
+    except Exception as err:
+        traceback.print_exc()
 
 # Compute temperature products
 
