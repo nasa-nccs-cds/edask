@@ -14,7 +14,7 @@ singleYear = True
 base_year = 1990
 nYears = 1
 
-variables = [ dict( uri="collection://"+collection, name=vnames[type]+":"+vtype, domain="d0") for vtype in ['temp','precip','humid','clouds'] ]
+variables = [ dict( uri=f"collection://{collection}", name=f"{vnames[vtype]}:{vtype}", domain="d0") for vtype in ['temp','precip','humid','clouds'] ]
 
 domains0 = [ { "name": "d0" } ]
 domains1 = [ {"name": "d0", "time": {"start": f'{base_year}-01-01T00Z', "end": f'{base_year+nYears-1}-12-31T23Z', "system": "timestamps"} } ]
