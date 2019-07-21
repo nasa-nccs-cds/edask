@@ -35,28 +35,28 @@ def compute( requestSpec: Dict, rid: str ):
 operations = [ { "name": "edas.timeResample", "input": "temp:daily_maxmin", "freq": "1D", "op": "max,min" },
                { "name": "edas.timeResample", "input": "daily_maxmin", "freq": "1M", "op": "ave,std" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
-compute( requestSpec, "merra2-temp-dailyMax-monthlyAve" )
+compute( requestSpec, "merra2-temp-dailyMinMax-monthlyAveStd" )
 
 
 # Compute precipitation products
 
 operations = [ { "name": "edas.timeResample", "input": "precip", "freq": "1M", "op": "sum,std" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
-compute( requestSpec, "merra2-precip-monthlySum" )
+compute( requestSpec, "merra2-precip-monthlySumStd" )
 
 
 # Compute relative humidity products
 
 operations = [ { "name": "edas.timeResample", "input": "humid", "freq": "1D", "op": "ave,std" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
-compute( requestSpec, "merra2-humid-dailyAve" )
+compute( requestSpec, "merra2-humid-dailyAveStd" )
 
 
 # Compute cloud cover products
 
 operations = [ { "name": "edas.timeResample", "input": "clouds", "freq": "1D", "op": "ave,std" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
-compute( requestSpec, "merra2-clouds-dailyAve" )
+compute( requestSpec, "merra2-clouds-dailyAveStd" )
 
 
 
