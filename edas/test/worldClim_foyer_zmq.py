@@ -20,14 +20,14 @@ if __name__ == "__main__":
 #    vars = dict( temp="tas", moist="pr" )
 
     collection = "cip_merra2_mth"
-    vars = dict( tempMin="tasmin", tempMax="tasmax", moist="pr" )
+    vars = dict( minTemp="tasmin", maxTemp="tasmax", moist="pr" )
 
     requestSpec = dict(
         domain=[ dict(name="d0", time=time_range) ],
-        input=[ dict( uri=f"collection://{collection}", name=f"{vars['tempMin']}:tempMin",   domain="d0" ),
-                dict( uri=f"collection://{collection}", name=f"{vars['tempMax']}:tempMax",   domain="d0"),
+        input=[ dict( uri=f"collection://{collection}", name=f"{vars['minTemp']}:tempMin",   domain="d0" ),
+                dict( uri=f"collection://{collection}", name=f"{vars['maxTemp']}:tempMax",   domain="d0"),
                 dict( uri=f"collection://{collection}", name=f"{vars['moist']}:moist",       domain="d0" )   ],
-        operation=[ dict( name="edas:worldClim", input="tempMin,tempMax,moist" ) ]
+        operation=[ dict( name="edas:worldClim", input="minTemp,maxTemp,moist" ) ]
     )
 
     task: TaskHandle = client.request( requestSpec )

@@ -210,8 +210,8 @@ class WorldClimKernel(OpKernel):
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
         if tempVar is None:
-            tempMaxID = node.getParm("tempMax", "tempMax")
-            tempMinID = node.getParm("tempMin", "tempMin")
+            tempMaxID = node.getParm("maxTemp", "maxTemp")
+            tempMinID = node.getParm("minTemp", "minTemp")
             moistID = node.getParm( "moist", "moist" )
             Tmax: EDASArray = inputs.findArray(tempMaxID)
             Tmin: EDASArray = inputs.findArray(tempMinID)
