@@ -11,7 +11,7 @@ if __name__ == "__main__":
     stratus = StratusCore( settings )
     client = stratus.getClient()
 
-    time_range = {"start": "1980-01-01T00Z", "end": "1981-01-01T00Z", "system": "timestamps"}
+    time_range = {"start": "1990-01-01T00Z", "end": "1991-01-01T00Z", "system": "timestamps"}
 
 #    uri = "collection://merra2_inst1_2d_asm_Nx"
 #    vars = dict(temp="T2M", moist="QV2M")
@@ -32,5 +32,7 @@ if __name__ == "__main__":
 
     task: TaskHandle = client.request( requestSpec )
     result: Optional[TaskResult] = task.getResult( block=True )
-    result.getDataset().to_netcdf( f"{OUTPUT_DIR}/cip_merra2_workdclim_mth.nc" )
+    resultFile = f"{OUTPUT_DIR}/cip_merra2_mth_worldclim_1990.nc"
+    print( f"Saving result to {resultFile}" )
+    result.getDataset().to_netcdf( resultFile )
 
