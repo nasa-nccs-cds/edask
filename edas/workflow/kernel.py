@@ -274,6 +274,7 @@ class InputKernel(Kernel):
                 for ( aggId, vars ) in aggs.items():
                     use_chunks = True
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
+                    assert len(pathList) > 0, f"No files found in aggregation {aggId} for date range {startDate} - {endDate} "
                     nFiles = len(pathList)
                     if use_chunks:
                         nReadPartitions = int( EdasEnv.get( "mfdataset.npartitions", 250 ) )
