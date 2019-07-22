@@ -10,11 +10,17 @@ if __name__ == "__main__":
     client = stratus.getClient()
 
     time_range = {"start": "1980-01-01T00Z", "end": "1981-01-01T00Z", "system": "timestamps"}
-    uri = "collection://merra2_inst1_2d_asm_Nx"
+
+#    uri = "collection://merra2_inst1_2d_asm_Nx"
+#    vars = dict(temp="T2M", moist="QV2M")
+
+    collection = "cip_merra2_6hr"
+    vars = dict( temp="tas", moist="pr" )
 
     requestSpec = dict(
         domain=[ dict(name="d0", time=time_range) ],
-        input=[ dict( uri=uri, name="T2M:temp", domain="d0" ), dict(uri=uri, name="QV2M:moist", domain="d0") ],
+        input=[ dict( uri=f"collection://{collection}", name=f"{vars['temp']}:temp",   domain="d0" ),
+                dict( uri=f"collection://{collection}", name=f"{vars['moist']}:moist", domain="d0" )   ],
         operation=[ dict( name="edas:worldClim", input="temp,moist" ) ]
     )
 

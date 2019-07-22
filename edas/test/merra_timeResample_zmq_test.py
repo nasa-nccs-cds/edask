@@ -1,8 +1,10 @@
 from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
-from edas.workflow.kernel import EDASDataset
+import os, xarray as xr
 from stratus.app.core import StratusCore
 import traceback
+OUTPUT_DIR = os.path.expanduser("~/.stratus/results")
+os.makedirs(OUTPUT_DIR,exist_ok=True)
 
 settings = dict(stratus=dict(type="zeromq", client_address="127.0.0.1", request_port="4556", response_port="4557"))
 stratus = StratusCore(settings)
@@ -25,8 +27,7 @@ def compute( requestSpec: Dict, rid: str ):
     try:
         task: TaskHandle = client.request(requestSpec)
         result: Optional[TaskResult] = task.getResult(block=True)
-        edasDataset = EDASDataset.new(result.getDataset())
-        edasDataset.save(rid)
+        result.getDataset().to_netcdf( f"{OUTPUT_DIR}/{rid}.nc" )
     except Exception as err:
         traceback.print_exc()
 
