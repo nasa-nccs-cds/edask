@@ -24,8 +24,8 @@ if __name__ == "__main__":
 
     requestSpec = dict(
         domain=[ dict(name="d0", time=time_range) ],
-        input=[ dict( uri=f"collection://{collection}", name=f"{vars['minTemp']}:tempMin",   domain="d0" ),
-                dict( uri=f"collection://{collection}", name=f"{vars['maxTemp']}:tempMax",   domain="d0"),
+        input=[ dict( uri=f"collection://{collection}", name=f"{vars['minTemp']}:minTemp",   domain="d0" ),
+                dict( uri=f"collection://{collection}", name=f"{vars['maxTemp']}:maxTemp",   domain="d0"),
                 dict( uri=f"collection://{collection}", name=f"{vars['moist']}:moist",       domain="d0" )   ],
         operation=[ dict( name="edas:worldClim", input="minTemp,maxTemp,moist" ) ]
     )
