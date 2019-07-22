@@ -170,13 +170,13 @@ class WorldClimKernel(OpKernel):
                 array = array.expand_dims( d, -1 )
         return array.stack( z=['y', 'x'] )
 
-    def getValueForSelectedQuarter(self, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
+    def getValueForSelectedQuarter(self, taxis: str, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
 #        self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
         assert selectionVar.xrArray.shape[0] == 12, "Must have full year of data to compute WorldClim fields"
-        selectionData: xa.DataArray = selectionVar.xr.chunk({'m':3})
-        lowpassSelector: xa.DataArray = selectionData.rolling( m=3, min_periods=2, center=True ).mean()
-        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( "m", keep_attrs=True )
-        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( "m", keep_attrs=True )
+        selectionData: xa.DataArray = selectionVar.xr.chunk({taxis:3})
+        lowpassSelector: xa.DataArray = selectionData.rolling( {taxis:3}, min_periods=2, center=True ).mean()
+        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( taxis, keep_attrs=True )
+        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( taxis, keep_attrs=True )
         else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
 #        self.print_array( "selectedMonth", selectedMonth )
 
@@ -251,19 +251,19 @@ class WorldClimKernel(OpKernel):
         self.setResult( '5' ,  Tmax.max([taxis], name="bio5") )
         self.setResult( '6' ,  Tmin.min([taxis], name="bio6") )
         self.setResult( '7' ,  (self.results['5'] - self.results['6']).rename("bio7") )
-        self.setResult( '8' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" ) )
-        self.setResult( '9' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" ) )
+        self.setResult( '8' ,  self.getValueForSelectedQuarter( taxis, Tave, monthlyPrecip, "max", "bio8" ) )
+        self.setResult( '9' ,  self.getValueForSelectedQuarter( taxis, Tave, monthlyPrecip, "min", "bio9" ) )
         self.setResult( '3' ,  ( ( self.results['2']*100 )/ self.results['7'] ).rename("bio3") )
-        self.setResult( '10' , self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" ) )
-        self.setResult( '11' , self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" ) )
+        self.setResult( '10' , self.getValueForSelectedQuarter( taxis, Tave, Tave, "max", "bio10" ) )
+        self.setResult( '11' , self.getValueForSelectedQuarter( taxis, Tave, Tave, "min", "bio11" ) )
         self.setResult( '12' , monthlyPrecip.sum([taxis], name="bio12") )
         self.setResult( '13' , monthlyPrecip.max([taxis], name="bio13") )
         self.setResult( '14' , monthlyPrecip.min([taxis], name="bio14") )
         self.setResult( '15' , (( monthlyPrecip.std([taxis]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
-        self.setResult( '16' , self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16") )
-        self.setResult( '17' , self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17") )
-        self.setResult( '18' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" ) )
-        self.setResult( '19' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" ) )
+        self.setResult( '16' , self.getValueForSelectedQuarter( taxis, None, monthlyPrecip, "max", "bio16") )
+        self.setResult( '17' , self.getValueForSelectedQuarter( taxis, None, monthlyPrecip, "min", "bio17") )
+        self.setResult( '18' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "max", "bio18" ) )
+        self.setResult( '19' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "min", "bio19" ) )
 
         results: List[EDASArray] = [ tempVar.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
         self.logger.info( f"Completed WorldClim computation, elapsed = {(time.time()-self.start_time)/60.0} m")
