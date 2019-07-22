@@ -210,11 +210,11 @@ class WorldClimKernel(OpKernel):
         tempVar = self.toCelcius( tempVar )
         moistVar = inputs.findArray( moistID )
         assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
-        dailyTmax = tempVar.timeResample("D","max")
-        dailyTmin = tempVar.timeResample("D","min")
+        dailyTmaxmin = tempVar.timeResample("1D","max,min")
         monthlyPrecip = moistVar.timeAgg( "month", version )
-        Tmax: EDASArray = dailyTmax.timeAgg("month","max")
-        Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
+        Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
+        Tmax: EDASArray = Tmaxmin[0]
+        Tmin: EDASArray = Tmaxmin[1]
         Tave = (Tmax+Tmin)/2
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2
