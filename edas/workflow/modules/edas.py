@@ -202,11 +202,10 @@ class WorldClimKernel(OpKernel):
         value.persist()
         self.results[key] = value
 
-
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
         self.logger.info( f"Computing WorldClim fields for domains: { [str(d) for d in request.operationManager.domains.domains.values()] }" )
         version = node.getParm("version", "mean")
-        self.results = {}
+        self.results: Dict[str,EDASArray] = {}
 
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
@@ -260,7 +259,7 @@ class WorldClimKernel(OpKernel):
         self.setResult( '18' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" ) )
         self.setResult( '19' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" ) )
 
-        results: List[EDASArray] = [ tempVar.updateXa( result, "bio-"+index ) for index, result in self.results.items() ]
+        results: List[EDASArray] = [ tempVar.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
         self.logger.info( f"Completed WorldClim computation, elapsed = {(time.time()-self.start_time)/60.0} m")
         return self.buildProduct( inputs.id, request, node, results, inputs.attrs )
 
