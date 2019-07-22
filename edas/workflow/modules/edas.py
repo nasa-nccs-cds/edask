@@ -232,11 +232,15 @@ class WorldClimKernel(OpKernel):
             Tmax: EDASArray = Tmaxmin[0]
             Tmin: EDASArray = Tmaxmin[1]
 
-        Tave = (Tmax+Tmin)/2
+        Tave = (Tmax+Tmin)/2.0
         TKave = Tave + 273.15
-        Trange = (Tmax-Tmin)/2
+        Trange = (Tmax-Tmin)/2.0
         self.start_time = time.time()
         Tave.persist(); monthlyPrecip.persist()
+
+        self.logger.info( f"Tmax sample: {Tmax.xr.data[2,10:20,10:20]}")
+        self.logger.info( f"Tmin sample: {Tmin.xr.data[2,10:20,10:20]}")
+        self.logger.info( f"Trange sample: {Trange.xr.data[2,10:20,10:20]}")
 
         self.setResult( '1' ,  Tave.ave(["m"], name="bio1") )
         self.setResult( '2' ,  Trange.ave(["m"], name="bio2") )

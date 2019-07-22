@@ -8,7 +8,7 @@ import xarray as xr
 import netCDF4 as nc
 import numpy as np
 from matplotlib.widgets import Slider, Button, RadioButtons
-DATA_DIR = os.path.expanduser( "~/DropBox/Tom/Data/MERRA" )
+DATA_DIR = os.path.expanduser( "~/DropBox/Tom/Data/WorldClim/MERRA" )
 
 class AnimationPlotter:
 
@@ -30,9 +30,15 @@ class AnimationPlotter:
             self.ax[iax].imshow(img_array, cmap='jet', aspect=0.8)
 
 
-filePath = os.path.join(DATA_DIR, "cip-merra2-tas-dailyMinMax-monthlyAveStd.nc")
-vnames = [ 'timeResample-ave[timeResample-max[subset[temp]]]', 'timeResample-ave[timeResample-min[subset[temp]]]' ]
+#filePath = os.path.join(DATA_DIR, "cip-merra2-tas-dailyMinMax-monthlyAveStd.nc")
+#vnames = [ 'timeResample-ave[timeResample-max[subset[temp]]]', 'timeResample-ave[timeResample-min[subset[temp]]]' ]
+#fh = nc.Dataset(filePath, mode='r')
+#variables = { vname:fh.variables[vname] for vname in vnames }
+
+filePath = os.path.join(DATA_DIR,  "cip_merra2_mth_worldclim_1990.nc")
+vnames = [ 'bio-1[diff[subset[tempMin]]]', "bio-2[diff[subset[tempMin]]]", "bio-3[diff[subset[tempMin]]]" ]
 fh = nc.Dataset(filePath, mode='r')
+
 variables = { vname:fh.variables[vname] for vname in vnames }
 
 plotter = AnimationPlotter( variables )
