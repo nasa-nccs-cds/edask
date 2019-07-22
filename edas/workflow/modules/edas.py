@@ -211,7 +211,7 @@ class WorldClimKernel(OpKernel):
         moistVar = inputs.findArray( moistID )
         assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
         dailyTmaxmin = tempVar.timeResample("1D","max,min")
-        monthlyPrecip = moistVar.timeAgg( "month", version )
+        monthlyPrecip = moistVar.timeAgg( "month", version )[0]
         Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
         Tmax: EDASArray = Tmaxmin[0]
         Tmin: EDASArray = Tmaxmin[1]
