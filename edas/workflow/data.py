@@ -1,6 +1,6 @@
 import logging
 from enum import Enum, auto
-from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView, Iterator
+from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView, Iterator, Mapping
 from edas.process.domain import Domain, Axis
 import string, random, os, re, copy
 from edas.collection.agg import Archive
@@ -446,7 +446,7 @@ class PlotType:
 class EDASDataset:
     StandardAxisMap = { "x":"lon", "y":"lat", "z":"lev", "t":"time", "e":"ens", "m":"mode" }
 
-    def __init__( self, _arrayMap: "OrderedDict[str,EDASArray]", _attrs: Dict[str,Any]  ):
+    def __init__( self, _arrayMap: "OrderedDict[str,EDASArray]", _attrs: Mapping[str,Any]  ):
         self.arrayMap: OrderedDict[str,EDASArray] = _arrayMap
         self.attrs = _attrs
         self.logger = EDASLogger.getLogger()
@@ -573,7 +573,9 @@ class EDASDataset:
 
     def findArray(self, id: str  ) -> Optional[EDASArray]:
         for key in self.arrayMap.keys():
-            if id in key: return self.arrayMap[key]
+            if id in key:
+                self.logger.info( f"Found Variable '{key}' for id '{id}' in dataset")
+                return self.arrayMap[key]
         return None
 
     def customArraymap(self, id: str  ) -> "OrderedDict[str,EDASArray]":

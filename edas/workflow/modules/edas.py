@@ -238,9 +238,9 @@ class WorldClimKernel(OpKernel):
         self.start_time = time.time()
         Tave.persist(); monthlyPrecip.persist()
 
-        self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:20,10:20]}")
-        self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:20,10:20]}")
-        self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:20,10:20]}")
+        self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:12,10:12]}")
+        self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
+        self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:12,10:12]}")
 
         self.setResult( '1' ,  Tave.ave(["m"], name="bio1") )
         self.setResult( '2' ,  Trange.ave(["m"], name="bio2") )
