@@ -182,7 +182,7 @@ class WorldClimKernel(OpKernel):
 
         if targetVar is None:
             target = self.stack( selectionVar.xr)
-            resultXarray =  target.isel( m=self.stack( selectedMonth) )
+            resultXarray =  target.isel( { taxis:self.stack( selectedMonth) } )
             resultVar = selectionVar
         else:
             selectedMonth.persist()
