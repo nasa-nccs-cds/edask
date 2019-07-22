@@ -25,7 +25,7 @@ if __name__ == "__main__":
         input=[ dict( uri=f"collection://{collection}", name=f"{vars['tempMin']}:tempMin",   domain="d0" ),
                 dict( uri=f"collection://{collection}", name=f"{vars['tempMax']}:tempMax",   domain="d0"),
                 dict( uri=f"collection://{collection}", name=f"{vars['moist']}:moist",       domain="d0" )   ],
-        operation=[ dict( name="edas:worldClim", input="temp,moist" ) ]
+        operation=[ dict( name="edas:worldClim", input="tempMin,tempMax,moist" ) ]
     )
 
     task: TaskHandle = client.request( requestSpec )
