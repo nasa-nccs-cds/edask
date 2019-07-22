@@ -14,8 +14,11 @@ if __name__ == "__main__":
 #    uri = "collection://merra2_inst1_2d_asm_Nx"
 #    vars = dict(temp="T2M", moist="QV2M")
 
-    collection = "cip_merra2_6hr"
-    vars = dict( temp="tas", moist="pr" )
+#    collection = "cip_merra2_6hr"
+#    vars = dict( temp="tas", moist="pr" )
+
+    collection = "cip_merra2_mth"
+    vars = dict( tempMin="tasmin", tempMax="tasmax", moist="pr" )
 
     requestSpec = dict(
         domain=[ dict(name="d0", time=time_range) ],

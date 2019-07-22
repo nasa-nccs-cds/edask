@@ -200,21 +200,33 @@ class WorldClimKernel(OpKernel):
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
         self.logger.info( f"Computing WorldClim fields for domains: { [str(d) for d in request.operationManager.domains.domains.values()] }" )
         resultArrays: Dict[str,EDASArray] = {  }
-        tempID = node.getParm("temp","temp")
         version = node.getParm("version", "mean")
-        assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
-        moistID = node.getParm("moist","moist")
-        assert moistID is not None, "Must specify name of the moisture input variable using  the 'moist' parameter"
-        tempVar: EDASArray = inputs.findArray( tempID )
-        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        tempVar = self.toCelcius( tempVar )
-        moistVar = inputs.findArray( moistID )
-        assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
-        dailyTmaxmin = tempVar.timeResample("1D","max,min")
-        monthlyPrecip = moistVar.timeAgg( "month", version )[0]
-        Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
-        Tmax: EDASArray = Tmaxmin[0]
-        Tmin: EDASArray = Tmaxmin[1]
+
+        tempID = node.getParm("temp","temp")
+        tempVar: EDASArray = inputs.findArray(tempID)
+        if tempVar is None:
+            tempMaxID = node.getParm("tempMax", "tempMax")
+            tempMinID = node.getParm("tempMin", "tempMin")
+            moistID = node.getParm( "moist", "moist" )
+            Tmax: EDASArray = inputs.findArray(tempMaxID)
+            Tmin: EDASArray = inputs.findArray(tempMinID)
+            monthlyPrecip: EDASArray = inputs.findArray(moistID)
+            assert Tmax is not None and Tmax is not None, f"Must specify the temperature input variables using either the '{tempID}' parameter (hourly) or the '{tempMaxID}','{tempMinID}' parameters (monthly)"
+            assert moistID is not None, f"Must specify the moisture input variable using  the '{moistID}' parameter"
+        else:
+            moistID = node.getParm("moist","moist")
+            assert moistID is not None, "Must specify name of the moisture input variable using  the 'moist' parameter"
+            tempVar: EDASArray = inputs.findArray( tempID )
+            assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
+            tempVar = self.toCelcius( tempVar )
+            moistVar = inputs.findArray( moistID )
+            assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
+            dailyTmaxmin = tempVar.timeResample("1D","max,min")
+            monthlyPrecip = moistVar.timeAgg( "month", version )[0]
+            Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
+            Tmax: EDASArray = Tmaxmin[0]
+            Tmin: EDASArray = Tmaxmin[1]
+
         Tave = (Tmax+Tmin)/2
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2
