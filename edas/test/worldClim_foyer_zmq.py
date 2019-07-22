@@ -9,7 +9,7 @@ if __name__ == "__main__":
     stratus = StratusCore( settings )
     client = stratus.getClient()
 
-    time_range = {"start": "2000-01-01T00Z", "end": "2001-01-01T00Z", "system": "timestamps"}
+    time_range = {"start": "1980-01-01T00Z", "end": "1981-01-01T00Z", "system": "timestamps"}
     uri = "collection://merra2_inst1_2d_asm_Nx"
 
     requestSpec = dict(
