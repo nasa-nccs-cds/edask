@@ -17,7 +17,9 @@ class TaskExecHandler(TaskHandle):
         self._processResults = True
         self.results = queue.Queue()
         self.job = _job
+        self._status = Status.IDLE
         self.start_time = time.time()
+        self._exception = None
 
     def execJob(self, job: Job ) -> SubmissionThread:
         self._status = Status.EXECUTING
@@ -26,7 +28,9 @@ class TaskExecHandler(TaskHandle):
         self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
         return self.sthread
 
-    def getResult(self, timeout=None, block=False) ->  Optional[TaskResult]:
+    def getResult(self,  **kwargs ) ->  Optional[TaskResult]:
+        timeout = kwargs.get('timeout',None)
+        block = kwargs.get('block',False)
         edasResults: List[EDASDataset] = self.results.get( block, timeout )
         for edasResult in edasResults:
             if edasResult.getResultClass() ==   "METADATA":
@@ -36,8 +40,11 @@ class TaskExecHandler(TaskHandle):
 
     def processResult( self, result: EDASDataset ):
         self.results.put( result )
-        self.messages.setStatus( Status.COMPLETED )
+        self._status = Status.COMPLETED
         self.logger.info(" ----------------->>> STRATUS REQUEST COMPLETED "  )
+
+    def status(self):
+        return self._status
 
     @classmethod
     def getTbStr( cls, ex ) -> str:
@@ -56,4 +63,8 @@ class TaskExecHandler(TaskHandle):
     def processFailure(self, ex: Exception):
         error_message = self.getErrorReport( ex )
         self.logger.error( error_message )
-        self.messages.setException( ex )
+        self._status = Status.ERROR
+        self._exception = ex
+
+    def exception(self) -> Optional[Exception]:
+        return self._exception
