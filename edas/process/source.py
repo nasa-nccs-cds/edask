@@ -41,8 +41,8 @@ class DataSource:
             if scheme == "https":
                 trusted_servers = [r.strip() for r in EdasEnv.get("trusted.dap.servers", "").split(",")]
                 for trusted_server in trusted_servers:
-                    if _address.startswith( trusted_server ): return scheme, toks[1]
-                raise Exception( "Attempt to access untrusted dap server: {}, use parameter 'trusted.dap.servers' in app.conf to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'".format( _address ) )
+                    if trusted_server in _address: return scheme, toks[1]
+                raise Exception( f"Attempt to access untrusted dap server: {_address}\n\t Trusted servers: {trusted_servers}\n\t Use parameter 'trusted.dap.servers' in app.conf to list trusted addresses, e.g. 'trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/'" )
             else:
                 return scheme, toks[1]
         else: raise Exception( "Unallowed scheme '{}' in url: {}".format(scheme,_address) )

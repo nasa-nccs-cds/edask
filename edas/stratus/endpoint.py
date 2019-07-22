@@ -9,7 +9,7 @@ from edas.portal.parsers import WpsCwtParser
 from edas.util.logging import EDASLogger
 from edas.process.task import Job
 from edas.process.manager import ProcessManager
-from edas.stratus.manager import ExecHandler
+from edas.stratus.manager import TaskExecHandler
 from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
@@ -92,19 +92,22 @@ class EDASEndpoint(Endpoint):
     def sendFile( self, clientId: str, jobId: str, name: str, filePath: str, sendData: bool ):
         self.logger.debug( "@@Portal: Sending file data to client for {}, filePath={}".format( name, filePath ) )
 
-    def request(self, tid: str, rid: str, cid: str, requestSpec: Dict, inputs: List[TaskResult] = None, **kwargs ) -> TaskHandle:
+    def request(self, requestSpec: Dict, inputs: List[TaskResult] = None, **kwargs ) -> TaskHandle:
+        rid: str = kwargs.get('rid', Job.randomStr(4) )
+        cid: str = kwargs.get('cid', Job.randomStr(4) )
         self.logger.info( f"EDAS Endpoint--> processing rid {rid}")
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
           job = Job.create( rid, proj, exp, 'exe', requestSpec, inputs, {}, 1.0 )
-          execHandler: ExecHandler = self.addHandler( rid, ExecHandler( tid, cid, job, **kwargs ) )
+          execHandler: TaskExecHandler = self.addHandler(rid, TaskExecHandler(cid, job))
           execHandler.execJob( job )
           return execHandler
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
             traceback.print_exc()
-            return TaskHandle( tid, rid, cid, status = Status.ERROR, error = ExecHandler.getErrorReport( err ) )
+            return TaskHandle(rid=rid, cid=cid, status = Status.ERROR, error = TaskExecHandler.getErrorReport(err))
+
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )

@@ -2,10 +2,11 @@ import logging
 from enum import Enum, auto
 from typing import List, Dict, Any, Set, Optional, Tuple, Union, ItemsView, KeysView, Iterator
 from edas.process.domain import Domain, Axis
-import string, random, os, re, traceback
+import string, random, os, re, copy
 from edas.collection.agg import Archive
 import abc, math, time, itertools
 import xarray as xa
+from xarray.core.resample import DatasetResample
 from edas.data.sources.timeseries import TimeIndexer
 from edas.util.logging import EDASLogger
 from xarray.core.groupby import DataArrayGroupBy
@@ -77,6 +78,10 @@ class EDASArray:
         self.name = name
         self.addDomain( _domId )
 
+    def rename(self, name: str ) -> "EDASArray":
+        self.name = name
+        return self
+
     def purge(self, rename_dict=None):
         if rename_dict is None:
             rename_dict = {}
@@ -116,10 +121,13 @@ class EDASArray:
     def product(self, value: str ): self["product"] = value
 
     def persist(self) -> Union[xa.DataArray,DataArrayGroupBy]:
-        xrd = self.xr
-        if isinstance(xrd,DataArrayGroupBy): return xrd
+        from dask.distributed import Client
+        xrd: xa.DataArray = self.xr
+        if isinstance(xrd,DataArrayGroupBy):
+            self.logger.warn( " EDASArray.persist returning DataArrayGroupBy" )
+            return xrd
         if self.loaded_data is None:
-            client = None # Client.current()
+            client = Client.current()
             if client is None:
                 self.loaded_data = xrd.load().persist()
             else:
@@ -191,8 +199,9 @@ class EDASArray:
             dset.rename( dict(x="lat",y="lon",z="lev",t="time"), True)
         return dset
 
-    def propagateHistory( self, precursor: "EDASArray" ):
+    def propagateHistory( self, precursor: "EDASArray" ) -> "EDASArray":
         if precursor.product is not None: self._product = precursor.product
+        return self
 
     def getAxisIndex( self, dims: List[str], dimIndex: int, default: int ) -> int:
         if len( dims ) <= dimIndex: return default
@@ -205,14 +214,25 @@ class EDASArray:
         return EDASArray( self.name, self.domId,  self.xr.transpose(*dims) )
 
     def aligned( self, other: "EDASArray" ):
-#        print( f"ALIGNED: domId= {self.domId} {other.domId}, shape =  {self.xr.shape} {other.xr.shape}, dims = {self.xr.dims} {other.xr.dims}")
-        return ( self.domId == other.domId ) and ( self.xr.shape == other.xr.shape ) and ( self.xr.dims == other.xr.dims )
+        return self.coordsAligned( other, 'x' ) and self.coordsAligned( other, 'y' )
 
     def groupby( self, grouping: str ):
         grouped_data = self.xr.groupby(grouping)
         rv = EDASArray(self.name, self.domId, grouped_data )
         rv.addTransform( Transformation( "groupby", group=grouping ) )
         return rv
+
+    def coordsAligned(self, other: "EDASArray", cid: str ) -> bool:
+        c0: xa.DataArray =  self.xr.coords.get( cid, None )
+        c1: xa.DataArray =  other.xr.coords.get( cid, None )
+        if c0 is None or c1 is None: return True
+        if c0.shape != c1.shape:
+            self.logger.info(f" coords NOT Aligned[{cid}]: {c0.shape} {c1.shape}")
+            return False
+        d0, d1 = c0.values, c1.values
+        aligned = np.allclose( d0, d1, 0.0, 1.0, True )
+        if not aligned: self.logger.info( f" coords-not-Aligned[{cid}]: {c0.data} {c1.data}")
+        return aligned
 
     def resample( self, resampling:str ):
         if resampling is None: return self
@@ -257,8 +277,47 @@ class EDASArray:
 #        xrdata = xa.DataArray( np_data, coords = kwargs.get( "coords", self.xr.coords), dims = kwargs.get( "dims", self.xr.dims ) )
 #        return EDASArray(self.name, self.domId, xrdata  )
 
+    def timeResample(self, freq: str, operations: str ) -> List["EDASArray"]:
+        xrInput = self.xr
+        if 't' in xrInput.dims: xrInput = xrInput.rename({'t': 'time'})
+        self.logger.info( f" timeResample({xrInput.name}): coords = {list(xrInput.coords.keys())} ")
+        resampled_data: DatasetResample = xrInput.resample( time = freq, keep_attrs=True )
+        results: List["EDASArray"] = []
+        ops = operations.split(",")
+        for op in ops:
+            if op == "mean":  aggregation = resampled_data.mean('time')
+            elif op == "ave": aggregation = resampled_data.mean('time')
+            elif op == "max": aggregation = resampled_data.max('time')
+            elif op == "min": aggregation = resampled_data.min( 'time')
+            elif op == "sum": aggregation = resampled_data.sum( 'time')
+            elif op == "std": aggregation = resampled_data.std('time')
+            else: raise Exception( "Unrecognised operation in timeResample operation: " + op )
+            self.logger.info(f" --> Result[{op}]: coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            results.append( self.updateXa(aggregation, "timeResample-" + op ) )
+        return results
+
+    def timeAgg(self, period: str, operations: str ) -> List["EDASArray"]:
+        xrInput = self.xr
+        if 't' in xrInput.dims: xrInput = xrInput.rename( {'t':'time'} )
+        self.logger.info( f" TimeAgg({xrInput.name}): input coords = {list(xrInput.coords.keys())}, input shape = {list(xrInput.shape)}  ")
+        grouped_data: DataArrayGroupBy = xrInput.groupby( "time." + period, False )
+        results: List["EDASArray"] = []
+        ops = operations.split(",")
+        for op in ops:
+            if op == "mean":  aggregation: xa.DataArray = grouped_data.mean('time')
+            elif op == "ave": aggregation: xa.DataArray = grouped_data.mean('time')
+            elif op == "max": aggregation: xa.DataArray = grouped_data.max('time')
+            elif op == "min": aggregation: xa.DataArray = grouped_data.min('time')
+            elif op == "sum": aggregation: xa.DataArray = grouped_data.sum('time')
+            elif op == "std": aggregation: xa.DataArray = grouped_data.std('time')
+            else: raise Exception( "Unrecognised operation in timeAgg operation: " + op )
+            self.logger.info(f" --> Result[{op}]: dims = {list(aggregation.dims)}, coords = {list(aggregation.coords.keys())}, shape = {list(aggregation.shape)} ")
+            if 'month' in aggregation.coords.keys(): aggregation = aggregation.rename( {'month':'m'} )
+            if 'day' in aggregation.coords.keys():   aggregation = aggregation.rename({'day': 'd'})
+            results.append( self.updateXa( aggregation, "timeAgg-" + op ) )
+        return results
+
     def getSliceMaps(self, domain: Domain, dims: List[str] ) -> ( Dict[str,Any], Dict[str,slice], Dict[str,slice]):
-        from edas.portal.parsers import WpsCwtParser
         pointMap: Dict[str,Any] = {}
         valSliceMap: Dict[str, Any] = {}
         indexSliceMap: Dict[str, Any] = {}
@@ -313,27 +372,28 @@ class EDASArray:
     def coord(self, axis: Axis):
         return self.xrArray.coords.get( axis.name.lower() )
 
-    def max( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), "max" )
+    def max( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.max(dim=axes, keep_attrs=True), kwargs.get("name","max") )
 
-    def min( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), "min" )
+    def min( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.min(dim=axes, keep_attrs=True), kwargs.get("name","min") )
 
-    def mean( self, axes: List[str] ) -> "EDASArray":                          # Unweighted
-        return self.updateXa( self.xr.mean(dim=axes, keep_attrs=True), "mean" )
+    def mean( self, axes: List[str], **kwargs ) -> "EDASArray":                          # Unweighted
+        return self.updateXa( self.xr.mean(dim=axes, keep_attrs=True), kwargs.get("name","mean") )
 
-    def ave(self, axes: List[str] ) -> "EDASArray":                           # Weighted
+    def ave(self, axes: List[str], **kwargs ) -> "EDASArray":                           # Weighted
         weights = self.getWeights( axes )
         if weights is None:
-            return self.mean(axes)
+            return self.mean( axes, **kwargs )
         else:
             data = self.persist()
-            weighted_var = data * weights
+            weighted_var: xa.DataArray = data * weights
+            self.logger.info( f"Computing Weighted ave: weighted_var shape = {weighted_var.shape}, axes = {axes}")
             sum = weighted_var.sum( axes )
             axes.remove("y")
             norm = weights * data.count( axes ) if len( axes ) else weights
             new_data =  sum / norm.sum("y")
-            return self.updateXa(new_data,"ave")
+            return self.updateXa(new_data, kwargs.get("name","ave") )
 
     def getWeights(self, axes: List[str]  ) -> Optional[xa.Dataset]:
         if 'y' in axes:
@@ -342,32 +402,36 @@ class EDASArray:
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
 
-    def median( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), "median" )
+    def median( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.median(dim=axes, keep_attrs=True), kwargs.get("name","median") )
 
-    def var( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.var(dim=axes, keep_attrs=True), "var" )
+    def var( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.var(dim=axes, keep_attrs=True), kwargs.get("name","var") )
 
-    def std( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.std(dim=axes, keep_attrs=True), "std" )
+    def std( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.std(dim=axes, keep_attrs=True), kwargs.get("name","std") )
 
-    def sum( self, axes: List[str] ) -> "EDASArray":
-        return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), "sum" )
+    def sum( self, axes: List[str], **kwargs ) -> "EDASArray":
+        return self.updateXa(self.xr.sum(dim=axes, keep_attrs=True), kwargs.get("name","sum") )
 
-    def __sub__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr - other.xr
+    def __sub__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray ) else other
+        result: xa.DataArray = self.xr - other_data
         return self.updateXa(result, "diff")
 
-    def __add__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr + other.xr
+    def __add__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr + other_data
         return self.updateXa(result, "sum")
 
-    def __mul__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr * other.xr
+    def __mul__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr * other_data
         return self.updateXa(result, "mul")
 
-    def __truediv__(self, other: "EDASArray") -> "EDASArray":
-        result: xa.DataArray = self.xr / other.xr
+    def __truediv__(self, other: Union["EDASArray",float,int] ) -> "EDASArray":
+        other_data = other.xr if isinstance(other, EDASArray) else other
+        result: xa.DataArray = self.xr / other_data
         return self.updateXa(result, "div")
 
     def get(self, key: str, default: Optional[str] ) -> str: return self.xrArray.attrs.get( key, default )
@@ -505,7 +569,12 @@ class EDASDataset:
         return self.attrs.get("product",None)
 
     def getCoord( self, name: str ) -> xa.DataArray: return self.xr[0].coords[name]
-    def getArray(self, id: str  ) -> EDASArray: return self.arrayMap.get(id,None)
+    def getArray(self, id: str  ) -> Optional[EDASArray]: return self.arrayMap.get(id,None)
+
+    def findArray(self, id: str  ) -> Optional[EDASArray]:
+        for key in self.arrayMap.keys():
+            if id in key: return self.arrayMap[key]
+        return None
 
     def customArraymap(self, id: str  ) -> "OrderedDict[str,EDASArray]":
         result = OrderedDict()
@@ -623,10 +692,51 @@ class EDASDataset:
         for array in self.inputs:
             xrplot.plot( array.xr, col = facet_axis )
 
-    def __iadd__(self, other: "EDASDataset" ) -> "EDASDataset":
-        self.arrayMap.update( other.arrayMap )
-        self.attrs.update( other.attrs )
-        return self
+    def __iadd__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True)
+
+    def __add__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False)
+
+    def __isub__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True, "sub")
+
+    def __sub__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "sub")
+
+    def __imul__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, True, "mul")
+
+    def __mul__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "mul")
+
+    def __truediv__(self, other: Union["EDASDataset",float,int] ) -> "EDASDataset":
+        return self.combine(other, False, "div")
+
+    def combine(self, other: Union["EDASDataset",float,int], inplace = False, method ="add") -> "EDASDataset":
+        dataset0 = self if inplace else EDASDataset.copy( self )
+        if isinstance( other, EDASDataset ):
+            dataset1: EDASDataset = other
+            dataset0.attrs.update(dataset1.attrs)
+            for vid in dataset1.arrayMap.keys():
+                if vid in dataset0.arrayMap.keys():
+                    if   method == "add":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + dataset1.arrayMap[vid]
+                    elif method == "sub":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - dataset1.arrayMap[vid]
+                    elif method == "mul":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * dataset1.arrayMap[vid]
+                    elif method == "div":  dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / dataset1.arrayMap[vid]
+                elif method == "add":
+                    dataset0.arrayMap[vid] = dataset1.arrayMap[vid]
+        else:
+            for vid in dataset0.arrayMap.keys():
+                if   method == "add": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] + other
+                elif method == "sub": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] - other
+                elif method == "mul": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] * other
+                elif method == "div": dataset0.arrayMap[vid] = dataset0.arrayMap[vid] / other
+        return dataset0
+
+    @staticmethod
+    def copy( other: "EDASDataset" ) -> "EDASDataset":
+        return EDASDataset( copy.copy( other.arrayMap ), copy.copy( other.attrs ) )
 
     def plot(self, idmatch: str = None ):
         import matplotlib.pyplot as plt
@@ -749,9 +859,9 @@ class EDASDataset:
     def archivePath(self, id: str = None  ) -> str:
         proj =  self.attrs.get( "proj", self.randomStr(4) )
         exp =   self.attrs.get( "exp", self.randomStr(4) )
-        id =  self.attrs.get( "archive", "" )
-        if not id: id = "archive-" + self.randomStr(4)
-        return Archive.getFilePath( proj, exp, id )
+        aid =  self.attrs.get( "archive", "" ) if not id else id
+        if not aid: aid = "archive-" + self.randomStr(4)
+        return Archive.getFilePath( proj, exp, aid )
 
     def parm(self, key: str, default: str) -> Any: return self.attrs.get(key,default)
     def __getitem__( self, key: str ) -> Any: return self.attrs.get( key )

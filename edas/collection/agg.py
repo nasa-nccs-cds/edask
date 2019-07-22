@@ -1,13 +1,14 @@
-import os, time
+import os, time, math
 from datetime import datetime, timezone
 from collections import OrderedDict
 import numpy as np
 from netCDF4 import MFDataset, Variable
-from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView
+from typing import List, Dict, Any, Sequence, BinaryIO, TextIO, ValuesView, Optional, Tuple
 from edas.process.source import VID
 from edas.config import EdasEnv
 import defusedxml.ElementTree as ET
 from edas.util.logging import EDASLogger
+
 def a2s( elems: List[Any], sep: str = "," )-> str: return sep.join( [ str(x) for x in elems] )
 
 def parse_dict( dict_spec ):
@@ -95,6 +96,7 @@ class Collection:
         return Collection(name, spec_file)
 
     def __init__(self, _name, _spec_file ):
+        self.logger = EDASLogger.getLogger()
         self.name = _name
         self.spec = os.path.expanduser( _spec_file )
         self.aggs = {}
@@ -102,6 +104,7 @@ class Collection:
         self._parseSpecFile()
 
     def _parseSpecFile(self):
+        self.logger.info( f"Retreiving spec for collection {self.name} from spec file {self.spec}")
         assert os.path.isfile(self.spec), "Unknown Collection: " + self.spec + ", Collections dir = " + self.baseDir
         with open( self.spec, "r" ) as file:
             for line in file.readlines():
@@ -240,6 +243,15 @@ class Aggregation:
         self.dims = {}
         self.vars = {}
         self._parseAggFile()
+
+    def getChunkSize(self, maxFiles: int, nfiles: int ) -> Tuple[Optional[int], int]:
+        from statistics import median
+        files: List[File] = list(self.fileList())
+        fileSize = median( [ f.size for f in files ] )
+        nchunks = None
+        if nfiles > maxFiles:
+            nchunks = int( math.ceil(nfiles/float(maxFiles)) * fileSize )
+        return ( nchunks, fileSize )
 
     def _parseAggFile(self):
         assert os.path.isfile(self.spec), "Unknown Aggregation: " + os.path.basename(self.spec)

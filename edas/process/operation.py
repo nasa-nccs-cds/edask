@@ -3,7 +3,7 @@ from edas.process.source import VariableManager, VariableSource
 from edas.process.domain import DomainManager, Domain, Axis
 from edas.process.node import Node
 from edas.data.processing import Analytics, Parser
-import abc, re
+import abc, copy
 
 
 class OperationConnector(Node):
@@ -232,6 +232,10 @@ class WorkflowNode(Node):
 
     @abc.abstractmethod
     def isResult(self): pass
+
+    def setAxes(self, new_axes: List[str]) -> "WorkflowNode":
+        self.axes = new_axes
+        return self
 
     def _getAxes(self, key ) -> List[str]:
         raw_axes = self.metadata.get( key, [] )

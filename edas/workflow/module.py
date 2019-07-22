@@ -65,7 +65,7 @@ class KernelModule(OperationModule):
         instance = self._instances.get( instanceName, None )
         if instance is None:
             constructor = self._kernels.get( op )
-            assert constructor is not None, "Unidentified Kernel: " + op
+            assert constructor is not None, f"Unidentified Kernel: {op}, kernels = {list(self._kernels.keys())}"
             instance = constructor()
             self._instances[instanceName] = instance
         return instance

@@ -13,7 +13,7 @@ class ParameterManager:
         assert os.path.isfile( self.path ), f"Error, the EDAS configuration file '{self.path}' does not exist.  Copy edas/resourses/app.conf.template to '{self.path}' and edit."
         aliases = { "wps.server.address": "client.address", "scheduler.address": "dask.scheduler" }
         self._parms: Dict[str,str] = self.getAppConfiguration( aliases )
-        self.TRANSIENTS_DIR = self._parms.get( "edas.transients.dir", "/tmp" )
+        self.TRANSIENTS_DIR =  os.environ.get('EDAS_CACHE_DIR', self._parms.get( "edas.transients.dir", self._parms.get( "edas.cache.dir",  "/tmp" ) ) )
         self.COLLECTIONS_DIR = self._parms.get("edas.coll.dir", "~/.edas" )
         for cpath in [self.TRANSIENTS_DIR, self.COLLECTIONS_DIR]:
             if not os.path.exists(cpath): os.makedirs(cpath)

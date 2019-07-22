@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
-import logging, random, string, time, socket, threading, os, traceback, glob
+import logging, random, string, time, socket, threading, os, traceback, glob, math
 from edas.process.task import TaskRequest
-from typing import List, Dict, Set, Any, Optional
+from typing import List, Dict, Set, Any, Optional, Tuple
 from edas.process.operation import WorkflowNode, SourceNode, OpNode
 from edas.data.sources.timeseries import TimeConversions
 from edas.collection.agg import Archive
@@ -85,6 +85,7 @@ class OpKernel(Kernel):
     # Will independently pre-subset to intersected domain and pre-align all variables in each set if necessary.
 
     def __init__(self, spec: KernelSpec):
+        self._decomposable = True
         super(OpKernel, self).__init__(spec)
         self.addRequiredOptions( ["input"] )
 
@@ -111,7 +112,7 @@ class OpKernel(Kernel):
         return results
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
-        resultArrays = [ array for input in inputs.arrayMap.values() for array in self.transformInput( request, node, input ) ]
+        resultArrays = [ self.transformInput( request, node, input ) for input in inputs.arrayMap.values() ]
         return self.buildProduct( inputs.id, request, node, resultArrays, inputs.attrs )
 
     def buildProduct(self, dsid: str, request: TaskRequest, node: OpNode, result_arrays: List[EDASArray], attrs: Dict[str,str] ):
@@ -127,13 +128,25 @@ class OpKernel(Kernel):
             resultMap[result.name] = result
         return resultMap
 
-    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]:
-        results = self.processVariable( request, node, inputs )
-        for result in results: result.propagateHistory( inputs )
-        return results
+    def decompose(self, node: OpNode ) -> Tuple[ List[str], List[ List[str] ] ]:
+        if self._decomposable and node.hasAxis( Axis.T ) and len( node.axes ) > 1:
+            axis_groups = [ [ax.lower() for ax in node.axes if not ax.lower().startswith("t")], ['t'] ]
+            return node.axes, axis_groups
+        else:
+            return node.axes, [ node.axes ]
 
-    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> List[EDASArray]:
-        return [inputs]
+    def transformInput( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray:
+        original_axes, axis_groups = self.decompose( node )
+        input: EDASArray = inputs
+        for axes in axis_groups:
+            self.logger.info( f"Process node {node.name}, axes = {node.axes}")
+            result = self.processVariable( request, node.setAxes(axes), input )
+            input = result.propagateHistory( input )
+        node.setAxes( original_axes )
+        return result
+
+    def processVariable( self, request: TaskRequest, node: OpNode, inputs: EDASArray ) -> EDASArray:
+        return inputs
 
     def preprocessInputs( self, request: TaskRequest, op: OpNode, inputDataset: EDASDataset ) -> EDASDataset:
 #         interp_na = bool(op.getParm("interp_na", False))
@@ -248,6 +261,7 @@ class InputKernel(Kernel):
         else:
             dataSource: DataSource = snode.varSource.dataSource
             if dataSource.type == SourceType.collection:
+                from edas.collection.agg import Axis as AggAxis, File as AggFile
                 collection = Collection.new( dataSource.address )
                 self.logger.info("Input collection: " + dataSource.address )
                 aggs = collection.sortVarsByAgg( snode.varSource.vids )
@@ -258,9 +272,19 @@ class InputKernel(Kernel):
                     endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
+                    use_chunks = True
                     pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
-                    self.logger.info( f"Open mfdataset: vars={vars}, NFILES={len(pathList)}, FILES[0]={pathList[0]}" )
-                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True )
+                    nFiles = len(pathList)
+                    if use_chunks:
+                        nReadPartitions = int( EdasEnv.get( "mfdataset.npartitions", 250 ) )
+                        agg = collection.getAggregation(aggId)
+                        nchunks, fileSize = agg.getChunkSize( nReadPartitions, nFiles )
+                        chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
+                        self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}, startDate={startDate}, endDate={endDate}, domain={domain}" )
+                    else:
+                        chunk_kwargs = {}
+                        self.logger.info( f"Open mfdataset: vars={vars},  NFILES={nFiles}, FILES[0]={pathList[0]}" )
+                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
                     self.logger.info(f"Import to collection")
                     self.importToDatasetCollection( results, request, snode, dset )
                     self.logger.info(f"Collection import complete.")
