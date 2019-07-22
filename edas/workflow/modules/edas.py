@@ -139,6 +139,7 @@ class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
         OpKernel.__init__(self, KernelSpec(kid, "WorldClim Kernel", "Computes the 20 WorldClim fields"))
         self.start_time = None
+        self.results = {}
 
     def toCelcius(self, tempVar: EDASArray ):
         Tunits: str = tempVar.xr.attrs.get("units",None)
@@ -196,11 +197,16 @@ class WorldClimKernel(OpKernel):
             resultVar = targetVar
         return resultVar.updateXa( resultXarray.unstack(), name )
 
+    def setResult( self, key: str, value: EDASArray ):
+        self.logger.info( f"Computed value for WorldClim field bio-{key}")
+        value.persist()
+        self.results[key] = value
+
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
         self.logger.info( f"Computing WorldClim fields for domains: { [str(d) for d in request.operationManager.domains.domains.values()] }" )
-        resultArrays: Dict[str,EDASArray] = {  }
         version = node.getParm("version", "mean")
+        self.results = {}
 
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
@@ -233,62 +239,30 @@ class WorldClimKernel(OpKernel):
         self.start_time = time.time()
         Tave.persist(); monthlyPrecip.persist()
 
-        resultArrays['1']  = Tave.ave(["m"], name="bio1")
-        resultArrays['2']  = Trange.ave(["m"], name="bio2")
-        resultArrays['4']  = Tave.std(["m"], name="bio4")
-        resultArrays['4a'] = (( TKave.std(["m"],keep_attrs=True)*100 )/(resultArrays['1'] + 273.15)).rename("bio4a")
-        resultArrays['5']  = Tmax.max(["m"], name="bio5")
-        resultArrays['6']  = Tmin.min(["m"], name="bio6")
-        resultArrays['7']  = (resultArrays['5'] - resultArrays['6']).rename("bio7")
-        resultArrays['8']  = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
-        resultArrays['9']  = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" )
-        resultArrays['3']  = ( ( resultArrays['2']*100 )/ resultArrays['7'] ).rename("bio3")
-        resultArrays['10'] = self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" )
-        resultArrays['11'] = self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" )
-        resultArrays['12'] = monthlyPrecip.sum(["m"], name="bio12")
-        resultArrays['13'] = monthlyPrecip.max(["m"], name="bio13")
-        resultArrays['14'] = monthlyPrecip.min(["m"], name="bio14")
-        resultArrays['15'] = (( monthlyPrecip.std(["m"]) * 100 )/( (resultArrays['12']/12) + 1 )).rename("bio15")
-        resultArrays['16'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16")
-        resultArrays['17'] = self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17")
-        resultArrays['18'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" )
-        resultArrays['19'] = self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" )
+        self.setResult( '1' ,  Tave.ave(["m"], name="bio1") )
+        self.setResult( '2' ,  Trange.ave(["m"], name="bio2") )
+        self.setResult( '4' ,  Tave.std(["m"], name="bio4") )
+        self.setResult( '4a',  (( TKave.std(["m"],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
+        self.setResult( '5' ,  Tmax.max(["m"], name="bio5") )
+        self.setResult( '6' ,  Tmin.min(["m"], name="bio6") )
+        self.setResult( '7' ,  (self.results['5'] - self.results['6']).rename("bio7") )
+        self.setResult( '8' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" ) )
+        self.setResult( '9' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" ) )
+        self.setResult( '3' ,  ( ( self.results['2']*100 )/ self.results['7'] ).rename("bio3") )
+        self.setResult( '10' , self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" ) )
+        self.setResult( '11' , self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" ) )
+        self.setResult( '12' , monthlyPrecip.sum(["m"], name="bio12") )
+        self.setResult( '13' , monthlyPrecip.max(["m"], name="bio13") )
+        self.setResult( '14' , monthlyPrecip.min(["m"], name="bio14") )
+        self.setResult( '15' , (( monthlyPrecip.std(["m"]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
+        self.setResult( '16' , self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16") )
+        self.setResult( '17' , self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17") )
+        self.setResult( '18' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" ) )
+        self.setResult( '19' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "min", "bio19" ) )
 
-        results: List[EDASArray] = [ tempVar.updateXa( result.persist(), "bio-"+index ) for index, result in resultArrays.items() ]
+        results: List[EDASArray] = [ tempVar.updateXa( result, "bio-"+index ) for index, result in self.results.items() ]
         self.logger.info( f"Completed WorldClim computation, elapsed = {(time.time()-self.start_time)/60.0} m")
         return self.buildProduct( inputs.id, request, node, results, inputs.attrs )
-
-class WorldClimTestKernel(WorldClimKernel):
-    def __init__(self):
-        WorldClimKernel.__init__(self,"worldClimTest")
-
-    def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
-        resultArrays: Dict[str,EDASArray] = {}
-        tempID = node.getParm("temp","temp")
-        assert tempID is not None, "Must specify name of the temperature input variable using the 'temp' parameter"
-        moistID = node.getParm("moist","moist")
-        assert moistID is not None, "Must specify name of the moisture input variable using the 'moist' parameter"
-        tempVar = inputs.findArray( tempID )
-        assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
-        tempVar = self.toCelcius( tempVar )
-        moistVar = inputs.findArray( moistID )
-        assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
-        self.print( "Input Fields", [ tempVar, moistVar ] )
-
-        dailyTmax = tempVar.timeResample("D","max")
-        dailyTmin = tempVar.timeResample("D","min")
-        self.print("Daily Max/Min:", [dailyTmax, dailyTmin])
-
-        monthlyPrecip = moistVar.timeAgg("month","sum")
-        Tmax: EDASArray = dailyTmax.timeAgg("month","max")
-        Tmin: EDASArray = dailyTmin.timeAgg("month", "min")
-        self.print("Monthly Precip:", [monthlyPrecip])
-        Tave = (Tmax+Tmin)/2
-        self.print("Monthly Temp Max/Min/Ave:", [Tmax, Tmin, Tave])
-        resultArrays['8'] = self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" )
-        return self.buildProduct(inputs.id, request, node, list(resultArrays.values()), inputs.attrs)
-
-
 
 class DetrendKernel(OpKernel):
     def __init__( self ):

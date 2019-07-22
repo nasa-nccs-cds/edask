@@ -1,7 +1,9 @@
 from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
-import xarray as xa
+import os, xarray as xa
 from stratus.app.core import StratusCore
+OUTPUT_DIR = os.path.expanduser("~/.worldClim/results")
+os.makedirs(OUTPUT_DIR,exist_ok=True)
 
 if __name__ == "__main__":
 
@@ -30,5 +32,5 @@ if __name__ == "__main__":
 
     task: TaskHandle = client.request( requestSpec )
     result: Optional[TaskResult] = task.getResult( block=True )
-    dsets: List[xa.Dataset] = result.data
+    result.getDataset().to_netcdf( f"{OUTPUT_DIR}/cip_merra2_workdclim_mth.nc" )
 
