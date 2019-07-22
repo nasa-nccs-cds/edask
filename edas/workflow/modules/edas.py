@@ -210,6 +210,7 @@ class WorldClimKernel(OpKernel):
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
         if tempVar is None:
+            taxis = "t"
             tempMaxID = node.getParm("maxTemp", "maxTemp")
             tempMinID = node.getParm("minTemp", "minTemp")
             moistID = node.getParm( "moist", "moist" )
@@ -219,6 +220,7 @@ class WorldClimKernel(OpKernel):
             assert Tmax is not None and Tmax is not None, f"Must specify the temperature input variables using either the '{tempID}' parameter (hourly) or the '{tempMaxID}','{tempMinID}' parameters (monthly)"
             assert moistID is not None, f"Must specify the moisture input variable using  the '{moistID}' parameter"
         else:
+            taxis = "m"
             moistID = node.getParm("moist","moist")
             assert moistID is not None, "Must specify name of the moisture input variable using  the 'moist' parameter"
             tempVar: EDASArray = inputs.findArray( tempID )
@@ -242,22 +244,22 @@ class WorldClimKernel(OpKernel):
         self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
         self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:12,10:12]}")
 
-        self.setResult( '1' ,  Tave.ave(["m"], name="bio1") )
-        self.setResult( '2' ,  Trange.ave(["m"], name="bio2") )
-        self.setResult( '4' ,  Tave.std(["m"], name="bio4") )
-        self.setResult( '4a',  (( TKave.std(["m"],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
-        self.setResult( '5' ,  Tmax.max(["m"], name="bio5") )
-        self.setResult( '6' ,  Tmin.min(["m"], name="bio6") )
+        self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
+        self.setResult( '2' ,  Trange.ave([taxis], name="bio2") )
+        self.setResult( '4' ,  Tave.std([taxis], name="bio4") )
+        self.setResult( '4a',  (( TKave.std([taxis],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
+        self.setResult( '5' ,  Tmax.max([taxis], name="bio5") )
+        self.setResult( '6' ,  Tmin.min([taxis], name="bio6") )
         self.setResult( '7' ,  (self.results['5'] - self.results['6']).rename("bio7") )
         self.setResult( '8' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "max", "bio8" ) )
         self.setResult( '9' ,  self.getValueForSelectedQuarter( Tave, monthlyPrecip, "min", "bio9" ) )
         self.setResult( '3' ,  ( ( self.results['2']*100 )/ self.results['7'] ).rename("bio3") )
         self.setResult( '10' , self.getValueForSelectedQuarter( Tave, Tave, "max", "bio10" ) )
         self.setResult( '11' , self.getValueForSelectedQuarter( Tave, Tave, "min", "bio11" ) )
-        self.setResult( '12' , monthlyPrecip.sum(["m"], name="bio12") )
-        self.setResult( '13' , monthlyPrecip.max(["m"], name="bio13") )
-        self.setResult( '14' , monthlyPrecip.min(["m"], name="bio14") )
-        self.setResult( '15' , (( monthlyPrecip.std(["m"]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
+        self.setResult( '12' , monthlyPrecip.sum([taxis], name="bio12") )
+        self.setResult( '13' , monthlyPrecip.max([taxis], name="bio13") )
+        self.setResult( '14' , monthlyPrecip.min([taxis], name="bio14") )
+        self.setResult( '15' , (( monthlyPrecip.std([taxis]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
         self.setResult( '16' , self.getValueForSelectedQuarter( None, monthlyPrecip, "max", "bio16") )
         self.setResult( '17' , self.getValueForSelectedQuarter( None, monthlyPrecip, "min", "bio17") )
         self.setResult( '18' , self.getValueForSelectedQuarter( monthlyPrecip, Tave, "max", "bio18" ) )
