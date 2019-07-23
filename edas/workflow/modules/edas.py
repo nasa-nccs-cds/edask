@@ -206,6 +206,9 @@ class WorldClimKernel(OpKernel):
         self.logger.info( f"Computing WorldClim fields for domains: { [str(d) for d in request.operationManager.domains.domains.values()] }" )
         version = node.getParm("version", "mean")
         self.results: Dict[str,EDASArray] = {}
+        moistID = node.getParm("moist", "moist")
+        moistVar = inputs.findArray(moistID)
+        assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
 
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
@@ -213,26 +216,20 @@ class WorldClimKernel(OpKernel):
             taxis = "t"
             tempMaxID = node.getParm("maxTemp", "maxTemp")
             tempMinID = node.getParm("minTemp", "minTemp")
-            moistID = node.getParm( "moist", "moist" )
             Tmax: EDASArray = inputs.findArray(tempMaxID)
             Tmin: EDASArray = inputs.findArray(tempMinID)
-            monthlyPrecip: EDASArray = inputs.findArray(moistID)
+            monthlyPrecip: EDASArray = moistVar
             assert Tmax is not None and Tmax is not None, f"Must specify the temperature input variables using either the '{tempID}' parameter (hourly) or the '{tempMaxID}','{tempMinID}' parameters (monthly)"
-            assert moistID is not None, f"Must specify the moisture input variable using  the '{moistID}' parameter"
         else:
             taxis = "m"
-            moistID = node.getParm("moist","moist")
-            assert moistID is not None, "Must specify name of the moisture input variable using  the 'moist' parameter"
             tempVar: EDASArray = inputs.findArray( tempID )
             assert tempVar is not None, f"Can't locate temperature variable {tempID} in inputs: {inputs.ids}"
             tempVar = self.toCelcius( tempVar )
-            moistVar = inputs.findArray( moistID )
-            assert moistVar is not None, f"Can't locate moisture variable {moistID} in inputs: {inputs.ids}"
             dailyTmaxmin = tempVar.timeResample("1D","max,min")
-            monthlyPrecip = moistVar.timeAgg( "month", version )[0]
             Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
             Tmax: EDASArray = Tmaxmin[0]
             Tmin: EDASArray = Tmaxmin[1]
+            monthlyPrecip = moistVar.timeAgg("month", version)[0]
 
         Tave = (Tmax+Tmin)/2.0
         TKave = Tave + 273.15
@@ -240,9 +237,9 @@ class WorldClimKernel(OpKernel):
         self.start_time = time.time()
         Tave.persist(); monthlyPrecip.persist()
 
-        self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:12,10:12]}")
-        self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
-        self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:12,10:12]}")
+#        self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:12,10:12]}")
+#        self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
+#        self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:12,10:12]}")
 
         self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
         self.setResult( '2' ,  Trange.ave([taxis], name="bio2") )
@@ -265,7 +262,7 @@ class WorldClimKernel(OpKernel):
         self.setResult( '18' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "max", "bio18" ) )
         self.setResult( '19' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "min", "bio19" ) )
 
-        results: List[EDASArray] = [ tempVar.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
+        results: List[EDASArray] = [ moistVar.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
         self.logger.info( f"Completed WorldClim computation, elapsed = {(time.time()-self.start_time)/60.0} m")
         return self.buildProduct( inputs.id, request, node, results, inputs.attrs )
 
