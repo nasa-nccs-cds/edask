@@ -82,10 +82,10 @@ class ExecHandler(ExecHandlerBase):
         self._status = Status.IDLE
         self._parms = {}
 
-    def execJob(self, job: Job ) -> SubmissionThread:
-        self.sthread = SubmissionThread( job, self.processResults, self.processFailure )
+    def start(self) -> SubmissionThread:
+        self.sthread = SubmissionThread( self.job, self.processResults, self.processFailure )
         self.sthread.start()
-        self.logger.info( " ----------------->>> Submitted request for job " + job.requestId )
+        self.logger.info( " ----------------->>> Submitted request for job " + self.job.requestId )
         return self.sthread
 
     def status(self):

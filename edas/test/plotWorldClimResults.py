@@ -38,11 +38,11 @@ class WorldClimPlotter:
         self.plotEDAS(subplots[1][1,1], wcIndex+1 )
         plt.show()
 
-#plotter = WorldClimPlotter()
-#plotter.plot(3)
+plotter = WorldClimPlotter()
+plotter.plot(8)
 
-filePath = os.path.join(DATA_DIR,  "cip_merra2_mth_worldclim_1990.nc")
-vnames = [ 'bio-1[diff[subset[tempMin]]]', "bio-2[diff[subset[tempMin]]]", "bio-3[diff[subset[tempMin]]]" ]
-fh = nc.Dataset(filePath, mode='r')
-var: nc.Variable = fh.variables["bio-2[diff[subset[tempMin]]]"]
-print( var[ 10:20,10:20] )
+# filePath = os.path.join(DATA_DIR,  "cip_merra2_mth_worldclim_1990.nc")
+# vnames = [ 'bio-1[diff[subset[tempMin]]]', "bio-2[diff[subset[tempMin]]]", "bio-3[diff[subset[tempMin]]]" ]
+# fh = nc.Dataset(filePath, mode='r')
+# var: nc.Variable = fh.variables["bio-2[diff[subset[tempMin]]]"]
+# print( var[ 10:20,10:20] )

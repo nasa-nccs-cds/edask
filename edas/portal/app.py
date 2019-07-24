@@ -132,7 +132,7 @@ class EDASapp(EDASPortal):
         try:
           job = Job.new( jobId, proj, exp, process_name, dataInputsSpec, runargs, 1.0 )
           execHandler: ExecHandler = self.addHandler(clientId, jobId, ExecHandler(clientId, job, self, workers=job.workers))
-          execHandler.execJob( job )
+          execHandler.start()
           return Message( clientId, jobId, execHandler.filePath )
         except Exception as err:
             self.logger.error( "Caught execution error: " + str(err) )
