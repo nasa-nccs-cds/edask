@@ -61,6 +61,12 @@ class NetcdfPlotter:
         subplot.set_title(f"QV2M: day: {day}, hour: {hour}")
         subplot.imshow(img_array, cmap='jet', vmin=img_array.min(), vmax=img_array.max(), aspect=0.8)
 
+    def plotSingleVariable(self, filePath, vname ):
+        fh = nc.Dataset(filePath, mode='r')
+        variable: nc.Variable = fh.variables[vname]
+        img_array = variable[:,:]
+        plt.imshow(img_array, cmap='jet', aspect=0.8)
+
     def plotVariableMax( self, subplot, day: int ):
         filePath = f"/Users/tpmaxwel/Dropbox/Tom/Data/MERRA/MERRA2/inst1_2d_asm_Nx.2018-7/MERRA2_400.inst1_2d_asm_Nx.201807{day:02}.nc4.nc?T2M[0:23][48:215][134:251],QV2M[0:23][48:215][134:251],lat[48:215],time[0:23],lon[134:251]"
         vname = "QV2M"
@@ -71,6 +77,12 @@ class NetcdfPlotter:
         subplot.set_title(f"QV2M max: day: {day}")
         subplot.imshow(img_array, cmap='jet', vmin=img_array.min(), vmax=img_array.max(), aspect=0.8)
 
+
+file = "/tmp/endpoint-sample-result-0.nc"
+var = "tas-time-ave"
+
 plotter = NetcdfPlotter()
-plotter.plotVariablesMax()
+
+plotter.plotSingleVariable(file,var)
+
 plt.show()

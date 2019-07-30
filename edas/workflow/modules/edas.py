@@ -212,6 +212,7 @@ class WorldClimKernel(OpKernel):
 
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
+        pscale = float( node.getParm( "pscale", 1.0 ) )
         if tempVar is None:
             taxis = "t"
             tempMaxID = node.getParm("maxTemp", "maxTemp")
@@ -231,6 +232,8 @@ class WorldClimKernel(OpKernel):
             Tmin: EDASArray = Tmaxmin[1]
             monthlyPrecip = moistVar.timeAgg("month", version)[0]
 
+        self.logger.info(f" --> version = {version}, pscale = {pscale}")
+        if pscale != float(1.0): monthlyPrecip = monthlyPrecip * pscale
         Tave = (Tmax+Tmin)/2.0
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2.0
