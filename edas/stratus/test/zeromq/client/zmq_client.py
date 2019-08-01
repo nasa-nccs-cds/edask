@@ -1,13 +1,13 @@
 from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
-import xarray as xa
+import os, xarray as xa
 from stratus.app.core import StratusCore
 USE_OPENDAP = False
 
 if __name__ == "__main__":
 
-    settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557" ) )
+    settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557", certificate_path = os.path.expanduser("~/.stratus/zmq/client" ) ) )
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "1981-12-31", "crs": "timestamps"}
