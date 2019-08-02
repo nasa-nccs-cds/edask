@@ -6,8 +6,8 @@ from stratus.app.core import StratusCore
 USE_OPENDAP = False
 
 if __name__ == "__main__":
-
-    settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557", certificate_path = os.path.expanduser("~/.stratus/zmq/client" ) ) )
+    certificate_path = "/att/nobackup/tpmaxwel/.stratus/zmq/"
+    settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557", certificate_path = certificate_path ) )
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "1981-12-31", "crs": "timestamps"}
