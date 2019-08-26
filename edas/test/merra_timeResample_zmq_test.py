@@ -33,7 +33,7 @@ def compute( requestSpec: Dict, rid: str ):
 
 # Compute temperature products
 
-operations = [ { "name": "edas.timeResample", "input": "temp:v1", "freq": "1D", "op": "max,min", "result":"dailyMaxMin" },
+operations = [ { "name": "edas.timeResample", "input": "temp", "freq": "1D", "op": "max,min", "result":"dailyMaxMin" },
                { "name": "edas.timeResample", "input": "dailyMaxMin", "freq": "1M", "op": "ave,std" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-temp-dailyMinMax-monthlyAveStd" )
