@@ -6,7 +6,7 @@ import traceback
 OUTPUT_DIR = os.path.expanduser("~/.stratus/results")
 os.makedirs(OUTPUT_DIR,exist_ok=True)
 
-settings = dict(stratus=dict(type="zeromq", client_address="127.0.0.1", request_port="4556", response_port="4557"))
+settings = dict(stratus=dict(type="zeromq", client_address="127.0.0.1", request_port="4556", response_port="4557", certificate_path="/att/nobackup/tpmaxwel/.stratus/zmq"))
 stratus = StratusCore(settings)
 client = stratus.getClient()
 
