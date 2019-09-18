@@ -6,7 +6,8 @@ from stratus.app.core import StratusCore
 USE_OPENDAP = False
 
 if __name__ == "__main__":
-    certificate_path = "/att/nobackup/tpmaxwel/.stratus/zmq/"
+#    certificate_path = "/att/nobackup/tpmaxwel/.stratus/zmq/"
+    certificate_path = "/Users/tpmaxwel/.stratus/zmq"
     settings = dict( stratus = dict( type="zeromq", client_address = "127.0.0.1", request_port = "4556", response_port = "4557", certificate_path = certificate_path ) )
     stratus = StratusCore( settings )
     client = stratus.getClient()
