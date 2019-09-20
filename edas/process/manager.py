@@ -247,6 +247,7 @@ class ProcessManager(GenericProcessManager):
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
       self.active = True
+      self.logger.info( f"Starting EDAS ProcessManager with serverConfiguration: {serverConfiguration}" )
       if self.scheduler_address is not None:
           self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
           self.client = Client( self.scheduler_address, timeout=60 )

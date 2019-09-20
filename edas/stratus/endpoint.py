@@ -19,6 +19,7 @@ class EDASEndpoint(Endpoint):
     def __init__(self, **kwargs ):
         super(EDASEndpoint, self).__init__()
         self.logger =  EDASLogger.getLogger()
+        EdasEnv.update( kwargs )
         self.process = "edas"
         self.handlers = {}
         self.processManager = None
