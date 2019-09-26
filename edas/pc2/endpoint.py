@@ -1,4 +1,4 @@
-from stratus_endpoint.handler.base import Endpoint, TaskHandle, Status, TaskResult
+from pc2.module.handler.base import Module, TaskHandle, Status, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import traceback
 import atexit, ast, os, json
@@ -14,7 +14,7 @@ from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
-class EDASEndpoint(Endpoint):
+class EDASEndpoint(Module):
 
     def __init__(self, **kwargs ):
         super(EDASEndpoint, self).__init__()

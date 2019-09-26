@@ -3,7 +3,7 @@ import zmq, traceback, time, itertools, queue
 from edas.process.task import Job
 from edas.process.manager import SubmissionThread
 from edas.workflow.data import EDASDataset
-from stratus_endpoint.handler.base import Status, TaskHandle, TaskResult
+from pc2.module.handler.base import Status, TaskHandle, TaskResult
 from edas.util.logging import EDASLogger
 import xarray as xa
 
