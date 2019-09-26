@@ -7,7 +7,7 @@ def main():
         if "python" in proc.name():
             try:
                 cmdline = " ".join( proc.as_dict().get('cmdline', None) )
-                if ( ('dask-worker' in cmdline) or ('dask-scheduler' in cmdline) ):
+                if ( ('dask-worker' in cmdline) or ('dask-scheduler' in cmdline) or ('celery' in cmdline) ):
                     print(f'Killing {cmdline}')
                     proc.kill()
             except Exception: pass
