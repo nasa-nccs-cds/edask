@@ -1,4 +1,4 @@
-from pc2.module.handler.base import TaskHandle, TaskResult
+from pc2base.module.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 import xarray as xa
@@ -6,7 +6,7 @@ from stratus.app.core import StratusCore
 from stratus.app.operations import ClientOpSet
 
 settings = dict( stratus=dict(type="zeromq", request_port="4556", response_port="4557" ),
-                 edas=dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
+                 edas=dict( type="endpoint", module="edas.stratus.endpoint", object="EDASModule" ) )
 core = StratusCore(settings)
 app = core.getApplication()
 

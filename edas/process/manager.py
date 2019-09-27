@@ -4,7 +4,7 @@ from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
-from stratus_endpoint.handler.base import Status
+from pc2base.module.handler.base import Status
 from edas.util.logging import EDASLogger
 from edas.portal.cluster import EDASCluster
 from edas.config import EdasEnv

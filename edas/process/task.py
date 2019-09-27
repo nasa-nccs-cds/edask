@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, Sequence, List, Set, Optional, Iterable
-from stratus_endpoint.handler.base import TaskResult
+from pc2base.module.handler.base import TaskResult
 import logging, random, string, traceback
 import xarray as xa
 from edas.process.domain import DomainManager, Domain, AxisBounds, Axis

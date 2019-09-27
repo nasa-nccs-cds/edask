@@ -1,4 +1,4 @@
-from pc2.module.handler.base import TaskHandle, TaskResult
+from pc2base.module.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 import xarray as xa
@@ -6,7 +6,7 @@ from stratus.app.core import StratusCore
 
 if __name__ == "__main__":
 
-    settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
+    settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASModule" ) )
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}

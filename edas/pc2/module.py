@@ -1,4 +1,4 @@
-from pc2.module.handler.base import Module, TaskHandle, Status, TaskResult
+from pc2base.module.handler.base import Module, TaskHandle, Status, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import traceback
 import atexit, ast, os, json
@@ -14,10 +14,10 @@ from edas.config import EdasEnv
 
 def get_or_else( value, default_val ): return value if value is not None else default_val
 
-class EDASEndpoint(Module):
+class EDASModule(Module):
 
     def __init__(self, **kwargs ):
-        super(EDASEndpoint, self).__init__()
+        super(EDASModule, self).__init__()
         self.logger =  EDASLogger.getLogger()
         EdasEnv.update( kwargs )
         self.process = "edas"
@@ -96,7 +96,7 @@ class EDASEndpoint(Module):
     def request(self, requestSpec: Dict, inputs: List[TaskResult] = None, **kwargs ) -> TaskHandle:
         rid: str = kwargs.get('rid', Job.randomStr(4) )
         cid: str = kwargs.get('cid', Job.randomStr(4) )
-        self.logger.info( f"EDAS Endpoint--> processing rid {rid}")
+        self.logger.info( f"EDAS Module--> processing rid {rid}")
         proj = requestSpec.get("proj", "proj-" + Job.randomStr(4) )
         exp = requestSpec.get("exp",  "exp-" + Job.randomStr(4) )
         try:
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         'https://dataserver.nccs.nasa.gov/thredds/dodsC/CMIP5/NASA/GISS/historical/E2-H_historical_r2i1p3/clwvi_Amon_GISS-E2-H_historical_r2i1p3_195101-200512.nc',
     ]
 
-    ep = EDASEndpoint()
+    ep = EDASModule()
     request = dict(
         domain = [{"name": "d0", "lat": {"start": 0, "end": 80, "system": "values"}, "lon": {"start": 40, "end": 60, "system": "values"},  "time": {"start": "1980-01-01", "end":  "1981-12-31", "crs": "timestamps"}} ],
         input = [ {"uri": CIP("merra2","tas"), "name": "tas:v0", "domain": "d0"} ],

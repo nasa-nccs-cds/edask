@@ -1,4 +1,4 @@
-from stratus_endpoint.handler.base import TaskHandle, TaskResult
+from pc2base.module.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 import os, xarray as xr
 from stratus.app.core import StratusCore

@@ -1,4 +1,4 @@
-from stratus_endpoint.handler.base import TaskHandle, TaskResult
+from pc2base.module.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 import xarray as xa

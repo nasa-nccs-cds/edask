@@ -1,5 +1,5 @@
 from typing import  List, Dict, Any, Sequence, Union, Optional, ValuesView, Tuple
-from stratus_endpoint.handler.base import TaskResult
+from pc2base.module.handler.base import TaskResult
 from enum import Enum, auto
 from edas.process.node import Node
 from edas.portal.parsers import WpsCwtParser

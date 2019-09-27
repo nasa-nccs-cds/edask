@@ -492,12 +492,12 @@ class EDASDataset:
 
         for id,val in idMap.items():
             if val not in dataset and val not in dataset.dims:
-                   dataset.rename( {id:val}, True )
+                   dataset = dataset.rename( {id:val} )
             else:  skipMap[id] = val
 
         for id,val in skipMap.items():
             if val not in dataset and val not in dataset.dims:
-                dataset.rename( {id:val}, True )
+                dataset = dataset.rename( {id:val} )
 
         return dataset
 
@@ -533,7 +533,7 @@ class EDASDataset:
     def new(cls, dataset: xa.Dataset, varMap: Dict[str,str]=None, idMap=None ):
         if varMap is None: varMap = {}
         if idMap is None: idMap = {}
-        cls.rename( dataset, idMap )
+        dataset = cls.rename( dataset, idMap )
         result = OrderedDict()
         if varMap:
              for ( vid, domId ) in varMap.items():
