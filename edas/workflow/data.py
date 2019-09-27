@@ -517,7 +517,7 @@ class EDASDataset:
             domid: str = dataset.attrs.get("domid")
             for id,val in self.StandardAxisMap.items():
                 if id in dataset.dims and val not in dataset.dims:
-                    dataset = dataset.rename( {id:val}, True )
+                    dataset = dataset.rename( {id:val} )
             result_attrs = { **self.attrs, **new_attrs }
             results.append( self.fromXr( dataset, domid, result_attrs ) )
         return results
