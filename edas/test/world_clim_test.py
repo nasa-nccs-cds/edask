@@ -1,13 +1,16 @@
 from edas.process.test import LocalTestManager
 from typing import List, Optional, Tuple, Dict, Any
 from edas.workflow.kernel import EDASDataset
+from dask.distributed import Client
 import traceback
 
 def world_clim( mgr: LocalTestManager ):
     try:
         domains = [{ "name":"d0", "time": { "start":'1990-01-01T00Z', "end":'1991-01-01T00Z', "system":"timestamps"  } } ]
-        variables = [ { "uri": mgr.getAddress( "merra2-6hr", "tas"), "name":"tas:temp", "domain":"d0" }, { "uri": mgr.getAddress( "merra2-6hr", "pr"), "name":"pr:precip", "domain":"d0" } ]
-        operations = [ { "name":"edas.worldClim", "input":"temp,precip"  } ]
+
+        variables = [ { "uri": mgr.getAddress( "merra2-6hr", "tas"), "name":"tas:temp", "domain":"d0" }, { "uri": mgr.getAddress( "merra2-6hr", "pr"), "name":"pr:moist", "domain":"d0" } ]
+        operations = [ { "name":"edas.worldClim", "input":"temp,moist"  } ]
+
         results:  List[EDASDataset] = mgr.testExec( domains, variables, operations )
         results[0].save("cip_merra2_6hr-WorldClim")
     except Exception as ex:
@@ -17,5 +20,6 @@ def world_clim( mgr: LocalTestManager ):
 
 if __name__ == "__main__":
     appConf = {"sources.allowed": "collection,https", "log.metrics": "true"}
+    client = Client('127.0.0.1:8786')
     mgr = LocalTestManager("PyTest", "world_clim", appConf)
     world_clim( mgr )

@@ -266,7 +266,7 @@ class EDASPortalClient:
     def createResponseManager(self) -> ResponseManager:
         return self.response_manager
 
-    def shutdown(self):
+    def shutdown(self, *args, **kwargs):
         if self.active:
             print(  " ############################## Disconnect Portal Client from Server & shutdown Client ##############################"  )
             self.active = False

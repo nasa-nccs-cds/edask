@@ -41,7 +41,7 @@ class TaskExecHandler(TaskHandle):
     def processResult( self, result: EDASDataset ):
         self.results.put( result )
         self._status = Status.COMPLETED
-        self.logger.info(" ----------------->>> STRATUS REQUEST COMPLETED "  )
+        self.logger.info(" ----------------->>> PC2 REQUEST COMPLETED "  )
 
     def status(self):
         return self._status

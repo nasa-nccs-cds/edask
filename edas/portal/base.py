@@ -237,7 +237,7 @@ class EDASPortal:
 
     def execUtility( self, utilSpec: Sequence[str] ) -> Message: pass
     def execute( self, taskSpec: Sequence[str] ) -> Response: pass
-    def shutdown( self ): pass
+    def shutdown( self, *args, **kwargs ): pass
     def getCapabilities( self, type: str ) -> Message: pass
     def describeProcess( self, utilSpec: Sequence[str] ) -> Message: pass
     def getVariableSpec( self, collId: str, varId: str ) -> Message: pass

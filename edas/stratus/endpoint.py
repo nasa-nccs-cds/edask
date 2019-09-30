@@ -110,7 +110,7 @@ class EDASModule(Module):
             return TaskHandle(rid=rid, cid=cid, status = Status.ERROR, error = TaskExecHandler.getErrorReport(err))
 
 
-    def shutdown( self, *args ):
+    def shutdown( self, *args, **kwargs ):
         print( "Shutdown: " + str(args) )
         if self.processManager is not None:
             self.processManager.term()

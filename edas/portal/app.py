@@ -163,7 +163,7 @@ class EDASapp(EDASPortal):
     #     return self.sendErrorReport( clientId, "requestError", err.toXml() )
 
 
-    def shutdown(self):
+    def shutdown(self, *args, **kwargs):
         if self.processManager is not None:
             self.processManager.term()
 

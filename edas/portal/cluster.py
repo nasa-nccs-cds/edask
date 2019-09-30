@@ -96,7 +96,7 @@ class EDASKClusterThread(Thread):
     def scale_down( self, workers ):
         pass
 
-    def shutdown(self):
+    def shutdown(self, *args, **kwargs):
         self.active = False
         all_processes = self.workers
         for process in all_processes:
@@ -133,7 +133,7 @@ class EDASCluster(Cluster):
     def scale_down( self, workers ):
          if self.clusterThread is not None: self.clusterThread.scale_down( workers )
 
-    def shutdown(self):
+    def shutdown(self, *args, **kwargs):
         if self.schedulerProcess is not None: self.schedulerProcess.terminate()
         if self.clusterThread is not None: self.clusterThread.shutdown()
 

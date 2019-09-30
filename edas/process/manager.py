@@ -1,5 +1,5 @@
 from typing import Dict, Any, Union, List, Callable, Optional
-import zmq, traceback, time, logging, xml, socket, abc, dask, threading, requests, json
+import traceback, time, logging, xml, socket, abc, dask, threading, requests, json
 from edas.workflow.module import edasOpManager
 from edas.process.task import Job
 from edas.workflow.data import EDASDataset

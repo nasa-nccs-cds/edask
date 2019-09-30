@@ -7,6 +7,7 @@ from edas.util.logging import EDASLogger
 from edas.process.manager import ProcessManager, ExecHandler
 from edas.config import EdasEnv
 from edas.portal.cluster import EDASCluster
+from dask.distributed import Client
 from typing import List, Optional, Tuple, Dict, Any
 from threading import Thread
 
