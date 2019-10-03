@@ -196,7 +196,7 @@ class EDASArray:
     def xrDataset(self, attrs: Dict[str, Any] = None, **kwargs ) -> xa.Dataset:
         dset = xa.Dataset( { self.xr.name: self.xr }, attrs=attrs )
         if kwargs.get("standard_names", False ):
-            dset.rename( dict(x="lat",y="lon",z="lev",t="time"), True)
+            dset = dset.rename( dict(x="lat",y="lon",z="lev",t="time") )
         return dset
 
     def propagateHistory( self, precursor: "EDASArray" ) -> "EDASArray":
