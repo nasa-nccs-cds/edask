@@ -291,7 +291,7 @@ class InputKernel(Kernel):
                         self.importToDatasetCollection( results, request, snode, dset )
                         self.logger.info(f"Collection import complete.")
                     except Exception as err:
-                        self.logger.error( f"Error importing aggregation {aggId}: {err}")
+                        self.logger.error( f"Error importing aggregation {aggId}: {err}\n:{traceback.format_exc()}")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
                 files = glob.glob( dataSource.address )
