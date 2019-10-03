@@ -272,23 +272,26 @@ class InputKernel(Kernel):
                     endDate   = None if (domain is None or timeBounds is None) else TimeConversions.parseDate(timeBounds.end)
                 else: startDate = endDate = None
                 for ( aggId, vars ) in aggs.items():
-                    use_chunks = True
-                    pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
-                    assert len(pathList) > 0, f"No files found in aggregation {aggId} for date range {startDate} - {endDate} "
-                    nFiles = len(pathList)
-                    if use_chunks:
-                        nReadPartitions = int( EdasEnv.get( "mfdataset.npartitions", 250 ) )
-                        agg = collection.getAggregation(aggId)
-                        nchunks, fileSize = agg.getChunkSize( nReadPartitions, nFiles )
-                        chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
-                        self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}, startDate={startDate}, endDate={endDate}, domain={domain}" )
-                    else:
-                        chunk_kwargs = {}
-                        self.logger.info( f"Open mfdataset: vars={vars},  NFILES={nFiles}, FILES[0]={pathList[0]}" )
-                    dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
-                    self.logger.info(f"Import to collection")
-                    self.importToDatasetCollection( results, request, snode, dset )
-                    self.logger.info(f"Collection import complete.")
+                    try:
+                        use_chunks = True
+                        pathList = collection.pathList(aggId) if startDate is None else collection.periodPathList(aggId,startDate,endDate)
+                        assert len(pathList) > 0, f"No files found in aggregation {aggId} for date range {startDate} - {endDate} "
+                        nFiles = len(pathList)
+                        if use_chunks:
+                            nReadPartitions = int( EdasEnv.get( "mfdataset.npartitions", 250 ) )
+                            agg = collection.getAggregation(aggId)
+                            nchunks, fileSize = agg.getChunkSize( nReadPartitions, nFiles )
+                            chunk_kwargs = {} if nchunks is None else dict(chunks={"time": nchunks})
+                            self.logger.info( f"Open mfdataset: vars={vars}, NFILES={nFiles}, FileSize={fileSize}, FILES[0]={pathList[0]}, chunk_kwargs={chunk_kwargs}, startDate={startDate}, endDate={endDate}, domain={domain}" )
+                        else:
+                            chunk_kwargs = {}
+                            self.logger.info( f"Open mfdataset: vars={vars},  NFILES={nFiles}, FILES[0]={pathList[0]}" )
+                        dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
+                        self.logger.info(f"Import to collection")
+                        self.importToDatasetCollection( results, request, snode, dset )
+                        self.logger.info(f"Collection import complete.")
+                    except Exception as err:
+                        self.logger.error( f"Error importing aggregation {aggId}: {err}")
             elif dataSource.type == SourceType.file:
                 self.logger.info( "Reading data from address: " + dataSource.address )
                 files = glob.glob( dataSource.address )
