@@ -532,9 +532,12 @@ class EDASDataset:
 
     @classmethod
     def new(cls, dataset: xa.Dataset, varMap: Dict[str,str]=None, idMap=None ):
+        logger = EDASLogger.getLogger()
         if varMap is None: varMap = {}
         if idMap is None: idMap = {}
+        logger.info( f"$$$$$$$$$$ rename: idMap = {idMap}, initial coords = {list(dataset.coords.keys())}")
         dataset = cls.rename( dataset, idMap )
+        logger.info(f"$$$$$$$$$$ rename: Result = {list(dataset.coords.keys())}")
         result = OrderedDict()
         if varMap:
              for ( vid, domId ) in varMap.items():
