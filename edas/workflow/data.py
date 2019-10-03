@@ -534,7 +534,7 @@ class EDASDataset:
     def new(cls, dataset: xa.Dataset, varMap: Dict[str,str]=None, idMap=None ):
         if varMap is None: varMap = {}
         if idMap is None: idMap = {}
-        cls.rename( dataset, idMap )
+        dataset = cls.rename( dataset, idMap )
         result = OrderedDict()
         if varMap:
              for ( vid, domId ) in varMap.items():
