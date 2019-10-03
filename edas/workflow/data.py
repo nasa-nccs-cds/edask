@@ -399,7 +399,7 @@ class EDASArray:
         if 'y' in axes:
             ycoordaxis =  self.coord(Axis.Y)
             data_array: xa.DataArray = self.xr
-            assert ycoordaxis is not None, f"Can't identify Y coordinate axis, coords = {data_array.coords.keys()}"
+            assert ycoordaxis is not None, f"Can't identify Y coordinate axis, coords = {list(data_array.coords.keys())}"
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
 

@@ -339,7 +339,9 @@ class InputKernel(Kernel):
 
     def processDataset(self, request: TaskRequest, dset: xr.Dataset, snode: SourceNode) -> EDASDataset:
         coordMap = Axis.getDatasetCoordMap( dset )
-        edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids}, snode.varSource.name2id(coordMap) )
+        filteredCoordMap = snode.varSource.name2id(coordMap)
+        edset: EDASDataset = EDASDataset.new( dset, { id:snode.domain for id in snode.varSource.ids}, filteredCoordMap )
         processed_domain: Domain  = request.cropDomain( snode.domain, edset.inputs, snode.offset )
         result = edset.subset( processed_domain ) if snode.domain else edset
+        self.logger.info( f"###### ProcessDataset, coordMap = {filteredCoordMap}, dset coords = {list(edset.xr[0].coords.keys())}")
         return self.signResult(result, request, snode, sources=snode.varSource.getId())

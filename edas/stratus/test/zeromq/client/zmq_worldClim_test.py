@@ -23,4 +23,4 @@ requestSpec = dict( domain=domains, input = variables_1h, operation = operations
 task: TaskHandle = client.request(requestSpec)
 result: Optional[TaskResult] = task.getResult(block=True)
 for dataset in result.data:
-    print( f"Got result, vars = {dataset.variables.keys()}")
+    print( f"Got result, vars = {list(dataset.variables.keys())}")
