@@ -398,7 +398,8 @@ class EDASArray:
     def getWeights(self, axes: List[str]  ) -> Optional[xa.Dataset]:
         if 'y' in axes:
             ycoordaxis =  self.coord(Axis.Y)
-            assert ycoordaxis is not None, "Can't identify Y coordinate axis, axes = " + str( self.xr.axes() )
+            data_array: xa.DataArray = self.xr
+            assert ycoordaxis is not None, "Can't identify Y coordinate axis, coords = " + str( data_array.coords )
             return np.cos( ycoordaxis * (3.1415926536/180.0) )
         else: return None
 
