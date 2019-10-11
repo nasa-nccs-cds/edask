@@ -10,7 +10,7 @@ if __name__ == "__main__":
     stratus = StratusCore(settings)
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
-    uri = mgr.getAddress("cip_merra2_mth", "tas")
+    uri = mgr.getAddress("merra2", "tas")
     numDomains = 2
     domains = [f"d{i}" for i in range(numDomains)]
 
