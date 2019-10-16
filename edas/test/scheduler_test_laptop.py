@@ -30,7 +30,7 @@ if __name__ == '__main__':
         if scheduler is None:
             cluster = EDASCluster()
             print("Initializing Dask-distributed cluster with scheduler address: " + cluster.scheduler_address)
-            client = Client( cluster.scheduler_address, timeout=60 )
+            client = Client( cluster.scheduler_address, timeout=64 )
             time.sleep(20)
         else:
             print("Initializing client with existing scheduler at: " + scheduler )
