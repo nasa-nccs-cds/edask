@@ -5,6 +5,7 @@ from edas.process.task import Job
 from edas.workflow.data import EDASDataset
 from dask.distributed import Client, Future, LocalCluster
 from stratus_endpoint.handler.base import Status
+from dask_jobqueue import SLURMCluster
 from edas.util.logging import EDASLogger
 from edas.portal.cluster import EDASCluster
 from edas.config import EdasEnv
@@ -246,10 +247,16 @@ class ProcessManager(GenericProcessManager):
       self.num_wps_requests = 0
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
       self.submitters = []
+      self.slurm_clusters = {}
       self.active = True
       if self.scheduler_address is not None:
           self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
           self.client = Client( self.scheduler_address, timeout=63 )
+      elif self.scheduler_address.lower().startswith("slurm"):
+          scheduler_parms = self.scheduler_address.split(":")
+          assert len( scheduler_parms ) > 1, "Slurm 'scheduler.address' configuration must be of the form 'slurm:<queue>'"
+          cluster = self.getSlurmCluster( scheduler_parms[1] )
+          self.client = Client( cluster )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.client = Client( LocalCluster( n_workers=nWorkers ) )
@@ -265,6 +272,10 @@ class ProcessManager(GenericProcessManager):
       if log_metrics:
         self.metricsThread =  Thread( target=self.trackMetrics )
         self.metricsThread.start()
+
+  def getSlurmCluster( self, queue: str ):
+      self.logger.info( f"Initializing Slurm cluster using queue {queue}" )
+      return self.slurm_clusters.setdefault( queue, SLURMCluster( queue=queue ) )
 
   def getCWTMetrics(self) -> Dict:
       metrics_data = { key:{} for key in ['user_jobs_queued','user_jobs_running','wps_requests','cpu_ave','cpu_count','memory_usage','memory_available']}
