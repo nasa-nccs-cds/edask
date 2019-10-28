@@ -7,7 +7,6 @@ from dask.distributed import Client, Future, LocalCluster
 from stratus_endpoint.handler.base import Status
 from dask_jobqueue import SLURMCluster
 from edas.util.logging import EDASLogger
-from edas.portal.cluster import EDASCluster
 from edas.config import EdasEnv
 import random, string, os, queue, datetime, atexit, multiprocessing, errno, uuid
 from threading import Thread

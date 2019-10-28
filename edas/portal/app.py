@@ -5,7 +5,6 @@ from edas.portal.base import EDASPortal, Message, Response
 from typing import Dict, Any, Sequence
 from edas.workflow.module import edasOpManager
 from edas.portal.parsers import WpsCwtParser
-from edas.portal.cluster import EDASCluster
 from edas.process.task import Job
 from edas.process.manager import ExecHandler, ProcessManager
 from edas.config import EdasEnv

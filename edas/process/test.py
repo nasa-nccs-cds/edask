@@ -6,7 +6,6 @@ from edas.workflow.module import edasOpManager
 from edas.util.logging import EDASLogger
 from edas.process.manager import ProcessManager, ExecHandler
 from edas.config import EdasEnv
-from edas.portal.cluster import EDASCluster
 from typing import List, Optional, Tuple, Dict, Any
 from threading import Thread
 
