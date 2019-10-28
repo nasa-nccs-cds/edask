@@ -249,13 +249,13 @@ class ProcessManager(GenericProcessManager):
       self.slurm_clusters = {}
       self.active = True
       if self.scheduler_address is not None:
-          self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
-          self.client = Client( self.scheduler_address, timeout=63 )
-      elif self.scheduler_address.lower().startswith("slurm"):
-          scheduler_parms = self.scheduler_address.split(":")
-          queue = "default" if len( scheduler_parms ) < 2 else scheduler_parms[1]
-          cluster = self.getSlurmCluster( queue )
-          self.client = Client( cluster )
+          if self.scheduler_address.lower().startswith("slurm"):
+            scheduler_parms = self.scheduler_address.split(":")
+            queue = "default" if len(scheduler_parms) < 2 else scheduler_parms[1]
+            self.client = Client( self.getSlurmCluster(queue) )
+          else:
+            self.logger.info( "Initializing Dask-distributed cluster with scheduler address: " + self.scheduler_address )
+            self.client = Client( self.scheduler_address, timeout=63 )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
           self.client = Client( LocalCluster( n_workers=nWorkers ) )
