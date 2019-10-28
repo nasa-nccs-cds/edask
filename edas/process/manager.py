@@ -254,8 +254,8 @@ class ProcessManager(GenericProcessManager):
           self.client = Client( self.scheduler_address, timeout=63 )
       elif self.scheduler_address.lower().startswith("slurm"):
           scheduler_parms = self.scheduler_address.split(":")
-          assert len( scheduler_parms ) > 1, "Slurm 'scheduler.address' configuration must be of the form 'slurm:<queue>'"
-          cluster = self.getSlurmCluster( scheduler_parms[1] )
+          queue = "default" if len( scheduler_parms ) < 2 else scheduler_parms[1]
+          cluster = self.getSlurmCluster( queue )
           self.client = Client( cluster )
       else:
           nWorkers = int( self.config.get("dask.nworkers",multiprocessing.cpu_count()) )
@@ -275,7 +275,7 @@ class ProcessManager(GenericProcessManager):
 
   def getSlurmCluster( self, queue: str ):
       self.logger.info( f"Initializing Slurm cluster using queue {queue}" )
-      return self.slurm_clusters.setdefault( queue, SLURMCluster( queue=queue ) )
+      return self.slurm_clusters.setdefault( queue, SLURMCluster() if queue == "default" else SLURMCluster( queue=queue ) )
 
   def getCWTMetrics(self) -> Dict:
       metrics_data = { key:{} for key in ['user_jobs_queued','user_jobs_running','wps_requests','cpu_ave','cpu_count','memory_usage','memory_available']}
