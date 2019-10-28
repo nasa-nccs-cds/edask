@@ -412,4 +412,7 @@ class ProcessManager(GenericProcessManager):
       self.submitters.append( submitter )
       submitter.start()
 
+if __name__ == '__main__':
+    cluster = SLURMCluster()
+
 
