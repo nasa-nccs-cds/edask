@@ -10,11 +10,11 @@ if __name__ == "__main__":
     stratus = StratusCore( settings )
     client = stratus.getClient()
     time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
-    uri =  mgr.getAddress("merra2", "tas")
+    uri =  mgr.getAddress("merra2", "ta")
 
     requestSpec = dict(
-        domain=[ dict(name="d0", lat=dict(start=20, end=30, system="values"), lon=dict(start=0, end=10, system="values"), time=time_range) ],
-        input=[ dict( uri=uri, name=f"tas:v0", domain=f"d0" ) ],
+        domain=[ dict(name="d0", time=time_range) ],
+        input=[ dict( uri=uri, name=f"ta:v0", domain=f"d0" ) ],
         operation=[ dict( name="edas:ave", axis="xy", input=f"v0" )  ]
     )
 
