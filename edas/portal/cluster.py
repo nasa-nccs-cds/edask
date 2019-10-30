@@ -1,7 +1,6 @@
 import os, time, socket, sys, json
 from edas.util.logging import EDASLogger
 from typing import Sequence, List, Dict, Mapping, Optional
-from distributed.deploy.ssh import start_worker
 from threading import Thread
 import subprocess
 from edas.config import EdasEnv
@@ -78,9 +77,11 @@ class EDASKClusterThread(Thread):
         except KeyboardInterrupt:
             pass
 
+    def start_worker( self, *args, **kwargs ): pass
+
     def add_worker(self, address):
         print( f" {self.scheduler_addr} {self.scheduler_port} {address} {self.ssh_username} {self.ssh_port} {self.ssh_private_key} {self.nohost} {self.worker_port} ")
-        self.workers.append( start_worker(self.logdir, self.scheduler_addr,
+        self.workers.append( self.start_worker(self.logdir, self.scheduler_addr,
                                          self.scheduler_port, address,
                                          self.nthreads, self.nprocs,
                                          self.ssh_username, self.ssh_port,
