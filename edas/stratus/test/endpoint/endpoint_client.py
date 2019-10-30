@@ -10,10 +10,10 @@ from edas.config import EdasEnv
 if __name__ == "__main__":
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
-    # slurmScheduler = 'slurm:default'
-    # daskScheduler = 'explore101:8786'
-    # appConf = { 'scheduler.address': daskScheduler }
-    # EdasEnv.update( appConf )
+    slurmScheduler = 'slurm:default'
+    daskScheduler = 'explore101:8786'
+    appConf = { 'scheduler.address': daskScheduler }
+    EdasEnv.update( appConf )
 
     settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
     stratus = StratusCore( settings )
