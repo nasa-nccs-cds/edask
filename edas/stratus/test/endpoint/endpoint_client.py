@@ -5,9 +5,16 @@ from stratus.app.client import StratusClient
 import logging
 import xarray as xa
 from stratus.app.core import StratusCore
+from edas.config import EdasEnv
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    slurmScheduler = 'slurm:default'
+    daskScheduler = 'explore101:8786'
+
+    appConf = { 'scheduler.address': daskScheduler }
+    EdasEnv.update( appConf )
+
     settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
     stratus = StratusCore( settings )
     client: StratusClient = stratus.getClient()
