@@ -2,11 +2,12 @@ from stratus_endpoint.handler.base import TaskHandle, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
 from edas.process.test import TestDataManager as mgr
 from stratus.app.client import StratusClient
+import logging
 import xarray as xa
 from stratus.app.core import StratusCore
 
 if __name__ == "__main__":
-
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
     stratus = StratusCore( settings )
     client: StratusClient = stratus.getClient()

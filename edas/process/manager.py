@@ -274,7 +274,9 @@ class ProcessManager(GenericProcessManager):
 
   def getSlurmCluster( self, queue: str ):
       self.logger.info( f"Initializing Slurm cluster using queue {queue}" )
-      return self.slurm_clusters.setdefault( queue, SLURMCluster() if queue == "default" else SLURMCluster( queue=queue ) )
+      cluster =  self.slurm_clusters.setdefault( queue, SLURMCluster() if queue == "default" else SLURMCluster( queue=queue ) )
+      print( "CLUSTER JOB SCRIPT: " + cluster.job_script() )
+      return cluster
 
   def getCWTMetrics(self) -> Dict:
       metrics_data = { key:{} for key in ['user_jobs_queued','user_jobs_running','wps_requests','cpu_ave','cpu_count','memory_usage','memory_available']}
