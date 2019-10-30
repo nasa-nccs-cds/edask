@@ -26,7 +26,7 @@ if __name__ == "__main__":
         fileName =  f"/tmp/edas_endpoint_test_result-{index}.nc"
         print( f"Got result[{index}]: Saving to file {fileName} " )
         dset.to_netcdf( fileName )
+        print(f"Completed saving dataset[{index}]: Variables = {dset.variables.keys()} ")
 
-    client.shutdown()
-    exit()
+    exit(0)
 
