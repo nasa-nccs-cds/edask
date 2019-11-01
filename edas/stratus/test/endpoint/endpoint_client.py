@@ -22,12 +22,12 @@ if __name__ == "__main__":
     settings = dict( stratus = dict( type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint" ) )
     stratus = StratusCore( settings )
     client: StratusClient = stratus.getClient()
-    time_range = {"start": "1980-01-01", "end": "2001-12-31", "crs": "timestamps"}
+    time_range = {"start": "1980-01-01", "end": "1985-01-01", "crs": "timestamps"}
 
     requestSpec = dict(
-        domain=[ dict(name="d0") ],
+        domain=[ dict(name="d0", time=time_range ) ],
         input=[ dict( uri=uri, name=f"{variable}:v0", domain=f"d0" ) ],
-        operation=[ dict( name="edas:ave", axis="t", input=f"v0" )  ]
+        operation=[ dict( name="edas:ave", axis="xy", input=f"v0" )  ]
     )
 
     task: TaskHandle = client.request( requestSpec )
