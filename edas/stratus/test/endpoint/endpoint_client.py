@@ -36,8 +36,7 @@ if __name__ == "__main__":
 
     v: xa.DataArray = list(dsets[0].values())[0]
     print( v )
-    data: np.ndarray = v.data
-    print( data.tolist() )
+    print( v.data )
 
     # for index,dset in enumerate(dsets):
     #     fileName = os.path.expanduser(f"~/edas_endpoint_test_result-{index}.nc")
