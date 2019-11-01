@@ -245,6 +245,7 @@ class ProcessManager(GenericProcessManager):
       self.logger =  EDASLogger.getLogger()
       self.num_wps_requests = 0
       self.scheduler_address = serverConfiguration.get("scheduler.address",None)
+      self.maxjobs = serverConfiguration.get("scheduler.maxjobs", 15 )
       self.submitters = []
       self.slurm_clusters = {}
       self.active = True
@@ -275,6 +276,7 @@ class ProcessManager(GenericProcessManager):
   def getSlurmCluster( self, queue: str ):
       self.logger.info( f"Initializing Slurm cluster using queue {queue}" )
       cluster =  self.slurm_clusters.setdefault( queue, SLURMCluster() if queue == "default" else SLURMCluster( queue=queue ) )
+      cluster.adapt( maximum_jobs=self.maxjobs )
       print( "CLUSTER JOB SCRIPT: " + cluster.job_script() )
       return cluster
 

@@ -9,6 +9,7 @@ variable = "tas"
 uri = 'https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/CREATE-IP/reanalysis/MERRA2/mon/atmos/tas.ncml'
 
 cluster = SLURMCluster( queue="myNodes" )
+cluster.adapt( maximum_jobs=4 )
 print( "CLUSTER JOB SCRIPT: " + cluster.job_script() )
 client = Client( cluster )
 
