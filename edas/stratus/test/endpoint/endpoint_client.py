@@ -35,9 +35,7 @@ if __name__ == "__main__":
     dsets: List[xa.Dataset] = result.data
 
     v: xa.DataArray = list(dsets[0].values())[0]
-    print( v )
-    print( "\n\nAccessing data: " )
-    print( "DATA: " + str(v.to_masked_array().tolist()[0:100]) )
+    print( f"Result: {v}\n DATA: {v.to_masked_array()}" )
 
     # for index,dset in enumerate(dsets):
     #     fileName = os.path.expanduser(f"~/edas_endpoint_test_result-{index}.nc")
