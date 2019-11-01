@@ -36,6 +36,7 @@ if __name__ == "__main__":
 
     v: xa.DataArray = list(dsets[0].values())[0]
     print( v )
+    print( "\n\nAccessing data: " )
     print( "DATA: " + str(v.to_masked_array().tolist()) )
 
     # for index,dset in enumerate(dsets):
