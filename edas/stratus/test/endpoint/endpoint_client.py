@@ -4,6 +4,7 @@ from edas.process.test import TestDataManager as mgr
 from stratus.app.client import StratusClient
 import logging, os
 import xarray as xa
+import numpy as np
 from stratus.app.core import StratusCore
 from edas.config import EdasEnv
 
@@ -34,7 +35,8 @@ if __name__ == "__main__":
     dsets: List[xa.Dataset] = result.data
 
     print( dsets[0] )
-    print( dsets[0].values() )
+    data: np.ndarray = dsets[0].data
+    print( data.tolist() )
 
     # for index,dset in enumerate(dsets):
     #     fileName = os.path.expanduser(f"~/edas_endpoint_test_result-{index}.nc")
