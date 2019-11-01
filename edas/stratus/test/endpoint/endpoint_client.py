@@ -34,8 +34,9 @@ if __name__ == "__main__":
     result: Optional[TaskResult] = task.getResult( block=True )
     dsets: List[xa.Dataset] = result.data
 
-    print( dsets[0] )
-    data: np.ndarray = dsets[0].data
+    v: xa.DataArray = list(dsets[0].values())[0]
+    print( v )
+    data: np.ndarray = v.data
     print( data.tolist() )
 
     # for index,dset in enumerate(dsets):
