@@ -34,32 +34,34 @@ def compute( requestSpec: Dict, rid: str ):
     except Exception as err:
         traceback.print_exc()
 
-# Compute temperature products
+print( "Compute temperature products ------------------------------------------------------------------------------------------------------------------------" )
 
 operations = [ { "name": "edas.timeResample", "input": "temp", "freq": "1D", "op": "ave,max,min" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-temp-dailyMinMaxAve" )
 
 
-# Compute precipitation products
+print( "Compute precipitation products ----------------------------------------------------------------------------------------------------------------------" )
 
 operations = [ { "name": "edas.timeResample", "input": "precip", "freq": "1D", "op": "ave,max,min" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-precip-dailyMinMaxAve" )
 
 
-# Compute relative humidity products
+print( "Compute relative humidity products ------------------------------------------------------------------------------------------------------------------" )
 
 operations = [ { "name": "edas.timeResample", "input": "humid", "freq": "1D", "op": "ave,max,min" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-humid-dailyMinMaxAve" )
 
 
-# Compute cloud cover products
+print( "Compute cloud cover products ------------------------------------------------------------------------------------------------------------------------" )
 
 operations = [ { "name": "edas.timeResample", "input": "clouds", "freq": "1D", "op": "ave,max,min" } ]
 requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-clouds-dailyMinMaxAve" )
+
+print( "Completed processing ------------------------------------------------------------------------------------------------------------------------" )
 
 
 
