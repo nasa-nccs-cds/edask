@@ -4,7 +4,7 @@ import os, xarray as xr
 from stratus.app.core import StratusCore
 from edas.config import EdasEnv
 import traceback
-OUTPUT_DIR = os.path.expanduser("~/.stratus/results")
+OUTPUT_DIR = os.path.expanduser("/att/pubrepo/ILAB/data/cache/results")
 os.makedirs(OUTPUT_DIR,exist_ok=True)
 appConf = {'scheduler.address': 'slurm:default' }
 EdasEnv.update(appConf)
