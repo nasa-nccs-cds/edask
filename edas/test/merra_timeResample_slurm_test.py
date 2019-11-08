@@ -48,21 +48,21 @@ requestSpec = dict( domain=domains, input = variables, operation = operations )
 compute( requestSpec, "merra2-precip-dailyMinMaxAve" )
 
 
-# print( "Compute relative humidity products ------------------------------------------------------------------------------------------------------------------" )
-#
-# operations = [ { "name": "edas.timeResample", "input": "humid", "freq": "1D", "op": "ave,max,min" } ]
-# requestSpec = dict( domain=domains, input = variables, operation = operations )
-# compute( requestSpec, "merra2-humid-dailyMinMaxAve" )
-#
-#
-# print( "Compute cloud cover products ------------------------------------------------------------------------------------------------------------------------" )
-#
-# operations = [ { "name": "edas.timeResample", "input": "clouds", "freq": "1D", "op": "ave,max,min" } ]
-# requestSpec = dict( domain=domains, input = variables, operation = operations )
-# compute( requestSpec, "merra2-clouds-dailyMinMaxAve" )
-#
-# print( "Completed processing ------------------------------------------------------------------------------------------------------------------------" )
-#
-#
-#
-#
+print( "Compute cloud cover products ------------------------------------------------------------------------------------------------------------------------" )
+
+operations = [ { "name": "edas.timeResample", "input": "clouds", "freq": "1D", "op": "ave,max,min" } ]
+requestSpec = dict( domain=domains, input = variables, operation = operations )
+compute( requestSpec, "merra2-clouds-dailyMinMaxAve" )
+
+print( "Compute relative humidity products ------------------------------------------------------------------------------------------------------------------" )
+
+operations = [ { "name": "edas.timeResample", "input": "humid", "freq": "1D", "op": "ave,max,min" } ]
+requestSpec = dict( domain=domains, input = variables, operation = operations )
+compute( requestSpec, "merra2-humid-dailyMinMaxAve" )
+
+
+print( "Completed processing ------------------------------------------------------------------------------------------------------------------------" )
+
+
+
+
