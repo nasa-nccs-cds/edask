@@ -17,7 +17,7 @@ collection = "cip_merra2_6hr"
 vnames = dict( temp='tas', precip='pr', humid='hur', clouds='clt' )
 
 singleYear = True
-base_year = 1995
+base_year = 2014
 nYears = 1
 
 variables = [ dict( uri=f"collection://{collection}", name=f"{vnames[vtype]}:{vtype}", domain="d0") for vtype in ['temp','precip','humid','clouds'] ]
