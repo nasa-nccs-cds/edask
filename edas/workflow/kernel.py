@@ -286,7 +286,9 @@ class InputKernel(Kernel):
                         else:
                             chunk_kwargs = {}
                             self.logger.info( f"Open mfdataset: vars={vars},  NFILES={nFiles}, FILES[0]={pathList[0]}" )
-                        dset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
+                        dset: xr.Dataset = xr.open_mfdataset( pathList, engine='netcdf4', data_vars=vars, parallel=True, **chunk_kwargs )
+                        for id, dvar in dset.data_vars.items():
+                            self.logger.info( f" ---> Variable {id}: attrs={dvar.attrs}"  )
                         self.logger.info(f"Import to collection")
                         self.importToDatasetCollection( results, request, snode, dset )
                         self.logger.info(f"Collection import complete.")
