@@ -82,6 +82,7 @@ class LocalTestManager(TestManager):
     def __init__(self, _proj: str, _exp: str, appConf: Dict[str,str] = None):
         super(LocalTestManager, self).__init__(_proj, _exp)
         EdasEnv.update(appConf)
+        self.processManager = ProcessManager.initManager(EdasEnv.parms)
 
     def testExec(self, domains: List[Dict[str, Any]], variables: List[Dict[str, Any]], operations: List[Dict[str, Any]], processResult: bool = True ) -> List[EDASDataset]:
         t0 = time.time()

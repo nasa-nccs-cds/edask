@@ -126,14 +126,19 @@ class EDASArray:
         if isinstance(xrd,DataArrayGroupBy):
             self.logger.warn( " EDASArray.persist returning DataArrayGroupBy" )
             return xrd
-        if self.loaded_data is None:
-            client = Client.current()
-            if client is None:
-                self.loaded_data = xrd.load().persist()
-            else:
-                client.persist( xrd )
-                self.loaded_data = xrd
-        return self.loaded_data
+        # if self.loaded_data is None:
+        #         #     client = Client.current()
+        #         #     if client is None:
+        #         #         self.loaded_data = xrd.load().persist()
+        #         #     else:
+        #         #         client.persist( xrd )
+        #         #         self.loaded_data = xrd
+        self._data = self._data.persist()
+        return self._data
+
+    def compute(self):
+        self._data = self._data.compute()
+        return self
 
     @property
     def xr(self) -> Union[xa.DataArray,DataArrayGroupBy]:

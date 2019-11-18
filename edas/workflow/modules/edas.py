@@ -139,7 +139,8 @@ class WorldClimKernel(OpKernel):
     def __init__(self, kid:str = "worldClim" ):
         OpKernel.__init__(self, KernelSpec(kid, "WorldClim Kernel", "Computes the 20 WorldClim fields"))
         self.start_time = None
-        self.results = {}
+        self.results: Dict[str,EDASArray]  = {}
+        self.selectors: Dict[str,np.ndarray] = {}
 
     def toCelcius(self, tempVar: EDASArray ):
         Tunits: str = tempVar.xr.attrs.get("units",None)
@@ -170,36 +171,47 @@ class WorldClimKernel(OpKernel):
                 array = array.expand_dims( d, -1 )
         return array.stack( z=['y', 'x'] )
 
-    def getValueForSelectedQuarter(self, taxis: str, targetVar: Optional["EDASArray"], selectionVar: "EDASArray", op: str, name: str ) -> "EDASArray":
-#        self.logger.info( f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}")
-        assert selectionVar.xrArray.shape[0] == 12, "Must have full year of data to compute WorldClim fields"
-        selectionData: xa.DataArray = selectionVar.xr.chunk({taxis:3})
-        lowpassSelector: xa.DataArray = selectionData.rolling( {taxis:3}, min_periods=2, center=True ).mean()
-        if op == "max":   selectedMonth: xa.DataArray = lowpassSelector.argmax( taxis, keep_attrs=True )
-        elif op == "min": selectedMonth: xa.DataArray = lowpassSelector.argmin( taxis, keep_attrs=True )
-        else: raise Exception( "Unrecognized operation in getValueForSelectedQuarter: " + op )
-#        self.print_array( "selectedMonth", selectedMonth )
+    def addMonthCoord(self, targetVar: EDASArray, taxis: str ) -> xa.DataArray:
+        tcoord = targetVar.xr.coords[taxis]
+        dt = tcoord[1] - tcoord[0]
+        month: xa.DataArray = ((tcoord - tcoord[0]) / dt)
+        return targetVar.xr.assign_coords(m=month)
 
-        if targetVar is None:
-            target = self.stack( selectionVar.xr)
-            resultXarray =  target.isel( { taxis:self.stack( selectedMonth) } )
-            resultVar = selectionVar
+    def getMonthArray(self, targetVar: EDASArray, taxis: str ) -> np.ndarray:
+        tlen = targetVar.xr.coords[taxis].size
+        tdata: np.ndarray = np.arange( tlen ).reshape( tlen, 1, 1 )
+#        result = xa.DataArray( data=tdata, dims=targetVar.dims )
+        return tdata
+
+    def getSelector( self, selectionVar: xa.Dataset, selOp: str, taxis: str) -> np.ndarray:
+        selectorName = f"{selectionVar}.{selOp}"
+        if selectorName not in self.selectors:
+            lowpassSelector: xa.DataArray = selectionVar.xr.rolling({taxis: 3}, min_periods=2, center=True).mean()
+            if selOp == "max":
+                xaSelectedMonth: xa.DataArray = lowpassSelector.argmax(taxis, keep_attrs=True)
+            elif selOp == "min":
+                xaSelectedMonth: xa.DataArray = lowpassSelector.argmin(taxis, keep_attrs=True)
+            else:
+                raise Exception("Unrecognized operation in getValueForSelectedQuarter: " + selOp)
+            selectedMonth: np.ndarray = xaSelectedMonth.to_masked_array()
+            self.selectors[selectorName] = selectedMonth
         else:
-            selectedMonth.persist()
-            targetVars = []
-            selectors = [ ( selectedMonth - 1 ) % 12, selectedMonth, (selectedMonth + 1) % 12 ]
-            target: xa.DataArray = self.stack( targetVar.xr)
-            for selector in selectors:
-                stacked_selector  = self.stack( selector )
-#                self.logger.info( f"getValueForSelectedQuarter: Processing target var {target.name} with shape {target.shape}, op: {op}, selector shape: {stacked_selector.shape}")
-                targetVars.append( target.isel( {taxis:stacked_selector} ) )
-            resultXarray = ( targetVars[0] + targetVars[1] + targetVars[2] ) / 3
-            resultVar = targetVar
-        return resultVar.updateXa( resultXarray.unstack(), name )
+            selectedMonth = self.selectors[selectorName]
+        return selectedMonth
+
+    def getValueForSelectedQuarter(self, taxis: str, targetVar: "EDASArray", tvarOp: str, selectionVar: "EDASArray", selOp: str, name: str) -> "EDASArray":
+        t0 = time.time()
+        selectedMonth: np.ndarray = self.getSelector( selectionVar, selOp, taxis )
+        tlen = targetVar.xr.shape[0]
+        tdata: np.ndarray = np.arange(tlen).reshape(tlen, 1, 1)
+        mask = (np.abs((tdata - selectedMonth)) < 2)
+        resultXarray: xa.DataArray = targetVar.xr.where(mask).mean(axis=0).compute()
+        t2 = time.time()
+        self.logger.info(f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}, time = {t2 - t0} sec")
+        return  targetVar.updateXa(resultXarray, name)
 
     def setResult( self, key: str, value: EDASArray ):
         self.logger.info( f"Computed value for WorldClim field bio-{key}")
-        value.persist()
         self.results[key] = value
 
     def processInputCrossSection( self, request: TaskRequest, node: OpNode, inputs: EDASDataset  ) -> EDASDataset:
@@ -232,13 +244,21 @@ class WorldClimKernel(OpKernel):
             Tmin: EDASArray = Tmaxmin[1]
             monthlyPrecip = moistVar.timeAgg("month", version)[0]
 
+        results =  self.computeIndices( Tmax.compute(), Tmin.compute(), monthlyPrecip.compute(), version = version, pscale=pscale, taxis=taxis )
+        return self.buildProduct(inputs.id, request, node, results, inputs.attrs)
+
+    def computeIndices(self, Tmax: EDASArray, Tmin: EDASArray, monthlyPrecip: EDASArray, **kwargs ) ->  List[EDASArray]:
+        version = kwargs.get('version',"mean")
+        pscale = kwargs.get('pscale', 1.0 )
+        taxis = kwargs.get('taxis', 't' )
         self.logger.info(f" --> version = {version}, pscale = {pscale}")
         if pscale != float(1.0): monthlyPrecip = monthlyPrecip * pscale
-        Tave = (Tmax+Tmin)/2.0
+        Tave = ((Tmax+Tmin)/2.0).compute()
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2.0
         self.start_time = time.time()
-        Tave.persist(); monthlyPrecip.persist()
+        print( f" Tave shape = {Tave.xr.shape}" )
+        print( f" monthlyPrecip shape = {monthlyPrecip.xr.shape}" )
 
 #         self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:12,10:12]}")
 #         self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
@@ -251,23 +271,24 @@ class WorldClimKernel(OpKernel):
         self.setResult( '5' ,  Tmax.max([taxis], name="bio5") )
         self.setResult( '6' ,  Tmin.min([taxis], name="bio6") )
         self.setResult( '7' ,  (self.results['5'] - self.results['6']).rename("bio7") )
-        self.setResult( '8' ,  self.getValueForSelectedQuarter( taxis, Tave, monthlyPrecip, "max", "bio8" ) )
-        self.setResult( '9' ,  self.getValueForSelectedQuarter( taxis, Tave, monthlyPrecip, "min", "bio9" ) )
+        self.setResult( '8' ,  self.getValueForSelectedQuarter( taxis, Tave, "ave", monthlyPrecip, "max", "bio8" ) )
+        self.setResult( '9' ,  self.getValueForSelectedQuarter( taxis, Tave, "ave", monthlyPrecip, "min", "bio9" ) )
         self.setResult( '3' ,  ( ( self.results['2']*100 )/ self.results['7'] ).rename("bio3") )
-        self.setResult( '10' , self.getValueForSelectedQuarter( taxis, Tave, Tave, "max", "bio10" ) )
-        self.setResult( '11' , self.getValueForSelectedQuarter( taxis, Tave, Tave, "min", "bio11" ) )
+        self.setResult( '10' , self.getValueForSelectedQuarter( taxis, Tave, "ave", Tave, "max", "bio10" ) )
+        self.setResult( '11' , self.getValueForSelectedQuarter( taxis, Tave, "ave", Tave, "min", "bio11" ) )
         self.setResult( '12' , monthlyPrecip.sum([taxis], name="bio12") )
         self.setResult( '13' , monthlyPrecip.max([taxis], name="bio13") )
         self.setResult( '14' , monthlyPrecip.min([taxis], name="bio14") )
         self.setResult( '15' , (( monthlyPrecip.std([taxis]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
-        self.setResult( '16' , self.getValueForSelectedQuarter( taxis, None, monthlyPrecip, "max", "bio16") )
-        self.setResult( '17' , self.getValueForSelectedQuarter( taxis, None, monthlyPrecip, "min", "bio17") )
-        self.setResult( '18' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "max", "bio18" ) )
-        self.setResult( '19' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, Tave, "min", "bio19" ) )
+        self.setResult( '16' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", monthlyPrecip, "max", "bio16") )
+        self.setResult( '17' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", monthlyPrecip, "min", "bio17") )
+        self.setResult( '18' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", Tave, "max", "bio18" ) )
+        self.setResult( '19' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", Tave, "min", "bio19" ) )
 
-        results: List[EDASArray] = [ moistVar.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
+        results: List[EDASArray] = [ monthlyPrecip.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
         self.logger.info( f"Completed WorldClim computation, elapsed = {(time.time()-self.start_time)/60.0} m")
-        return self.buildProduct( inputs.id, request, node, results, inputs.attrs )
+        return results
+
 
 class DetrendKernel(OpKernel):
     def __init__( self ):
