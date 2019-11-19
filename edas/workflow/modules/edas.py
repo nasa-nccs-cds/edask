@@ -183,10 +183,11 @@ class WorldClimKernel(OpKernel):
 #        result = xa.DataArray( data=tdata, dims=targetVar.dims )
         return tdata
 
-    def getSelector( self, selectionVar: xa.Dataset, selOp: str, taxis: str) -> np.ndarray:
-        selectorName = f"{selectionVar}.{selOp}"
+    def getSelector( self, selectionArray: xa.DataArray, selOp: str, taxis: str) -> np.ndarray:
+        selectorName = f"{selectionArray.name}.{selOp}"
+        assert selectionArray.shape[0] >= 14, "Must have at least a full year of data with a 1-month extension at each end for rolling window computation"
         if selectorName not in self.selectors:
-            lowpassSelector: xa.DataArray = selectionVar.xr.rolling({taxis: 3}, min_periods=2, center=True).mean()
+            lowpassSelector: xa.DataArray = selectionArray.rolling({taxis: 3}, min_periods=3, center=True).mean()
             if selOp == "max":
                 xaSelectedMonth: xa.DataArray = lowpassSelector.argmax(taxis, keep_attrs=True)
             elif selOp == "min":
@@ -201,14 +202,14 @@ class WorldClimKernel(OpKernel):
 
     def getValueForSelectedQuarter(self, taxis: str, targetVar: "EDASArray", tvarOp: str, selectionVar: "EDASArray", selOp: str, name: str) -> "EDASArray":
         t0 = time.time()
-        selectedMonth: np.ndarray = self.getSelector( selectionVar, selOp, taxis )
+        selectedMonth: np.ndarray = self.getSelector( selectionVar.xr, selOp, taxis )
         tlen = targetVar.xr.shape[0]
         tdata: np.ndarray = np.arange(tlen).reshape(tlen, 1, 1)
         mask = (np.abs((tdata - selectedMonth)) < 2)
-        resultXarray: xa.DataArray = targetVar.xr.where(mask).mean(axis=0).compute()
+        resultXarray: xa.DataArray = targetVar.xr.where(mask).sum(axis=0) if tvarOp == "sum" else targetVar.xr.where(mask).mean(axis=0)
         t2 = time.time()
         self.logger.info(f" getValueForSelectedQuarter, dims = {selectionVar.xr.dims}, time = {t2 - t0} sec")
-        return  targetVar.updateXa(resultXarray, name)
+        return  targetVar.updateXa(resultXarray.compute(), name)
 
     def setResult( self, key: str, value: EDASArray ):
         self.logger.info( f"Computed value for WorldClim field bio-{key}")

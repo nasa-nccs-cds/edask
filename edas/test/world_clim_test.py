@@ -15,7 +15,7 @@ def world_clim_6hr( mgr: LocalTestManager ):
 
 def world_clim_mth( mgr: LocalTestManager ):
     try:
-        domains = [{ "name":"d0", "time": { "start":'1990-01-01T00Z', "end":'1991-01-01T00Z', "system":"timestamps"  } } ]
+        domains = [{ "name":"d0", "time": { "start":'1989-12-01T00Z', "end":'1991-02-01T00Z', "system":"timestamps"  } } ]
         variables = [ { "uri": mgr.getAddress( "merra2", "tasmin"), "name": "tasmin:minTemp", "domain": "d0" },
                       { "uri": mgr.getAddress( "merra2", "tasmax"), "name": "tasmax:maxTemp", "domain": "d0" },
                       { "uri": mgr.getAddress( "merra2", "pr"), "name":"pr:moist", "domain":"d0" } ]

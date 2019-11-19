@@ -9,7 +9,8 @@ t0 = time.time()
 
 def getSelector(selectionVar: xa.Dataset, selOp: str, taxis: str) -> np.ndarray:
     t0 = time.time()
-    lowpassSelector: xa.DataArray = selectionVar.rolling({taxis: 3}, min_periods=2, center=True).mean()
+    lowpassSelector: xa.DataArray = selectionVar.rolling({taxis: 3}, min_periods=3, center=True).mean()
+    print( lowpassSelector.shape )
     if selOp == "max":
         xaSelectedMonth: xa.DataArray = lowpassSelector.argmax(taxis, keep_attrs=True)
     elif selOp == "min":
