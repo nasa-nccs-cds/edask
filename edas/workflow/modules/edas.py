@@ -263,7 +263,7 @@ class WorldClimKernel(OpKernel):
         self.logger.info(f" Tmin shape = {Tmin.xr.shape}, dims={Tmin.xr.dims}, sample = {Tmin.xr.to_masked_array()[2,150:160,200]}")
         self.logger.info(f" Trange shape = {Trange.xr.shape}, dims={Trange.xr.dims}, sample = {Trange.xr.to_masked_array()[2, 150:160, 200]}")
         self.logger.info(f" Tave shape = {Tave.xr.shape}, dims={Tave.xr.dims}, sample = {Tave.xr.to_masked_array()[2, 150:160, 200]}")
-        self.logger.info(f" bio2 shape = {bio2.xr.shape}, dims={bio2.xr.dims}, sample = {bio2.xr.to_masked_array()[ 150:160, 200 ]}")
+        self.logger.info(f" bio2 shape = {bio2.xr.shape}, dims={bio2.xr.dims}, sample  = {bio2.xr.to_masked_array()[ 150:160, 200 ]}")
 
         self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
         self.setResult( '2' ,  bio2 )
