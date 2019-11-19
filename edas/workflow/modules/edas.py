@@ -258,12 +258,8 @@ class WorldClimKernel(OpKernel):
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2.0
         self.start_time = time.time()
-        print( f" Tave shape = {Tave.xr.shape}" )
-        print( f" monthlyPrecip shape = {monthlyPrecip.xr.shape}" )
-
-#         self.logger.info( f"Tmax sample: {Tmax.xr.to_masked_array()[2,10:12,10:12]}")
-#         self.logger.info( f"Tmin sample: {Tmin.xr.to_masked_array()[2,10:12,10:12]}")
-#         self.logger.info( f"Trange sample: {Trange.xr.to_masked_array()[2,10:12,10:12]}")
+        self.logger.info(f" Tmax shape = {Tmax.xr.shape}, sample = {Tmax.xr.to_masked_array()[2,150:200,200]}")
+        self.logger.info(f" Tmin shape = {Tmin.xr.shape}, sample = {Tmin.xr.to_masked_array()[2,150:200,200]}")
 
         self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
         self.setResult( '2' ,  Trange.ave([taxis], name="bio2") )
