@@ -257,12 +257,16 @@ class WorldClimKernel(OpKernel):
         Tave = ((Tmax+Tmin)/2.0).compute()
         TKave = Tave + 273.15
         Trange = (Tmax-Tmin)/2.0
+        bio2 = Trange.ave([taxis], name="bio2")
         self.start_time = time.time()
-        self.logger.info(f" Tmax shape = {Tmax.xr.shape}, sample = {Tmax.xr.to_masked_array()[2,150:200,200]}")
-        self.logger.info(f" Tmin shape = {Tmin.xr.shape}, sample = {Tmin.xr.to_masked_array()[2,150:200,200]}")
+        self.logger.info(f" Tmax shape = {Tmax.xr.shape}, dims={Tmax.xr.dims}, sample = {Tmax.xr.to_masked_array()[2,150:160,200]}")
+        self.logger.info(f" Tmin shape = {Tmin.xr.shape}, dims={Tmin.xr.dims}, sample = {Tmin.xr.to_masked_array()[2,150:160,200]}")
+        self.logger.info(f" Trange shape = {Trange.xr.shape}, dims={Trange.xr.dims}, sample = {Trange.xr.to_masked_array()[2, 150:160, 200]}")
+        self.logger.info(f" Tave shape = {Tave.xr.shape}, dims={Tave.xr.dims}, sample = {Tave.xr.to_masked_array()[2, 150:160, 200]}")
+        self.logger.info(f" bio2 shape = {bio2.xr.shape}, dims={bio2.xr.dims}, sample = {bio2.xr.to_masked_array()[ 150:160, 200 ]}")
 
         self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
-        self.setResult( '2' ,  Trange.ave([taxis], name="bio2") )
+        self.setResult( '2' ,  bio2 )
         self.setResult( '4' ,  Tave.std([taxis], name="bio4") )
         self.setResult( '4a',  (( TKave.std([taxis],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
         self.setResult( '5' ,  Tmax.max([taxis], name="bio5") )
