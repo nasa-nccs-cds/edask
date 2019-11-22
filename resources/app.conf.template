@@ -1,6 +1,6 @@
 wps.server.address=0.0.0.0
 sources.allowed=collection,https
-trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC/
+trusted.dap.servers=https://aims3.llnl.gov/thredds/dodsC,https://dataserver.nccs.nasa.gov/thredds/dodsC
 edas.manage.cluster=true
 edas.manage.scheduler=true
 request.port=0000
@@ -11,4 +11,4 @@ esgf.openid=
 esgf.password=
 esgf.username=
 edas.transients.dir=/tmp
-edas.coll.dir=/foo/bar
+edas.coll.dir=/set/edas.coll.dir/in/app.conf/

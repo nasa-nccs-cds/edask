@@ -36,12 +36,5 @@ if __name__ == "__main__":
 
     v: xa.DataArray = list(dsets[0].values())[0]
     print( f"Result: {v}\n DATA: {v.to_masked_array()}" )
-
-    # for index,dset in enumerate(dsets):
-    #     fileName = os.path.expanduser(f"~/edas_endpoint_test_result-{index}.nc")
-    #     print( f"Got result[{index}]: Saving to file {fileName} " )
-    #     dset.to_netcdf( fileName )
-    #     print(f"Completed saving dataset[{index}]: Variables = {dset.variables.keys()} ")
-
     exit(0)
 
