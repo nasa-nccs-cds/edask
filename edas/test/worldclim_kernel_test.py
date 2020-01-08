@@ -27,4 +27,4 @@ ds_pr = xa.open_dataset("https://dataserver.nccs.nasa.gov/thredds/dodsC/bypass/C
 pr = ds_pr["pr"]
 pr = EDASArray( "pr", "d0", pr[0:12,:,:].compute() )
 
-results = kernel.computeIndices( tasmin, tasmax, pr )
+results = kernel.computeIndices( tasmin, tasmax, pr, tscale=10.0, hscale=1.0e5 )

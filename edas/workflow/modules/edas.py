@@ -225,14 +225,15 @@ class WorldClimKernel(OpKernel):
 
         tempID = node.getParm("temp","temp")
         tempVar: EDASArray = inputs.findArray(tempID)
-        pscale = float( node.getParm( "pscale", 1.0 ) )
+        hscale = float( node.getParm( "hscale", 1.0 ) )
+        tscale = float( node.getParm( "tscale", 1.0 ) )
         if tempVar is None:
             taxis = "t"
             tempMaxID = node.getParm("maxTemp", "maxTemp")
             tempMinID = node.getParm("minTemp", "minTemp")
             Tmax: EDASArray = inputs.findArray(tempMaxID)
             Tmin: EDASArray = inputs.findArray(tempMinID)
-            monthlyPrecip: EDASArray = moistVar
+            humid: EDASArray = moistVar
             assert Tmax is not None and Tmax is not None, f"Must specify the temperature input variables using either the '{tempID}' parameter (hourly) or the '{tempMaxID}','{tempMinID}' parameters (monthly)"
         else:
             taxis = "m"
@@ -243,43 +244,44 @@ class WorldClimKernel(OpKernel):
             Tmaxmin = dailyTmaxmin[0].timeAgg("month", "max,min")
             Tmax: EDASArray = Tmaxmin[0]
             Tmin: EDASArray = Tmaxmin[1]
-            monthlyPrecip = moistVar.timeAgg("month", version)[0]
+            humid = moistVar.timeAgg("month", version)[0]
 
-        results =  self.computeIndices( Tmax.compute(), Tmin.compute(), monthlyPrecip.compute(), version = version, pscale=pscale, taxis=taxis )
+        results =  self.computeIndices( Tmax.compute(), Tmin.compute(), humid.compute(), version = version, hscale=hscale, tscale=tscale, taxis=taxis )
         return self.buildProduct(inputs.id, request, node, results, inputs.attrs)
 
-    def computeIndices(self, Tmax: EDASArray, Tmin: EDASArray, monthlyPrecip: EDASArray, **kwargs ) ->  List[EDASArray]:
-        version = kwargs.get('version',"mean")
-        pscale = kwargs.get('pscale', 1.0 )
+    def computeIndices(self, monthlyTmax: EDASArray, monthlyTmin: EDASArray, monthlySpecHumid: EDASArray, **kwargs) ->  List[EDASArray]:
+        hscale = kwargs.get('hscale', 1.0 )
+        tscale = kwargs.get('tscale', 1.0)
+        self.logger.info(f"Computing Indices with scaling: hscale={hscale}, tscale={tscale}" )
         taxis = kwargs.get('taxis', 't' )
-        if pscale != float(1.0): monthlyPrecip = monthlyPrecip * pscale
+        humid = monthlySpecHumid * hscale if hscale != float(1.0) else monthlySpecHumid
+        Tmax = monthlyTmax * tscale if tscale != float(1.0) else monthlyTmax
+        Tmin = monthlyTmin * tscale if tscale != float(1.0) else monthlyTmin
         Tave = ((Tmax+Tmin)/2.0).compute()
-        TKave = Tave + 273.15
-        Trange = (Tmax-Tmin)/2.0
-        bio2 = Trange.ave([taxis], name="bio2")
+        TR = (Tmax-Tmin)*2.0
         self.start_time = time.time()
         self.setResult( '1' ,  Tave.ave([taxis], name="bio1") )
-        self.setResult( '2' ,  bio2 )
+        self.setResult( '2' ,  TR.ave([taxis], name="bio2") )
         self.setResult( '4' ,  Tave.std([taxis], name="bio4") )
-        self.setResult( '4a',  (( TKave.std([taxis],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
+#        self.setResult( '4a',  (( (Tave + 273.15).std([taxis],keep_attrs=True)*100 )/(self.results['1'] + 273.15)).rename("bio4a") )
         self.setResult( '5' ,  Tmax.max([taxis], name="bio5") )
         self.setResult( '6' ,  Tmin.min([taxis], name="bio6") )
         self.setResult( '7' ,  (self.results['5'] - self.results['6']).rename("bio7") )
-        self.setResult( '8' ,  self.getValueForSelectedQuarter( taxis, Tave, "ave", monthlyPrecip, "max", "bio8" ) )
-        self.setResult( '9' ,  self.getValueForSelectedQuarter( taxis, Tave, "ave", monthlyPrecip, "min", "bio9" ) )
+        self.setResult( '8', self.getValueForSelectedQuarter(taxis, Tave, "ave", humid, "max", "bio8"))
+        self.setResult( '9', self.getValueForSelectedQuarter(taxis, Tave, "ave", humid, "min", "bio9"))
         self.setResult( '3' ,  ( ( self.results['2']*100 )/ self.results['7'] ).rename("bio3") )
         self.setResult( '10' , self.getValueForSelectedQuarter( taxis, Tave, "ave", Tave, "max", "bio10" ) )
         self.setResult( '11' , self.getValueForSelectedQuarter( taxis, Tave, "ave", Tave, "min", "bio11" ) )
-        self.setResult( '12' , monthlyPrecip.sum([taxis], name="bio12") )
-        self.setResult( '13' , monthlyPrecip.max([taxis], name="bio13") )
-        self.setResult( '14' , monthlyPrecip.min([taxis], name="bio14") )
-        self.setResult( '15' , (( monthlyPrecip.std([taxis]) * 100 )/( (self.results['12']/12) + 1 )).rename("bio15") )
-        self.setResult( '16' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", monthlyPrecip, "max", "bio16") )
-        self.setResult( '17' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", monthlyPrecip, "min", "bio17") )
-        self.setResult( '18' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", Tave, "max", "bio18" ) )
-        self.setResult( '19' , self.getValueForSelectedQuarter( taxis, monthlyPrecip, "sum", Tave, "min", "bio19" ) )
+        self.setResult( '12', humid.sum([taxis], name="bio12") )
+        self.setResult( '13', humid.max([taxis], name="bio13") )
+        self.setResult( '14', humid.min([taxis], name="bio14") )
+        self.setResult( '15', ((humid.std([taxis]) * 100 ) / ((self.results['12'] / 12) + 1)).rename("bio15"))
+        self.setResult( '16', self.getValueForSelectedQuarter(taxis, humid, "sum", humid, "max", "bio16") )
+        self.setResult( '17', self.getValueForSelectedQuarter(taxis, humid, "sum", humid, "min", "bio17") )
+        self.setResult( '18', self.getValueForSelectedQuarter(taxis, humid, "sum", Tave, "max", "bio18") )
+        self.setResult( '19', self.getValueForSelectedQuarter(taxis, humid, "sum", Tave, "min", "bio19") )
 
-        results: List[EDASArray] = [ monthlyPrecip.updateXa( result.xr, "bio-"+index ) for index, result in self.results.items() ]
+        results: List[EDASArray] = [humid.updateXa(result.xr, "bio-" + index) for index, result in self.results.items()]
         self.logger.info( f"Completed WorldClim computation, elapsed = {time.time()-self.start_time} sec")
         return results
 
