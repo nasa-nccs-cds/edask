@@ -30,8 +30,12 @@ def compute( requestSpec: Dict, rid: str ):
     try:
         task: TaskHandle = client.request(requestSpec)
         result: Optional[TaskResult] = task.getResult(block=True)
-        result.getDataset().to_netcdf( f"{OUTPUT_DIR}/{rid}.nc" )
-    except Exception as err:
+        result_dataset = result.getDataset()
+        output_file = f"{OUTPUT_DIR}/{rid}.nc"
+        try:                          result_dataset.to_netcdf( output_file )
+        except Exception as err0:     print( f"\n\n   &&&&&&&&   ERROR writing result to output file: {output_file}: {err0}   &&&&&&&&   \n\n" )
+    except Exception as err1:
+        print(f"\n\n  &&&&&&&&   Execution ERROR : {err1}   &&&&&&&& ")
         traceback.print_exc()
 
 print( "Compute temperature products ------------------------------------------------------------------------------------------------------------------------" )
