@@ -904,7 +904,11 @@ class EDASDatasetCollection:
 
     def items(self) -> ItemsView[(str, EDASDataset)]: return self._datasets.items()
 
-    def __getitem__( self, key: str ) -> EDASDataset: return self._datasets.get(key)
+    def __getitem__( self, key: str ) -> EDASDataset:
+        result =  self._datasets.get(key)
+        if result is None:
+            print( f" $$$$ Cant find dataset using variable key {key} in collection {self._name}, avaliable keys = {list(self._datasets.keys())}" )
+        return result
 
     def __setitem__(self, key: str, dset: EDASDataset ):
         assert isinstance(dset,EDASDataset), "EDASDatasetCollection.setitem: Expecting EDASDataset, got " + dset.__class__.__name__
