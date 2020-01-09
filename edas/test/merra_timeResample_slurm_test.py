@@ -6,8 +6,8 @@ from edas.config import EdasEnv
 import traceback, time
 OUTPUT_DIR = os.path.expanduser("/att/pubrepo/ILAB/data/cache/results")
 os.makedirs(OUTPUT_DIR,exist_ok=True)
-appConf = {'scheduler.address': 'slurm:default' }
-EdasEnv.update(appConf)
+# appConf = {'scheduler.address': 'slurm:default' }
+# EdasEnv.update(appConf)
 
 settings = dict(stratus=dict(type="endpoint", module="edas.stratus.endpoint", object="EDASEndpoint"))
 stratus = StratusCore(settings)
