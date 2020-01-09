@@ -1,6 +1,6 @@
 from stratus_endpoint.handler.base import Endpoint, TaskHandle, Status, TaskResult
 from typing import Sequence, List, Dict, Mapping, Optional, Any
-import traceback
+import traceback, time
 import atexit, ast, os, json
 from edas.portal.base import Message, Response
 from typing import Dict, Any, Sequence
@@ -111,6 +111,7 @@ class EDASEndpoint(Endpoint):
 
     def shutdown( self, *args ):
         print( "Shutdown: " + str(args) )
+        time.sleep( 4.0 )
         if self.processManager is not None:
             self.processManager.term()
 
